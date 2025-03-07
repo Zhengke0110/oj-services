@@ -40,7 +40,7 @@ import java.util.logging.Logger;
  */
 public class JavaScriptDockerExecutor {
     private static final Logger logger = Logger.getLogger(JavaScriptDockerExecutor.class.getName());
-    private static final String DOCKER_IMAGE = "node:14-alpine"; // 使用更轻量级稳定的Node.js镜像
+    private static final String DOCKER_IMAGE = "node:18-alpine"; // 使用更轻量级稳定的Node.js镜像
     private static final String WORK_DIR = "/code";
     private static final int MEMORY_LIMIT = 256 * 1024 * 1024; // 256MB
     private static final int CPU_LIMIT = 1; // 1 CPU
@@ -92,7 +92,7 @@ public class JavaScriptDockerExecutor {
             setExecutablePermissions(jsFilePath);
 
             // 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
-            checkAndPullImage();
+            ensureDockerImage(pullImageAlways);
 
             // 指标收集
             List<ExecutionMetrics> metrics = new ArrayList<>();
@@ -152,7 +152,7 @@ public class JavaScriptDockerExecutor {
             setExecutablePermissions(jsFilePath);
 
             // 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
-            checkAndPullImage();
+            ensureDockerImage(pullImageAlways);
 
             // 指标收集
             List<ExecutionMetrics> metrics = new ArrayList<>();
@@ -221,7 +221,7 @@ public class JavaScriptDockerExecutor {
             setExecutablePermissions(testCaseFilePath);
 
             // 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
-            checkAndPullImage();
+            ensureDockerImage(pullImageAlways);
 
             // 指标收集
             List<ExecutionMetrics> metrics = new ArrayList<>();
@@ -953,61 +953,60 @@ public class JavaScriptDockerExecutor {
     }
 
     /**
-     * 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
+     * 确保Docker镜像存在，不存在则拉取
+     *
+     * @param forcePull 是否强制拉取镜像
      */
-    private void checkAndPullImage() {
+    private void ensureDockerImage(boolean forcePull) {
         try {
-            boolean shouldPull = pullImageAlways;
+            boolean shouldPull = forcePull;
 
-            if (!pullImageAlways) {
-                // 检查本地是否有指定镜像
+            if (!forcePull) {
+                // 使用更可靠的方式检查镜像是否存在
                 logger.info("检查本地是否有镜像: " + DOCKER_IMAGE);
-                boolean imageExists = dockerClient.listImagesCmd()
-                        .withImageNameFilter(DOCKER_IMAGE)
-                        .exec()
-                        .stream()
-                        .findAny()
-                        .isPresent();
+
+                boolean imageExists = false;
+                try {
+                    // 通过镜像ID检查镜像是否存在，更准确
+                    imageExists = !dockerClient.inspectImageCmd(DOCKER_IMAGE).exec().getId().isEmpty();
+                    logger.info("镜像检查结果: " + (imageExists ? "存在" : "不存在"));
+                } catch (Exception e) {
+                    logger.info("镜像不存在或无法获取信息: " + e.getMessage());
+                    imageExists = false;
+                }
 
                 shouldPull = !imageExists;
-
-                if (imageExists) {
-                    logger.info("本地已有镜像: " + DOCKER_IMAGE);
-                } else {
-                    logger.info("本地未找到镜像: " + DOCKER_IMAGE);
-                }
             }
 
             if (shouldPull) {
                 logger.info("开始拉取Docker镜像: " + DOCKER_IMAGE);
-                dockerClient.pullImageCmd(DOCKER_IMAGE).start().awaitCompletion();
-                logger.info("Docker镜像拉取完成");
+                try {
+                    // 添加超时限制，避免无限等待
+                    dockerClient.pullImageCmd(DOCKER_IMAGE).start().awaitCompletion(60, TimeUnit.SECONDS);
+                    logger.info("Docker镜像拉取完成");
+
+                    // 验证镜像是否成功拉取
+                    String imageId = dockerClient.inspectImageCmd(DOCKER_IMAGE).exec().getId();
+                    logger.info("成功拉取镜像，ID: " + imageId);
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "拉取镜像失败: " + e.getMessage(), e);
+                    throw new RuntimeException("无法拉取Node.js镜像，请检查网络连接和Docker服务: " + e.getMessage());
+                }
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "镜像操作发生异常: " + e.getMessage());
-            // 继续执行，因为镜像可能已经存在于本地
+            logger.log(Level.SEVERE, "镜像操作发生严重异常: " + e.getMessage(), e);
+            throw new RuntimeException("镜像操作失败: " + e.getMessage());
         }
     }
 
     /**
-     * 设置文件可执行权限
+     * 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
+     *
+     * @deprecated 使用 ensureDockerImage 方法代替
      */
-    private void setExecutablePermissions(String filePath) {
-        try {
-            Set<PosixFilePermission> perms = new HashSet<>();
-            perms.add(PosixFilePermission.OWNER_READ);
-            perms.add(PosixFilePermission.OWNER_WRITE);
-            perms.add(PosixFilePermission.OWNER_EXECUTE);
-            perms.add(PosixFilePermission.GROUP_READ);
-            perms.add(PosixFilePermission.GROUP_EXECUTE);
-            perms.add(PosixFilePermission.OTHERS_READ);
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
-
-            Files.setPosixFilePermissions(Paths.get(filePath), perms);
-            logger.info("已设置文件权限: " + filePath);
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "设置文件权限时出错，将继续尝试执行: " + e.getMessage());
-        }
+    @Deprecated
+    private void checkAndPullImage() {
+        ensureDockerImage(pullImageAlways);
     }
 
     // 执行指标的内部类
@@ -1147,6 +1146,29 @@ public class JavaScriptDockerExecutor {
         @Override
         public String toString() {
             return log.toString();
+        }
+    }
+
+    /**
+     * 设置文件可执行权限
+     *
+     * @param filePath 需要设置权限的文件路径
+     */
+    private void setExecutablePermissions(String filePath) {
+        try {
+            Set<PosixFilePermission> perms = new HashSet<>();
+            perms.add(PosixFilePermission.OWNER_READ);
+            perms.add(PosixFilePermission.OWNER_WRITE);
+            perms.add(PosixFilePermission.OWNER_EXECUTE);
+            perms.add(PosixFilePermission.GROUP_READ);
+            perms.add(PosixFilePermission.GROUP_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_READ);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+
+            Files.setPosixFilePermissions(Paths.get(filePath), perms);
+            logger.info("已设置文件权限: " + filePath);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "设置文件权限时出错，将继续尝试执行: " + e.getMessage());
         }
     }
 }
