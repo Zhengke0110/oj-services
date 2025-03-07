@@ -3,6 +3,7 @@ package fun.timu.oj.shandbox.docker;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.ExecCreateCmdResponse;
+import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
@@ -43,16 +44,12 @@ public class DockerCodeExecutor {
     private DockerClient dockerClient;
     private Path tempDirectory;
 
+    // 添加成员变量，用于跟踪执行时创建的容器
+    private List<String> createdContainers = new ArrayList<>();
+
     public DockerCodeExecutor() {
         DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
-        dockerClient = DockerClientImpl.getInstance(config,
-                new ApacheDockerHttpClient.Builder()
-                        .dockerHost(config.getDockerHost())
-                        .sslConfig(config.getSSLConfig())
-                        .maxConnections(100)
-                        .connectionTimeout(Duration.ofSeconds(30))
-                        .responseTimeout(Duration.ofSeconds(45))
-                        .build());
+        dockerClient = DockerClientImpl.getInstance(config, new ApacheDockerHttpClient.Builder().dockerHost(config.getDockerHost()).sslConfig(config.getSSLConfig()).maxConnections(100).connectionTimeout(Duration.ofSeconds(30)).responseTimeout(Duration.ofSeconds(45)).build());
     }
 
     /**
@@ -76,7 +73,7 @@ public class DockerCodeExecutor {
             writeToFile(javaFilePath, javaCode);
 
             // 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
-            checkAndPullImage();
+            ensureDockerImage(pullImageAlways);
 
             // Metrics collection
             List<ExecutionMetrics> metrics = new ArrayList<>();
@@ -102,6 +99,8 @@ public class DockerCodeExecutor {
         } finally {
             // Clean up
             cleanupTempDirectory();
+            // 清理所有已创建的容器
+            cleanupAllContainers();
         }
     }
 
@@ -125,7 +124,7 @@ public class DockerCodeExecutor {
             writeToFile(javaFilePath, javaCode);
 
             // 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
-            checkAndPullImage();
+            ensureDockerImage(pullImageAlways);
 
             // Metrics collection
             List<ExecutionMetrics> metrics = new ArrayList<>();
@@ -151,6 +150,8 @@ public class DockerCodeExecutor {
         } finally {
             // Clean up
             cleanupTempDirectory();
+            // 清理所有已创建的容器
+            cleanupAllContainers();
         }
     }
 
@@ -178,7 +179,7 @@ public class DockerCodeExecutor {
             writeToFile(testCaseFilePath, testCaseContent);
 
             // 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
-            checkAndPullImage();
+            ensureDockerImage(pullImageAlways);
 
             // Metrics collection
             List<ExecutionMetrics> metrics = new ArrayList<>();
@@ -204,44 +205,66 @@ public class DockerCodeExecutor {
         } finally {
             // Clean up
             cleanupTempDirectory();
+            // 清理所有已创建的容器
+            cleanupAllContainers();
+        }
+    }
+
+    /**
+     * 确保Docker镜像存在，不存在则拉取
+     *
+     * @param forcePull 是否强制拉取镜像
+     */
+    private void ensureDockerImage(boolean forcePull) {
+        try {
+            boolean shouldPull = forcePull;
+
+            if (!forcePull) {
+                // 使用更可靠的方式检查镜像是否存在
+                logger.info("检查本地是否有镜像: " + DOCKER_IMAGE);
+
+                boolean imageExists = false;
+                try {
+                    // 通过镜像ID检查镜像是否存在，更准确
+                    imageExists = !dockerClient.inspectImageCmd(DOCKER_IMAGE).exec().getId().isEmpty();
+                    logger.info("镜像检查结果: " + (imageExists ? "存在" : "不存在"));
+                } catch (Exception e) {
+                    logger.info("镜像不存在或无法获取信息: " + e.getMessage());
+                    imageExists = false;
+                }
+
+                shouldPull = !imageExists;
+            }
+
+            if (shouldPull) {
+                logger.info("开始拉取Docker镜像: " + DOCKER_IMAGE);
+                try {
+                    // 添加超时限制，避免无限等待
+                    dockerClient.pullImageCmd(DOCKER_IMAGE).start().awaitCompletion(120, TimeUnit.SECONDS); // JDK镜像较大，给更多时间
+                    logger.info("Docker镜像拉取完成");
+
+                    // 验证镜像是否成功拉取
+                    String imageId = dockerClient.inspectImageCmd(DOCKER_IMAGE).exec().getId();
+                    logger.info("成功拉取镜像，ID: " + imageId);
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "拉取镜像失败: " + e.getMessage(), e);
+                    throw new RuntimeException("无法拉取Java镜像，请检查网络连接和Docker服务: " + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "镜像操作发生严重异常: " + e.getMessage(), e);
+            throw new RuntimeException("镜像操作失败: " + e.getMessage());
         }
     }
 
     /**
      * 检查本地是否有镜像，如果没有或配置了总是拉取，则拉取镜像
+     *
+     * @deprecated 使用 ensureDockerImage 方法代替
      */
+    @Deprecated
     private void checkAndPullImage() {
-        try {
-            boolean shouldPull = pullImageAlways;
-
-            if (!pullImageAlways) {
-                // 检查本地是否有指定镜像
-                logger.info("检查本地是否有镜像: " + DOCKER_IMAGE);
-                boolean imageExists = dockerClient.listImagesCmd()
-                        .withImageNameFilter(DOCKER_IMAGE)
-                        .exec()
-                        .stream()
-                        .findAny()
-                        .isPresent();
-
-                shouldPull = !imageExists;
-
-                if (imageExists) {
-                    logger.info("本地已有镜像: " + DOCKER_IMAGE);
-                } else {
-                    logger.info("本地未找到镜像: " + DOCKER_IMAGE);
-                }
-            }
-
-            if (shouldPull) {
-                logger.info("开始拉取Docker镜像: " + DOCKER_IMAGE);
-                dockerClient.pullImageCmd(DOCKER_IMAGE).start().awaitCompletion();
-                logger.info("Docker镜像拉取完成");
-            }
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "镜像操作发生异常: " + e.getMessage());
-            // 继续执行，因为镜像可能已经存在于本地
-        }
+        ensureDockerImage(pullImageAlways);
     }
 
     private ExecutionMetrics executeInContainer(String mainClassName, String expectedOutput) throws Exception {
@@ -255,41 +278,27 @@ public class DockerCodeExecutor {
             Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
             // Create container
-            HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withBinds(bind)
-                    .withMemory((long) MEMORY_LIMIT)
-                    .withCpuCount((long) CPU_LIMIT)
-                    .withNetworkMode("none"); // Isolate network
+            HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // Isolate network
 
-            CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE)
-                    .withHostConfig(hostConfig)
-                    .withWorkingDir(WORK_DIR)
-                    .exec();
+            CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE).withHostConfig(hostConfig).withWorkingDir(WORK_DIR).exec();
 
             containerId = container.getId();
+            // 添加容器ID到跟踪列表
+            createdContainers.add(containerId);
 
             // Start container
             dockerClient.startContainerCmd(containerId).exec();
 
             // Compile Java file
-            ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId)
-                    .withCmd("javac", mainClassName + ".java")
-                    .withAttachStdout(true)
-                    .withAttachStderr(true)
-                    .exec();
+            ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId).withCmd("javac", mainClassName + ".java").withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
-                return new ExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(),
-                        System.currentTimeMillis() - startTime, 0, false);
+                return new ExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
             // Execute Java program
-            ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId)
-                    .withCmd("java", mainClassName)
-                    .withAttachStdout(true)
-                    .withAttachStderr(true)
-                    .exec();
+            ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId).withCmd("java", mainClassName).withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution exec = executeCommand(execCmd.getId());
             String output = exec.getOutput().trim();
@@ -333,10 +342,7 @@ public class DockerCodeExecutor {
                     // Alternative approach to estimate memory - use container inspect
                     try {
                         // Get estimated memory from process list
-                        ExecCreateCmdResponse psCmd = dockerClient.execCreateCmd(containerId)
-                                .withCmd("sh", "-c", "ps -o rss= -p 1")
-                                .withAttachStdout(true)
-                                .exec();
+                        ExecCreateCmdResponse psCmd = dockerClient.execCreateCmd(containerId).withCmd("sh", "-c", "ps -o rss= -p 1").withAttachStdout(true).exec();
 
                         CompletedExecution psExec = executeCommand(psCmd.getId());
                         String psOutput = psExec.getOutput().trim();
@@ -357,23 +363,11 @@ public class DockerCodeExecutor {
             }
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new ExecutionMetrics(
-                    exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
-                    output,
-                    System.currentTimeMillis() - startTime,
-                    memoryUsage.get(),
-                    matched);
+            return new ExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
 
         } finally {
-            // Clean up container
-            if (containerId != null) {
-                try {
-                    dockerClient.stopContainerCmd(containerId).withTimeout(2).exec();
-                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error cleaning up container: " + e.getMessage());
-                }
-            }
+            // 清理当前容器
+            cleanupContainer(containerId);
         }
     }
 
@@ -387,31 +381,21 @@ public class DockerCodeExecutor {
             Volume codeVolume = new Volume(WORK_DIR);
             Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withBinds(bind)
-                    .withMemory((long) MEMORY_LIMIT)
-                    .withCpuCount((long) CPU_LIMIT)
-                    .withNetworkMode("none");
+            HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none");
 
-            CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE)
-                    .withHostConfig(hostConfig)
-                    .withWorkingDir(WORK_DIR)
-                    .exec();
+            CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE).withHostConfig(hostConfig).withWorkingDir(WORK_DIR).exec();
 
             containerId = container.getId();
+            // 添加容器ID到跟踪列表
+            createdContainers.add(containerId);
             dockerClient.startContainerCmd(containerId).exec();
 
             // Compile Java code - same as existing code
-            ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId)
-                    .withCmd("javac", mainClassName + ".java")
-                    .withAttachStdout(true)
-                    .withAttachStderr(true)
-                    .exec();
+            ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId).withCmd("javac", mainClassName + ".java").withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
-                return new ExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(),
-                        System.currentTimeMillis() - startTime, 0, false);
+                return new ExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
             // Execute Java program with command line arguments
@@ -426,11 +410,7 @@ public class DockerCodeExecutor {
                 }
             }
 
-            ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId)
-                    .withCmd(cmdList.toArray(new String[0]))
-                    .withAttachStdout(true)
-                    .withAttachStderr(true)
-                    .exec();
+            ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId).withCmd(cmdList.toArray(new String[0])).withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution exec = executeCommand(execCmd.getId());
             String output = exec.getOutput().trim();
@@ -470,10 +450,7 @@ public class DockerCodeExecutor {
                 } else {
                     // Fallback memory measurement - same as existing code
                     try {
-                        ExecCreateCmdResponse psCmd = dockerClient.execCreateCmd(containerId)
-                                .withCmd("sh", "-c", "ps -o rss= -p 1")
-                                .withAttachStdout(true)
-                                .exec();
+                        ExecCreateCmdResponse psCmd = dockerClient.execCreateCmd(containerId).withCmd("sh", "-c", "ps -o rss= -p 1").withAttachStdout(true).exec();
 
                         CompletedExecution psExec = executeCommand(psCmd.getId());
                         String psOutput = psExec.getOutput().trim();
@@ -493,23 +470,11 @@ public class DockerCodeExecutor {
             }
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new ExecutionMetrics(
-                    exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
-                    output,
-                    System.currentTimeMillis() - startTime,
-                    memoryUsage.get(),
-                    matched);
+            return new ExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
 
         } finally {
-            // Clean up container - same as existing code
-            if (containerId != null) {
-                try {
-                    dockerClient.stopContainerCmd(containerId).withTimeout(2).exec();
-                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error cleaning up container: " + e.getMessage());
-                }
-            }
+            // 清理当前容器
+            cleanupContainer(containerId);
         }
     }
 
@@ -523,40 +488,26 @@ public class DockerCodeExecutor {
             Volume codeVolume = new Volume(WORK_DIR);
             Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withBinds(bind)
-                    .withMemory((long) MEMORY_LIMIT)
-                    .withCpuCount((long) CPU_LIMIT)
-                    .withNetworkMode("none");
+            HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none");
 
-            CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE)
-                    .withHostConfig(hostConfig)
-                    .withWorkingDir(WORK_DIR)
-                    .exec();
+            CreateContainerResponse container = dockerClient.createContainerCmd(DOCKER_IMAGE).withHostConfig(hostConfig).withWorkingDir(WORK_DIR).exec();
 
             containerId = container.getId();
+            // 添加容器ID到跟踪列表
+            createdContainers.add(containerId);
             dockerClient.startContainerCmd(containerId).exec();
 
             // Compile Java file - same as existing code
-            ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId)
-                    .withCmd("javac", mainClassName + ".java")
-                    .withAttachStdout(true)
-                    .withAttachStderr(true)
-                    .exec();
+            ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId).withCmd("javac", mainClassName + ".java").withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
-                return new ExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(),
-                        System.currentTimeMillis() - startTime, 0, false);
+                return new ExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
             // Execute Java program with test file
             // Just pass the file name as an argument - the code should open and read it
-            ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId)
-                    .withCmd("java", mainClassName, testFileName)
-                    .withAttachStdout(true)
-                    .withAttachStderr(true)
-                    .exec();
+            ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId).withCmd("java", mainClassName, testFileName).withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution exec = executeCommand(execCmd.getId());
             String output = exec.getOutput().trim();
@@ -595,10 +546,7 @@ public class DockerCodeExecutor {
                     memoryUsage.set(maxMemory.get());
                 } else {
                     try {
-                        ExecCreateCmdResponse psCmd = dockerClient.execCreateCmd(containerId)
-                                .withCmd("sh", "-c", "ps -o rss= -p 1")
-                                .withAttachStdout(true)
-                                .exec();
+                        ExecCreateCmdResponse psCmd = dockerClient.execCreateCmd(containerId).withCmd("sh", "-c", "ps -o rss= -p 1").withAttachStdout(true).exec();
 
                         CompletedExecution psExec = executeCommand(psCmd.getId());
                         String psOutput = psExec.getOutput().trim();
@@ -618,23 +566,11 @@ public class DockerCodeExecutor {
             }
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new ExecutionMetrics(
-                    exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
-                    output,
-                    System.currentTimeMillis() - startTime,
-                    memoryUsage.get(),
-                    matched);
+            return new ExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
 
         } finally {
-            // Clean up container - same as existing code
-            if (containerId != null) {
-                try {
-                    dockerClient.stopContainerCmd(containerId).withTimeout(2).exec();
-                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error cleaning up container: " + e.getMessage());
-                }
-            }
+            // 清理当前容器
+            cleanupContainer(containerId);
         }
     }
 
@@ -692,10 +628,8 @@ public class DockerCodeExecutor {
     private void cleanupTempDirectory() {
         if (tempDirectory != null) {
             try {
-                Files.walk(tempDirectory)
-                        .sorted((a, b) -> b.compareTo(a)) // Reverse order to delete children first
-                        .map(Path::toFile)
-                        .forEach(file -> {
+                Files.walk(tempDirectory).sorted((a, b) -> b.compareTo(a)) // Reverse order to delete children first
+                        .map(Path::toFile).forEach(file -> {
                             if (!file.delete()) {
                                 logger.warning("Failed to delete file: " + file);
                             }
@@ -852,6 +786,73 @@ public class DockerCodeExecutor {
 
         public String getOutput() {
             return output;
+        }
+    }
+
+    /**
+     * 清理单个容器
+     *
+     * @param containerId 要清理的容器ID
+     */
+    private void cleanupContainer(String containerId) {
+        if (containerId != null) {
+            try {
+                logger.info("开始清理容器: " + containerId);
+
+                // 检查容器是否存在
+                boolean containerExists = false;
+                try {
+                    dockerClient.inspectContainerCmd(containerId).exec();
+                    containerExists = true;
+                } catch (Exception e) {
+                    logger.info("容器不存在或已被移除: " + containerId);
+                }
+
+                if (containerExists) {
+                    // 检查容器是否在运行
+                    try {
+                        InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
+                        if (containerInfo.getState().getRunning()) {
+                            logger.info("停止运行中的容器: " + containerId);
+                            dockerClient.stopContainerCmd(containerId).withTimeout(2).exec();
+                        } else {
+                            logger.info("容器已处于停止状态: " + containerId);
+                        }
+                    } catch (Exception e) {
+                        logger.log(Level.WARNING, "停止容器时出错，将尝试强制删除: " + e.getMessage());
+                    }
+
+                    // 不管容器状态如何，尝试强制删除
+                    logger.info("删除容器: " + containerId);
+                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
+                    logger.info("容器已成功删除: " + containerId);
+
+                    // 从跟踪列表移除
+                    createdContainers.remove(containerId);
+                }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "清理容器(" + containerId + ")时出错: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * 清理所有由此执行器创建的容器
+     */
+    private void cleanupAllContainers() {
+        logger.info("清理所有容器，当前跟踪容器数量: " + createdContainers.size());
+
+        // 复制列表避免并发修改异常
+        List<String> containersToClean = new ArrayList<>(createdContainers);
+        for (String containerId : containersToClean) {
+            cleanupContainer(containerId);
+        }
+
+        // 最后检查是否所有容器都已清理
+        if (!createdContainers.isEmpty()) {
+            logger.warning("有" + createdContainers.size() + "个容器未能正常清理");
+        } else {
+            logger.info("所有容器已成功清理");
         }
     }
 }
