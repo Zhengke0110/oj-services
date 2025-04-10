@@ -1,6 +1,5 @@
-package fun.timu.oj.shandbox.docker;
+package fun.timu.oj.shandbox;
 
-import fun.timu.oj.shandbox.docker.template.DockerSandboxExample;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

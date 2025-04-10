@@ -1,4 +1,4 @@
-package fun.timu.oj.shandbox.docker.interfaces;
+package fun.timu.oj.shandbox.interfaces;
 
 import java.util.List;
 

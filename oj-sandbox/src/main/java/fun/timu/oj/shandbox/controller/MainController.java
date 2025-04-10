@@ -1,12 +1,12 @@
-package fun.timu.oj.shandbox.docker.controller;
+package fun.timu.oj.shandbox.controller;
 
 import fun.timu.oj.shandbox.docker.executor.AbstractDockerExecutor;
 import fun.timu.oj.shandbox.docker.executor.DockerCodeExecutor;
 import fun.timu.oj.shandbox.docker.executor.JavaScriptDockerExecutor;
 import fun.timu.oj.shandbox.docker.executor.PythonDockerExecutor;
-import fun.timu.oj.shandbox.docker.interfaces.ExecuteCodeRequest;
-import fun.timu.oj.shandbox.docker.interfaces.ExecuteCodeResponse;
-import fun.timu.oj.shandbox.docker.interfaces.JudgeInfo;
+import fun.timu.oj.shandbox.interfaces.ExecuteCodeRequest;
+import fun.timu.oj.shandbox.interfaces.ExecuteCodeResponse;
+import fun.timu.oj.shandbox.interfaces.JudgeInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
