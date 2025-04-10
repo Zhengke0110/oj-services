@@ -9,10 +9,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 //@MapperScan(value = "fun.timu.doj.mapper")
 @EnableScheduling
 @EnableAspectJAutoProxy(proxyTargetClass = true, exposeProxy = true)
-public class Application {
+public class BackedApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(BackedApplication.class, args);
     }
 
 }
