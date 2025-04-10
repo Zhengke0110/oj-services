@@ -22,6 +22,8 @@
     </dependencies>
     <modules>
         <module>oj-sandbox</module>
+        <module>oj-common-interfaces</module>
+        <module>oj-backed</module>
     </modules>
 
     <parent>
