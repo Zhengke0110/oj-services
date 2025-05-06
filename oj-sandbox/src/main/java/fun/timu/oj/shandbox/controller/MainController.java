@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+/**
+ * 沙箱控制器(内网调用)
+ */
 @RestController
 @RequestMapping("/api/sandbox")
 public class MainController {
@@ -37,10 +40,19 @@ public class MainController {
         return AUTH_REQUEST_SECRET.equals(auth);
     }
 
+    /**
+     * 执行健康检查的端点
+     * <p>
+     * 该方法用于响应 GET 请求的 /health 端点，以检查应用程序的健康状态
+     * 它没有输入参数，也不需要进行任何复杂的逻辑处理，直接返回一个简单的字符串 "ok"
+     *
+     * @return 字符串 "ok"，表示应用程序运行正常
+     */
     @GetMapping("/health")
     public String HealthCheck() {
         return "ok";
     }
+
 
     /**
      * 统一的代码执行接口 - 根据language选择执行器
