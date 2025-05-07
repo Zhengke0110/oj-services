@@ -12,7 +12,7 @@ public class PythonDockerSandboxExample {
         SpringApplication.run(PythonDockerSandboxExample.class, args);
     }
 
-    @Component
+    //    @Component
     public class SandboxRunner implements CommandLineRunner {
         @Override
         public void run(String... args) throws Exception {

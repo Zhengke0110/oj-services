@@ -42,24 +42,17 @@ public class MainController {
 
     /**
      * 执行健康检查的端点
-     * <p>
-     * 该方法用于响应 GET 请求的 /health 端点，以检查应用程序的健康状态
-     * 它没有输入参数，也不需要进行任何复杂的逻辑处理，直接返回一个简单的字符串 "ok"
-     *
-     * @return 字符串 "ok"，表示应用程序运行正常
      */
     @GetMapping("/health")
     public String HealthCheck() {
         return "ok";
     }
 
-
     /**
      * 统一的代码执行接口 - 根据language选择执行器
      */
     @PostMapping("/execute")
     public ResponseEntity<ExecuteCodeResponse> executeCode(@RequestHeader(name = AUTH_REQUEST_HEADER, required = false) String auth, @RequestBody ExecuteCodeRequest request) {
-
         if (!authenticateRequest(auth)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(buildErrorResponse("未授权的访问"));
         }
@@ -87,7 +80,6 @@ public class MainController {
      */
     @PostMapping("/java")
     public ResponseEntity<ExecuteCodeResponse> executeJava(@RequestHeader(name = AUTH_REQUEST_HEADER, required = false) String auth, @RequestBody ExecuteCodeRequest request) {
-
         if (!authenticateRequest(auth)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(buildErrorResponse("未授权的访问"));
         }
@@ -105,7 +97,6 @@ public class MainController {
      */
     @PostMapping("/javascript")
     public ResponseEntity<ExecuteCodeResponse> executeJavaScript(@RequestHeader(name = AUTH_REQUEST_HEADER, required = false) String auth, @RequestBody ExecuteCodeRequest request) {
-
         if (!authenticateRequest(auth)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(buildErrorResponse("未授权的访问"));
         }
@@ -123,7 +114,6 @@ public class MainController {
      */
     @PostMapping("/python")
     public ResponseEntity<ExecuteCodeResponse> executePython(@RequestHeader(name = AUTH_REQUEST_HEADER, required = false) String auth, @RequestBody ExecuteCodeRequest request) {
-
         if (!authenticateRequest(auth)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(buildErrorResponse("未授权的访问"));
         }
@@ -143,21 +133,13 @@ public class MainController {
         DockerCodeExecutor.JavaExecutionResult result;
 
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
-            // 判断输入类型：命令行参数或测试文件
-            if (request.getInputType() == null || request.getInputType().equals("PARAMS")) {
-                // 使用命令行参数
-                String[] args = request.getInputs().toArray(new String[0]);
-                result = javaExecutor.executeJavaCodeWithArgs(request.getCode(), args, null, // 不校验期望输出
-                        Math.max(1, request.getExecutionCount()));
-            } else {
-                // 使用测试文件
-                String testContent = String.join("\n", request.getInputs());
-                result = javaExecutor.executeJavaCodeWithTestFile(request.getCode(), testContent, null, // 不校验期望输出
-                        Math.max(1, request.getExecutionCount()));
-            }
+            // 仅支持命令行参数模式
+            String[] args = request.getInputs().toArray(new String[0]);
+            result = javaExecutor.executeJavaCodeWithArgs(request.getCode(), args, null,
+                    Math.max(1, request.getExecutionCount()));
         } else {
             // 无输入的代码执行
-            result = javaExecutor.executeJavaCode(request.getCode(), null, // 不校验期望输出
+            result = javaExecutor.executeJavaCode(request.getCode(), null,
                     Math.max(1, request.getExecutionCount()));
         }
 
@@ -171,21 +153,13 @@ public class MainController {
         JavaScriptDockerExecutor.JSExecutionResult result;
 
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
-            // 判断输入类型：命令行参数或测试文件
-            if (request.getInputType() == null || request.getInputType().equals("PARAMS")) {
-                // 使用命令行参数
-                String[] args = request.getInputs().toArray(new String[0]);
-                result = jsExecutor.executeJavaScriptCodeWithArgs(request.getCode(), args, null, // 不校验期望输出
-                        Math.max(1, request.getExecutionCount()));
-            } else {
-                // 使用测试文件
-                String testContent = String.join("\n", request.getInputs());
-                result = jsExecutor.executeJavaScriptCodeWithTestFile(request.getCode(), testContent, null, // 不校验期望输出
-                        Math.max(1, request.getExecutionCount()));
-            }
+            // 仅支持命令行参数模式
+            String[] args = request.getInputs().toArray(new String[0]);
+            result = jsExecutor.executeJavaScriptCodeWithArgs(request.getCode(), args, null,
+                    Math.max(1, request.getExecutionCount()));
         } else {
             // 无输入的代码执行
-            result = jsExecutor.executeJavaScriptCode(request.getCode(), null, // 不校验期望输出
+            result = jsExecutor.executeJavaScriptCode(request.getCode(), null,
                     Math.max(1, request.getExecutionCount()));
         }
 
@@ -199,21 +173,13 @@ public class MainController {
         PythonDockerExecutor.PythonExecutionResult result;
 
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
-            // 判断输入类型：命令行参数或测试文件
-            if (request.getInputType() == null || request.getInputType().equals("PARAMS")) {
-                // 使用命令行参数
-                String[] args = request.getInputs().toArray(new String[0]);
-                result = pythonExecutor.executePythonCodeWithArgs(request.getCode(), args, null, // 不校验期望输出
-                        Math.max(1, request.getExecutionCount()));
-            } else {
-                // 使用测试文件
-                String testContent = String.join("\n", request.getInputs());
-                result = pythonExecutor.executePythonCodeWithTestFile(request.getCode(), testContent, null, // 不校验期望输出
-                        Math.max(1, request.getExecutionCount()));
-            }
+            // 仅支持命令行参数模式
+            String[] args = request.getInputs().toArray(new String[0]);
+            result = pythonExecutor.executePythonCodeWithArgs(request.getCode(), args, null,
+                    Math.max(1, request.getExecutionCount()));
         } else {
             // 无输入的代码执行
-            result = pythonExecutor.executePythonCode(request.getCode(), null, // 不校验期望输出
+            result = pythonExecutor.executePythonCode(request.getCode(), null,
                     Math.max(1, request.getExecutionCount()));
         }
 

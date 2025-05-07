@@ -23,7 +23,7 @@
     <modules>
         <module>oj-sandbox</module>
         <module>oj-common-interfaces</module>
-        <module>oj-backed</module>
+        <module>oj-gateway</module>
     </modules>
 
     <parent>
