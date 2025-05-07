@@ -6,6 +6,7 @@
         <artifactId>oj-services</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>oj-gateway</artifactId>
-    <name>Archetype - oj-gateway</name>
+    <artifactId>oj-common</artifactId>
+    <name>Archetype - oj-common</name>
+    <url>http://maven.apache.org</url>
 </project>
