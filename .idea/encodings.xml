@@ -3,6 +3,7 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/oj-backed/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/oj-common-interfaces/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/oj-gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/oj-sandbox/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/oj-sandbox/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
