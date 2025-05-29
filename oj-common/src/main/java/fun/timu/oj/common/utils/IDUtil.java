@@ -5,7 +5,8 @@ public class IDUtil {
 
     // 创建雪花ID生成器实例，使用固定的工作机器ID和数据中心ID
     // 在实际生产环境中，这些值应该根据部署情况配置
-    private static final SnowflakeIdGenerator snowflakeIdGenerator = new SnowflakeIdGenerator(1, 1);
+//    private static final SnowflakeIdGenerator snowflakeIdGenerator = new SnowflakeIdGenerator(1, 1);
+    private static final NonSequentialSnowflakeIdGenerator snowflakeIdGenerator = new NonSequentialSnowflakeIdGenerator(1, 1);
 
     /**
      * 雪花算法生成器
