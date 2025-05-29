@@ -75,6 +75,7 @@
         <module>oj-sandbox</module>
         <module>oj-gateway</module>
         <module>oj-common</module>
+        <module>oj-account</module>
     </modules>
     <!--锁定版本-->
     <dependencyManagement>

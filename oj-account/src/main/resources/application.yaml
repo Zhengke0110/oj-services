@@ -1,0 +1,35 @@
+server:
+  port: 8001
+spring:
+  application:
+    name: oj-account
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.0.130:8848
+        namespace: bdd24507-ab90-4409-941a-5d6eb60739cf
+      config:
+        enabled: false
+        server-addr: none
+  redis:
+    client-type: jedis
+    host: 192.168.0.130
+    port: 6379
+    jedis:
+      pool:
+        # 连接池最大连接数（使用负值表示没有限制）
+        max-active: 100
+        # 连接池中的最大空闲连接
+        max-idle: 100
+        # 连接池中的最小空闲连接
+        min-idle: 100
+        # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: 60000
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/oj
+    username: root
+    password: 123456
