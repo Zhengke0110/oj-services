@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="fun.timu.oj.account.mapper.AccountMapper">
+
+    <resultMap id="BaseResultMap" type="fun.timu.oj.account.model.DO.Account">
+            <id property="id" column="id" />
+            <result property="accountNo" column="account_no" />
+            <result property="username" column="username" />
+            <result property="nickname" column="nickname" />
+            <result property="headImg" column="head_img" />
+            <result property="phone" column="phone" />
+            <result property="pwd" column="pwd" />
+            <result property="auth" column="auth" />
+            <result property="status" column="status" />
+            <result property="totalExecutionCount" column="total_execution_count" />
+            <result property="lastExecutionTime" column="last_execution_time" />
+            <result property="dailyExecutionCount" column="daily_execution_count" />
+            <result property="dailyResetDate" column="daily_reset_date" />
+            <result property="dailyExecutionLimit" column="daily_execution_limit" />
+            <result property="executionTimeout" column="execution_timeout" />
+            <result property="memoryLimit" column="memory_limit" />
+            <result property="isDeleted" column="is_deleted" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="lastLoginAt" column="last_login_at" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,account_no,username,nickname,head_img,phone,
+        pwd,auth,status,total_execution_count,last_execution_time,
+        daily_execution_count,daily_reset_date,daily_execution_limit,execution_timeout,memory_limit,
+        is_deleted,created_at,updated_at,last_login_at
+    </sql>
+</mapper>

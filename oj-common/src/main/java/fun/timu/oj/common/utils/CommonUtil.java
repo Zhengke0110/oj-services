@@ -1,6 +1,5 @@
 package fun.timu.oj.common.utils;
 
-import com.google.common.hash.Hashing;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.servlet.http.HttpServletRequest;
@@ -9,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 
@@ -215,7 +215,7 @@ public class CommonUtil {
     }
 
     /**
-     * 计算字符串的MurmurHash32值
+     * 计算字符串的MurmurHash32值（不使用Guava库）
      * MurmurHash是一个非密码学的哈希函数，适用于一般的数据结构和算法中
      * 它以其良好的分布性、高性能和低碰撞率而著称
      *
@@ -223,9 +223,58 @@ public class CommonUtil {
      * @return 计算得到的哈希值
      */
     public static long murmurHash32(String param) {
-        // 使用Guava库中的Hashing类来计算MurmurHash32值
-        long murmurHash32 = Hashing.murmur3_32().hashUnencodedChars(param).padToLong();
-        return murmurHash32;
+        byte[] data = param.getBytes(StandardCharsets.UTF_8);
+        int seed = 0x9747b28c; // 使用固定的种子值
+
+        // MurmurHash3算法实现
+        final int c1 = 0xcc9e2d51;
+        final int c2 = 0x1b873593;
+
+        int h1 = seed;
+        int length = data.length;
+        int roundedEnd = length & 0xfffffffc; // 向下取整到4的倍数
+
+        // 主体部分，每次处理4个字节
+        for (int i = 0; i < roundedEnd; i += 4) {
+            int k1 = (data[i] & 0xff) |
+                    ((data[i + 1] & 0xff) << 8) |
+                    ((data[i + 2] & 0xff) << 16) |
+                    ((data[i + 3] & 0xff) << 24);
+
+            k1 *= c1;
+            k1 = Integer.rotateLeft(k1, 15);
+            k1 *= c2;
+
+            h1 ^= k1;
+            h1 = Integer.rotateLeft(h1, 13);
+            h1 = h1 * 5 + 0xe6546b64;
+        }
+
+        // 处理剩余字节
+        int k1 = 0;
+        switch (length & 0x03) {
+            case 3:
+                k1 = (data[roundedEnd + 2] & 0xff) << 16;
+            case 2:
+                k1 |= (data[roundedEnd + 1] & 0xff) << 8;
+            case 1:
+                k1 |= (data[roundedEnd] & 0xff);
+                k1 *= c1;
+                k1 = Integer.rotateLeft(k1, 15);
+                k1 *= c2;
+                h1 ^= k1;
+        }
+
+        // 最终混合
+        h1 ^= length;
+        h1 ^= h1 >>> 16;
+        h1 *= 0x85ebca6b;
+        h1 ^= h1 >>> 13;
+        h1 *= 0xc2b2ae35;
+        h1 ^= h1 >>> 16;
+
+        // 转换为无符号长整型
+        return h1 & 0xffffffffL;
     }
 
     /**
@@ -301,8 +350,6 @@ public class CommonUtil {
         } catch (IOException e) {
             log.warn("响应json数据给前端异常:{}", e);
         }
-
-
     }
 
 }

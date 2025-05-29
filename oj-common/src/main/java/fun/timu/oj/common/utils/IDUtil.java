@@ -1,10 +1,11 @@
 package fun.timu.oj.common.utils;
 
-import org.apache.shardingsphere.core.strategy.keygen.SnowflakeShardingKeyGenerator;
 
 public class IDUtil {
 
-    private static SnowflakeShardingKeyGenerator shardingKeyGenerator = new SnowflakeShardingKeyGenerator();
+    // 创建雪花ID生成器实例，使用固定的工作机器ID和数据中心ID
+    // 在实际生产环境中，这些值应该根据部署情况配置
+    private static final SnowflakeIdGenerator snowflakeIdGenerator = new SnowflakeIdGenerator(1, 1);
 
     /**
      * 雪花算法生成器
@@ -15,9 +16,7 @@ public class IDUtil {
      *
      * @return 生成的雪花ID，作为方法的返回值，用于在分布式系统中唯一标识某个实体或事件
      */
-    public static Comparable<?> geneSnowFlakeID(){
-        // 调用shardingKeyGenerator实例的generateKey方法来生成一个新的雪花ID
-        return shardingKeyGenerator.generateKey();
+    public static Comparable<?> geneSnowFlakeID() {
+        return snowflakeIdGenerator.nextId();
     }
-
 }
