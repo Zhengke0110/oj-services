@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.Volume;
 import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
 import fun.timu.oj.shandbox.docker.entity.JavaExecutionMetrics;
+import fun.timu.oj.shandbox.docker.pool.LongRunningContainerManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,44 +48,66 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
     }
 
     @Override
+    protected String getLanguageIdentifier() {
+        return "java";
+    }
+
+    @Override
     protected ExecutionMetrics executeInContainer(String codeFileName, String expectedOutput) throws Exception {
         String containerId = null;
         long startTime = System.currentTimeMillis();
         AtomicLong memoryUsage = new AtomicLong(0);
+        boolean usingLongRunningContainer = false;
 
         try {
             String mainClassName = codeFileName.replace(".java", "");
 
-            // 准备卷绑定用于代码目录
-            Volume codeVolume = new Volume(WORK_DIR);
-            Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
+            // 尝试获取长期运行容器
+            LongRunningContainerManager.ContainerInfo containerInfo = getOrCreateLongRunningContainer(getLanguageIdentifier());
+            
+            if (containerInfo != null) {
+                // 使用长期运行容器
+                containerId = containerInfo.getContainerId();
+                usingLongRunningContainer = true;
+                logger.info("使用长期运行容器: " + containerId);
+                
+                // 将代码文件复制到容器的工作目录
+                containerManager.copyCodeToContainer(containerInfo, tempDirectory);
+                
+            } else {
+                // 回退到传统方式创建新容器
+                logger.info("容器复用已禁用，创建新容器");
+                
+                // 准备卷绑定用于代码目录
+                Volume codeVolume = new Volume(WORK_DIR);
+                Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            // 创建容器 - 使用长时间运行的容器
-            HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // 隔离网络
+                // 创建容器
+                HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none");
 
-            logger.info("创建Docker容器");
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
-                    // 使用命令保持容器运行
-                    .withCmd("tail", "-f", "/dev/null").exec();
+                logger.info("创建Docker容器");
+                CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
+                        .withCmd("tail", "-f", "/dev/null").exec();
 
-            containerId = container.getId();
-            createdContainers.add(containerId);
-            logger.info("容器创建成功: " + containerId);
+                containerId = container.getId();
+                createdContainers.add(containerId);
+                logger.info("容器创建成功: " + containerId);
 
-            // 启动容器
-            logger.info("启动容器");
-            dockerClient.startContainerCmd(containerId).exec();
+                // 启动容器
+                logger.info("启动容器");
+                dockerClient.startContainerCmd(containerId).exec();
 
-            // 等待容器启动完成
-            Thread.sleep(1000);
+                // 等待容器启动完成
+                Thread.sleep(1000);
 
-            // 检查容器是否在运行
-            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
-            if (!isRunning) {
-                throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+                // 检查容器是否在运行
+                boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+                if (!isRunning) {
+                    throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+                }
+
+                logger.info("容器已启动并正在运行");
             }
-
-            logger.info("容器已启动并正在运行");
 
             // 编译Java文件
             logger.info("编译Java代码: " + mainClassName + ".java");
@@ -113,6 +136,21 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
             return new JavaExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
+            // 如果使用长期运行容器，则清理工作目录；否则按原来方式清理容器
+            if (usingLongRunningContainer && containerId != null) {
+                try {
+                    // 清理容器内的代码文件
+                    ExecCreateCmdResponse cleanupCmd = dockerClient.execCreateCmd(containerId)
+                            .withCmd("sh", "-c", "rm -f " + WORK_DIR + "/*")
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .exec();
+                    executeCommand(cleanupCmd.getId());
+                    logger.info("已清理长期运行容器的工作目录");
+                } catch (Exception e) {
+                    logger.warning("清理长期运行容器工作目录时出错: " + e.getMessage());
+                }
+            }
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
         }
@@ -123,40 +161,57 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
         String containerId = null;
         long startTime = System.currentTimeMillis();
         AtomicLong memoryUsage = new AtomicLong(0);
+        boolean usingLongRunningContainer = false;
 
         try {
             String mainClassName = codeFileName.replace(".java", "");
 
-            // 准备卷绑定用于代码目录
-            Volume codeVolume = new Volume(WORK_DIR);
-            Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
+            // 尝试获取长期运行容器
+            LongRunningContainerManager.ContainerInfo containerInfo = getOrCreateLongRunningContainer(getLanguageIdentifier());
+            
+            if (containerInfo != null) {
+                // 使用长期运行容器
+                containerId = containerInfo.getContainerId();
+                usingLongRunningContainer = true;
+                logger.info("使用长期运行容器执行带参数代码: " + containerId);
+                
+                // 将代码文件复制到容器的工作目录
+                containerManager.copyCodeToContainer(containerInfo, tempDirectory);
+                
+            } else {
+                // 回退到传统方式创建新容器
+                logger.info("容器复用已禁用，创建新容器(带参数)");
+                
+                // 准备卷绑定用于代码目录
+                Volume codeVolume = new Volume(WORK_DIR);
+                Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            // 创建容器 - 使用长时间运行的容器
-            HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // 隔离网络
+                // 创建容器
+                HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none");
 
-            logger.info("创建Docker容器(带参数)");
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
-                    // 使用命令保持容器运行
-                    .withCmd("tail", "-f", "/dev/null").exec();
+                logger.info("创建Docker容器(带参数)");
+                CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
+                        .withCmd("tail", "-f", "/dev/null").exec();
 
-            containerId = container.getId();
-            createdContainers.add(containerId);
-            logger.info("容器创建成功: " + containerId);
+                containerId = container.getId();
+                createdContainers.add(containerId);
+                logger.info("容器创建成功: " + containerId);
 
-            // 启动容器
-            logger.info("启动容器");
-            dockerClient.startContainerCmd(containerId).exec();
+                // 启动容器
+                logger.info("启动容器");
+                dockerClient.startContainerCmd(containerId).exec();
 
-            // 等待容器启动完成
-            Thread.sleep(1000);
+                // 等待容器启动完成
+                Thread.sleep(1000);
 
-            // 检查容器是否在运行
-            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
-            if (!isRunning) {
-                throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+                // 检查容器是否在运行
+                boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+                if (!isRunning) {
+                    throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+                }
+
+                logger.info("容器已启动并正在运行");
             }
-
-            logger.info("容器已启动并正在运行");
 
             // 编译Java文件
             logger.info("编译Java代码: " + mainClassName + ".java");
@@ -196,6 +251,21 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
             return new JavaExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
+            // 如果使用长期运行容器，则清理工作目录；否则按原来方式清理容器
+            if (usingLongRunningContainer && containerId != null) {
+                try {
+                    // 清理容器内的代码文件
+                    ExecCreateCmdResponse cleanupCmd = dockerClient.execCreateCmd(containerId)
+                            .withCmd("sh", "-c", "rm -f " + WORK_DIR + "/*")
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .exec();
+                    executeCommand(cleanupCmd.getId());
+                    logger.info("已清理长期运行容器的工作目录(带参数)");
+                } catch (Exception e) {
+                    logger.warning("清理长期运行容器工作目录时出错(带参数): " + e.getMessage());
+                }
+            }
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
         }
@@ -206,32 +276,57 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
         String containerId = null;
         long startTime = System.currentTimeMillis();
         AtomicLong memoryUsage = new AtomicLong(0);
+        boolean usingLongRunningContainer = false;
 
         try {
             String mainClassName = codeFileName.replace(".java", "");
 
-            // 准备卷绑定用于代码目录
-            Volume codeVolume = new Volume(WORK_DIR);
-            Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
+            // 尝试获取长期运行容器
+            LongRunningContainerManager.ContainerInfo containerInfo = getOrCreateLongRunningContainer(getLanguageIdentifier());
+            
+            if (containerInfo != null) {
+                // 使用长期运行容器
+                containerId = containerInfo.getContainerId();
+                usingLongRunningContainer = true;
+                logger.info("使用长期运行容器执行带测试文件代码: " + containerId);
+                
+                // 将代码文件复制到容器的工作目录
+                containerManager.copyCodeToContainer(containerInfo, tempDirectory);
+                
+            } else {
+                // 回退到传统方式创建新容器
+                logger.info("容器复用已禁用，创建新容器(带测试文件)");
+                
+                // 准备卷绑定用于代码目录
+                Volume codeVolume = new Volume(WORK_DIR);
+                Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            // 创建容器 - 使用长时间运行的容器
-            HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // 隔离网络
+                // 创建容器
+                HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none");
 
-            logger.info("创建Docker容器(带测试文件)");
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
-                    // 使用命令保持容器运行
-                    .withCmd("tail", "-f", "/dev/null").exec();
+                logger.info("创建Docker容器(带测试文件)");
+                CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
+                        .withCmd("tail", "-f", "/dev/null").exec();
 
-            containerId = container.getId();
-            createdContainers.add(containerId);
-            logger.info("容器创建成功: " + containerId);
+                containerId = container.getId();
+                createdContainers.add(containerId);
+                logger.info("容器创建成功: " + containerId);
 
-            // 启动容器
-            logger.info("启动容器");
-            dockerClient.startContainerCmd(containerId).exec();
+                // 启动容器
+                logger.info("启动容器");
+                dockerClient.startContainerCmd(containerId).exec();
 
-            // 等待容器启动完成
-            Thread.sleep(1000);
+                // 等待容器启动完成
+                Thread.sleep(1000);
+
+                // 检查容器是否在运行
+                boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+                if (!isRunning) {
+                    throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+                }
+
+                logger.info("容器已启动并正在运行");
+            }
 
             // 检查容器是否在运行
             boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
@@ -274,6 +369,21 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
             return new JavaExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
+            // 如果使用长期运行容器，则清理工作目录；否则按原来方式清理容器
+            if (usingLongRunningContainer && containerId != null) {
+                try {
+                    // 清理容器内的代码文件
+                    ExecCreateCmdResponse cleanupCmd = dockerClient.execCreateCmd(containerId)
+                            .withCmd("sh", "-c", "rm -f " + WORK_DIR + "/*")
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .exec();
+                    executeCommand(cleanupCmd.getId());
+                    logger.info("已清理长期运行容器的工作目录(带测试文件)");
+                } catch (Exception e) {
+                    logger.warning("清理长期运行容器工作目录时出错(带测试文件): " + e.getMessage());
+                }
+            }
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
         }

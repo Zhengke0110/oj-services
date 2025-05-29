@@ -36,6 +36,17 @@ public class MainController {
     private final JavaScriptDockerExecutor jsExecutor = new JavaScriptDockerExecutor(false);
 
     /**
+     * 构造函数，初始化执行器并启用容器复用
+     */
+    public MainController() {
+        // 启用容器复用功能
+        javaExecutor.setContainerReuse(true);
+        pythonExecutor.setContainerReuse(true);
+        jsExecutor.setContainerReuse(true);
+        logger.info("沙箱控制器初始化完成，已启用容器复用功能");
+    }
+
+    /**
      * 检查请求头中的鉴权信息
      */
     private boolean authenticateRequest(String auth) {

@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.Volume;
 import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
 import fun.timu.oj.shandbox.docker.entity.PythonExecutionMetrics;
+import fun.timu.oj.shandbox.docker.pool.LongRunningContainerManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,11 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
     }
 
     @Override
+    protected String getLanguageIdentifier() {
+        return "python";
+    }
+
+    @Override
     protected void afterCodeFileWritten(String codePath) throws Exception {
         // Python不需要额外的处理
     }
@@ -53,45 +59,67 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
         String containerId = null;
         long startTime = System.currentTimeMillis();
         AtomicLong memoryUsage = new AtomicLong(0);
+        boolean usingLongRunningContainer = false;
 
         try {
-            // 准备卷绑定用于代码目录
-            Volume codeVolume = new Volume(WORK_DIR);
-            Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
-
-            // 创建容器
-            HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withBinds(bind)
-                    .withMemory((long) MEMORY_LIMIT)
-                    .withCpuCount((long) CPU_LIMIT)
-                    .withNetworkMode("none"); // 隔离网络
-
-            logger.info("创建容器...");
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage)
-                    .withHostConfig(hostConfig)
-                    .withWorkingDir(WORK_DIR)
-                    // 使用命令保持容器运行
-                    .withCmd("tail", "-f", "/dev/null")
-                    .exec();
-
-            containerId = container.getId();
-            createdContainers.add(containerId);
-            logger.info("容器创建成功: " + containerId);
-
-            // 启动容器
-            logger.info("启动容器...");
-            dockerClient.startContainerCmd(containerId).exec();
-
-            // 等待一小段时间确保容器启动完成
-            Thread.sleep(1000);
-
-            // 检查容器是否在运行
-            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
-            if (!isRunning) {
-                throw new RuntimeException("容器未能成功启动，请检查Docker服务和镜像是否正常");
+            // 尝试使用长期运行容器
+            if (enableContainerReuse) {
+                try {
+                    LongRunningContainerManager.ContainerInfo containerInfo = getOrCreateLongRunningContainer(getLanguageIdentifier());
+                    if (containerInfo != null) {
+                        containerId = containerInfo.getContainerId();
+                        usingLongRunningContainer = true;
+                        logger.info("使用长期运行容器: " + containerId);
+                        
+                        // 复制代码文件到容器
+                        containerManager.copyCodeToContainer(containerInfo, tempDirectory);
+                    }
+                } catch (Exception e) {
+                    logger.warning("长期运行容器不可用，回退到传统模式: " + e.getMessage());
+                    containerId = null;
+                }
             }
 
-            logger.info("容器已启动并正在运行");
+            // 如果没有使用长期运行容器，使用传统方式
+            if (containerId == null) {
+                // 准备卷绑定用于代码目录
+                Volume codeVolume = new Volume(WORK_DIR);
+                Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
+
+                // 创建容器
+                HostConfig hostConfig = HostConfig.newHostConfig()
+                        .withBinds(bind)
+                        .withMemory((long) MEMORY_LIMIT)
+                        .withCpuCount((long) CPU_LIMIT)
+                        .withNetworkMode("none"); // 隔离网络
+
+                logger.info("创建容器...");
+                CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage)
+                        .withHostConfig(hostConfig)
+                        .withWorkingDir(WORK_DIR)
+                        // 使用命令保持容器运行
+                        .withCmd("tail", "-f", "/dev/null")
+                        .exec();
+
+                containerId = container.getId();
+                createdContainers.add(containerId);
+                logger.info("容器创建成功: " + containerId);
+
+                // 启动容器
+                logger.info("启动容器...");
+                dockerClient.startContainerCmd(containerId).exec();
+
+                // 等待一小段时间确保容器启动完成
+                Thread.sleep(1000);
+
+                // 检查容器是否在运行
+                boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+                if (!isRunning) {
+                    throw new RuntimeException("容器未能成功启动，请检查Docker服务和镜像是否正常");
+                }
+
+                logger.info("容器已启动并正在运行");
+            }
 
             // 检查Python版本（确认环境正确）
             ExecCreateCmdResponse versionCmd = dockerClient.execCreateCmd(containerId)
@@ -132,6 +160,20 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
                     matched);
 
         } finally {
+            if (usingLongRunningContainer && containerId != null) {
+                // 清理工作目录而不是删除容器
+                try {
+                    ExecCreateCmdResponse cleanupCmd = dockerClient.execCreateCmd(containerId)
+                            .withCmd("sh", "-c", "rm -rf " + WORK_DIR + "/*")
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .exec();
+                    executeCommand(cleanupCmd.getId());
+                    logger.info("已清理长期运行容器的工作目录");
+                } catch (Exception e) {
+                    logger.warning("清理长期运行容器工作目录失败: " + e.getMessage());
+                }
+            }
             // 注释掉：不再每次执行后清理容器，提升性能
             // 容器将在应用结束时统一清理
             // cleanupContainer(containerId);
@@ -143,45 +185,67 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
         String containerId = null;
         long startTime = System.currentTimeMillis();
         AtomicLong memoryUsage = new AtomicLong(0);
+        boolean usingLongRunningContainer = false;
 
         try {
-            // 准备卷绑定用于代码目录
-            Volume codeVolume = new Volume(WORK_DIR);
-            Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
-
-            // 创建容器
-            HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withBinds(bind)
-                    .withMemory((long) MEMORY_LIMIT)
-                    .withCpuCount((long) CPU_LIMIT)
-                    .withNetworkMode("none"); // 隔离网络
-
-            logger.info("创建Docker容器(带参数)...");
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage)
-                    .withHostConfig(hostConfig)
-                    .withWorkingDir(WORK_DIR)
-                    // 使用命令保持容器运行
-                    .withCmd("tail", "-f", "/dev/null")
-                    .exec();
-
-            containerId = container.getId();
-            createdContainers.add(containerId);
-            logger.info("容器创建成功: " + containerId);
-
-            // 启动容器
-            logger.info("启动容器...");
-            dockerClient.startContainerCmd(containerId).exec();
-
-            // 等待一小段时间确保容器启动完成
-            Thread.sleep(1000);
-
-            // 检查容器是否在运行
-            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
-            if (!isRunning) {
-                throw new RuntimeException("容器未能成功启动，请检查Docker服务和镜像是否正常");
+            // 尝试使用长期运行容器
+            if (enableContainerReuse) {
+                try {
+                    LongRunningContainerManager.ContainerInfo containerInfo = getOrCreateLongRunningContainer(getLanguageIdentifier());
+                    if (containerInfo != null) {
+                        containerId = containerInfo.getContainerId();
+                        usingLongRunningContainer = true;
+                        logger.info("使用长期运行容器(带参数): " + containerId);
+                        
+                        // 复制代码文件到容器
+                        containerManager.copyCodeToContainer(containerInfo, tempDirectory);
+                    }
+                } catch (Exception e) {
+                    logger.warning("长期运行容器不可用，回退到传统模式: " + e.getMessage());
+                    containerId = null;
+                }
             }
 
-            logger.info("容器已启动并正在运行");
+            // 如果没有使用长期运行容器，使用传统方式
+            if (containerId == null) {
+                // 准备卷绑定用于代码目录
+                Volume codeVolume = new Volume(WORK_DIR);
+                Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
+
+                // 创建容器
+                HostConfig hostConfig = HostConfig.newHostConfig()
+                        .withBinds(bind)
+                        .withMemory((long) MEMORY_LIMIT)
+                        .withCpuCount((long) CPU_LIMIT)
+                        .withNetworkMode("none"); // 隔离网络
+
+                logger.info("创建Docker容器(带参数)...");
+                CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage)
+                        .withHostConfig(hostConfig)
+                        .withWorkingDir(WORK_DIR)
+                        // 使用命令保持容器运行
+                        .withCmd("tail", "-f", "/dev/null")
+                        .exec();
+
+                containerId = container.getId();
+                createdContainers.add(containerId);
+                logger.info("容器创建成功: " + containerId);
+
+                // 启动容器
+                logger.info("启动容器...");
+                dockerClient.startContainerCmd(containerId).exec();
+
+                // 等待一小段时间确保容器启动完成
+                Thread.sleep(1000);
+
+                // 检查容器是否在运行
+                boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+                if (!isRunning) {
+                    throw new RuntimeException("容器未能成功启动，请检查Docker服务和镜像是否正常");
+                }
+
+                logger.info("容器已启动并正在运行");
+            }
 
             // 检查Python版本（确认环境正确）
             ExecCreateCmdResponse versionCmd = dockerClient.execCreateCmd(containerId)
@@ -235,6 +299,20 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
                     matched);
 
         } finally {
+            if (usingLongRunningContainer && containerId != null) {
+                // 清理工作目录而不是删除容器
+                try {
+                    ExecCreateCmdResponse cleanupCmd = dockerClient.execCreateCmd(containerId)
+                            .withCmd("sh", "-c", "rm -rf " + WORK_DIR + "/*")
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .exec();
+                    executeCommand(cleanupCmd.getId());
+                    logger.info("已清理长期运行容器的工作目录");
+                } catch (Exception e) {
+                    logger.warning("清理长期运行容器工作目录失败: " + e.getMessage());
+                }
+            }
             // 注释掉：不再每次执行后清理容器，提升性能
             // 容器将在应用结束时统一清理
             // cleanupContainer(containerId);
@@ -246,45 +324,67 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
         String containerId = null;
         long startTime = System.currentTimeMillis();
         AtomicLong memoryUsage = new AtomicLong(0);
+        boolean usingLongRunningContainer = false;
 
         try {
-            // 准备卷绑定用于代码目录
-            Volume codeVolume = new Volume(WORK_DIR);
-            Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
-
-            // 创建容器
-            HostConfig hostConfig = HostConfig.newHostConfig()
-                    .withBinds(bind)
-                    .withMemory((long) MEMORY_LIMIT)
-                    .withCpuCount((long) CPU_LIMIT)
-                    .withNetworkMode("none"); // 隔离网络
-
-            logger.info("创建Docker容器(带测试文件)...");
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage)
-                    .withHostConfig(hostConfig)
-                    .withWorkingDir(WORK_DIR)
-                    // 使用命令保持容器运行
-                    .withCmd("tail", "-f", "/dev/null")
-                    .exec();
-
-            containerId = container.getId();
-            createdContainers.add(containerId);
-            logger.info("容器创建成功: " + containerId);
-
-            // 启动容器
-            logger.info("启动容器...");
-            dockerClient.startContainerCmd(containerId).exec();
-
-            // 等待一小段时间确保容器启动完成
-            Thread.sleep(1000);
-
-            // 检查容器是否在运行
-            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
-            if (!isRunning) {
-                throw new RuntimeException("容器未能成功启动，请检查Docker服务和镜像是否正常");
+            // 尝试使用长期运行容器
+            if (enableContainerReuse) {
+                try {
+                    LongRunningContainerManager.ContainerInfo containerInfo = getOrCreateLongRunningContainer(getLanguageIdentifier());
+                    if (containerInfo != null) {
+                        containerId = containerInfo.getContainerId();
+                        usingLongRunningContainer = true;
+                        logger.info("使用长期运行容器(带测试文件): " + containerId);
+                        
+                        // 复制代码文件到容器
+                        containerManager.copyCodeToContainer(containerInfo, tempDirectory);
+                    }
+                } catch (Exception e) {
+                    logger.warning("长期运行容器不可用，回退到传统模式: " + e.getMessage());
+                    containerId = null;
+                }
             }
 
-            logger.info("容器已启动并正在运行");
+            // 如果没有使用长期运行容器，使用传统方式
+            if (containerId == null) {
+                // 准备卷绑定用于代码目录
+                Volume codeVolume = new Volume(WORK_DIR);
+                Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
+
+                // 创建容器
+                HostConfig hostConfig = HostConfig.newHostConfig()
+                        .withBinds(bind)
+                        .withMemory((long) MEMORY_LIMIT)
+                        .withCpuCount((long) CPU_LIMIT)
+                        .withNetworkMode("none"); // 隔离网络
+
+                logger.info("创建Docker容器(带测试文件)...");
+                CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage)
+                        .withHostConfig(hostConfig)
+                        .withWorkingDir(WORK_DIR)
+                        // 使用命令保持容器运行
+                        .withCmd("tail", "-f", "/dev/null")
+                        .exec();
+
+                containerId = container.getId();
+                createdContainers.add(containerId);
+                logger.info("容器创建成功: " + containerId);
+
+                // 启动容器
+                logger.info("启动容器...");
+                dockerClient.startContainerCmd(containerId).exec();
+
+                // 等待一小段时间确保容器启动完成
+                Thread.sleep(1000);
+
+                // 检查容器是否在运行
+                boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+                if (!isRunning) {
+                    throw new RuntimeException("容器未能成功启动，请检查Docker服务和镜像是否正常");
+                }
+
+                logger.info("容器已启动并正在运行");
+            }
 
             // 检查Python版本（确认环境正确）
             ExecCreateCmdResponse versionCmd = dockerClient.execCreateCmd(containerId)
@@ -355,6 +455,20 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult
                     matched);
 
         } finally {
+            if (usingLongRunningContainer && containerId != null) {
+                // 清理工作目录而不是删除容器
+                try {
+                    ExecCreateCmdResponse cleanupCmd = dockerClient.execCreateCmd(containerId)
+                            .withCmd("sh", "-c", "rm -rf " + WORK_DIR + "/*")
+                            .withAttachStdout(true)
+                            .withAttachStderr(true)
+                            .exec();
+                    executeCommand(cleanupCmd.getId());
+                    logger.info("已清理长期运行容器的工作目录");
+                } catch (Exception e) {
+                    logger.warning("清理长期运行容器工作目录失败: " + e.getMessage());
+                }
+            }
             // 注释掉：不再每次执行后清理容器，提升性能
             // 容器将在应用结束时统一清理
             // cleanupContainer(containerId);

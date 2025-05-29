@@ -12,6 +12,7 @@ import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.pool.LongRunningContainerManager;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -55,6 +56,12 @@ public abstract class AbstractDockerExecutor<T extends ExecutionResult> {
     // 添加线程池用于并行清理
     private static final ExecutorService CLEANUP_EXECUTOR = Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()));
 
+    // 长期运行容器管理器
+    protected final LongRunningContainerManager containerManager;
+    
+    // 容器复用标志，默认启用
+    protected boolean enableContainerReuse = true;
+
     /**
      * 构造函数，初始化Docker客户端
      *
@@ -67,6 +74,9 @@ public abstract class AbstractDockerExecutor<T extends ExecutionResult> {
 
         DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
         dockerClient = DockerClientImpl.getInstance(config, new ApacheDockerHttpClient.Builder().dockerHost(config.getDockerHost()).sslConfig(config.getSSLConfig()).maxConnections(100).connectionTimeout(Duration.ofSeconds(30)).responseTimeout(Duration.ofSeconds(45)).build());
+
+        // 初始化长期运行容器管理器
+        this.containerManager = LongRunningContainerManager.getInstance();
 
         // 注册当前实例并确保全局关闭钩子
         registerExecutorInstance();
@@ -82,6 +92,28 @@ public abstract class AbstractDockerExecutor<T extends ExecutionResult> {
     protected AbstractDockerExecutor(String dockerImage, String loggerName, boolean pullImageAlways) {
         this(dockerImage, loggerName);
         this.pullImageAlways = pullImageAlways;
+    }
+
+    /**
+     * 设置是否启用容器复用
+     * 
+     * @param enable 是否启用容器复用
+     */
+    public void setContainerReuse(boolean enable) {
+        this.enableContainerReuse = enable;
+    }
+
+    /**
+     * 获取或创建长期运行的容器
+     * 
+     * @param language 编程语言标识（java/python/javascript）
+     * @return 容器信息
+     */
+    protected LongRunningContainerManager.ContainerInfo getOrCreateLongRunningContainer(String language) throws Exception {
+        if (!enableContainerReuse) {
+            return null; // 如果禁用容器复用，返回null让子类自己创建容器
+        }
+        return containerManager.getOrCreateContainer(language, dockerImage);
     }
 
     /**
@@ -854,6 +886,13 @@ public abstract class AbstractDockerExecutor<T extends ExecutionResult> {
     protected abstract ExecutionMetrics createErrorExecutionMetrics(String status, String errorMessage);
 
     protected abstract T calculateAverageMetrics(List<ExecutionMetrics> metrics);
+
+    /**
+     * 获取编程语言标识，子类需要实现
+     * 
+     * @return 编程语言标识（java/python/javascript）
+     */
+    protected abstract String getLanguageIdentifier();
 
     /**
      * 命令执行完成的内部类
