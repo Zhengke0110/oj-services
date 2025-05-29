@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 /**
@@ -135,12 +136,10 @@ public class MainController {
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
             // 仅支持命令行参数模式
             String[] args = request.getInputs().toArray(new String[0]);
-            result = javaExecutor.executeJavaCodeWithArgs(request.getCode(), args, null,
-                    Math.max(1, request.getExecutionCount()));
+            result = javaExecutor.executeJavaCodeWithArgs(request.getCode(), args, null, Math.max(1, request.getExecutionCount()));
         } else {
             // 无输入的代码执行
-            result = javaExecutor.executeJavaCode(request.getCode(), null,
-                    Math.max(1, request.getExecutionCount()));
+            result = javaExecutor.executeJavaCode(request.getCode(), null, Math.max(1, request.getExecutionCount()));
         }
 
         return convertToExecuteCodeResponse(result);
@@ -155,12 +154,10 @@ public class MainController {
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
             // 仅支持命令行参数模式
             String[] args = request.getInputs().toArray(new String[0]);
-            result = jsExecutor.executeJavaScriptCodeWithArgs(request.getCode(), args, null,
-                    Math.max(1, request.getExecutionCount()));
+            result = jsExecutor.executeJavaScriptCodeWithArgs(request.getCode(), args, null, Math.max(1, request.getExecutionCount()));
         } else {
             // 无输入的代码执行
-            result = jsExecutor.executeJavaScriptCode(request.getCode(), null,
-                    Math.max(1, request.getExecutionCount()));
+            result = jsExecutor.executeJavaScriptCode(request.getCode(), null, Math.max(1, request.getExecutionCount()));
         }
 
         return convertToExecuteCodeResponse(result);
@@ -175,12 +172,10 @@ public class MainController {
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
             // 仅支持命令行参数模式
             String[] args = request.getInputs().toArray(new String[0]);
-            result = pythonExecutor.executePythonCodeWithArgs(request.getCode(), args, null,
-                    Math.max(1, request.getExecutionCount()));
+            result = pythonExecutor.executePythonCodeWithArgs(request.getCode(), args, null, Math.max(1, request.getExecutionCount()));
         } else {
             // 无输入的代码执行
-            result = pythonExecutor.executePythonCode(request.getCode(), null,
-                    Math.max(1, request.getExecutionCount()));
+            result = pythonExecutor.executePythonCode(request.getCode(), null, Math.max(1, request.getExecutionCount()));
         }
 
         return convertToExecuteCodeResponse(result);
@@ -233,10 +228,10 @@ public class MainController {
      */
     @PreDestroy
     public void cleanup() {
-        logger.info("=== SpringBoot @PreDestroy 被调用，开始清理容器资源 ===");
+        logger.info("=== SpringBoot @PreDestroy 被调用，开始并行清理容器资源 ===");
 
         try {
-            logger.info("应用关闭时开始清理所有容器资源...");
+            long startTime = System.currentTimeMillis();
 
             // 统计容器数量 - 修复访问权限问题
             int javaContainers = javaExecutor.getContainerCount();
@@ -244,27 +239,55 @@ public class MainController {
             int jsContainers = jsExecutor.getContainerCount();
             int totalContainers = javaContainers + pythonContainers + jsContainers;
 
-            logger.info("待清理容器详情: Java=" + javaContainers +
-                    ", Python=" + pythonContainers +
-                    ", JavaScript=" + jsContainers +
-                    ", 总计=" + totalContainers);
+            logger.info("待清理容器详情: Java=" + javaContainers + ", Python=" + pythonContainers + ", JavaScript=" + jsContainers + ", 总计=" + totalContainers);
 
             if (totalContainers == 0) {
                 logger.info("没有需要清理的容器");
                 return;
             }
 
-            // 清理执行器资源，现在会清理所有累积的容器
-            logger.info("清理Java执行器...");
-            javaExecutor.cleanup();
+            // 并行清理执行器资源
+            logger.info("开始并行清理执行器...");
 
-            logger.info("清理Python执行器...");
-            pythonExecutor.cleanup();
+            // 使用CompletableFuture并行执行清理
+            CompletableFuture<Void> javaCleanup = CompletableFuture.runAsync(() -> {
+                try {
+                    logger.info("清理Java执行器...");
+                    javaExecutor.cleanup();
+                    logger.info("Java执行器清理完成");
+                } catch (Exception e) {
+                    logger.severe("Java执行器清理失败: " + e.getMessage());
+                }
+            });
 
-            logger.info("清理JavaScript执行器...");
-            jsExecutor.cleanup();
+            CompletableFuture<Void> pythonCleanup = CompletableFuture.runAsync(() -> {
+                try {
+                    logger.info("清理Python执行器...");
+                    pythonExecutor.cleanup();
+                    logger.info("Python执行器清理完成");
+                } catch (Exception e) {
+                    logger.severe("Python执行器清理失败: " + e.getMessage());
+                }
+            });
 
-            logger.info("=== 所有容器资源清理完成 ===");
+            CompletableFuture<Void> jsCleanup = CompletableFuture.runAsync(() -> {
+                try {
+                    logger.info("清理JavaScript执行器...");
+                    jsExecutor.cleanup();
+                    logger.info("JavaScript执行器清理完成");
+                } catch (Exception e) {
+                    logger.severe("JavaScript执行器清理失败: " + e.getMessage());
+                }
+            });
+
+            // 等待所有清理任务完成
+            CompletableFuture.allOf(javaCleanup, pythonCleanup, jsCleanup).get(60, java.util.concurrent.TimeUnit.SECONDS);
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("=== 所有容器资源并行清理完成，耗时: " + duration + "ms ===");
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            logger.severe("清理任务超时: " + e.getMessage());
         } catch (Exception e) {
             logger.severe("清理资源时出错: " + e.getMessage());
             e.printStackTrace();
@@ -281,17 +304,20 @@ public class MainController {
         }
 
         try {
-            logger.info("手动触发容器清理...");
+            long startTime = System.currentTimeMillis();
+            logger.info("手动触发并行容器清理...");
 
             // 显示清理前的容器状态
-            int totalContainers = javaExecutor.getContainerCount() +
-                    pythonExecutor.getContainerCount() +
-                    jsExecutor.getContainerCount();
+            int totalContainers = javaExecutor.getContainerCount() + pythonExecutor.getContainerCount() + jsExecutor.getContainerCount();
 
             logger.info("清理前容器总数: " + totalContainers);
 
             cleanup();
-            return ResponseEntity.ok("容器清理完成，清理了 " + totalContainers + " 个容器");
+
+            long duration = System.currentTimeMillis() - startTime;
+            String result = String.format("并行容器清理完成，清理了 %d 个容器，耗时: %dms", totalContainers, duration);
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.severe("手动清理失败: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("清理失败: " + e.getMessage());
@@ -313,14 +339,7 @@ public class MainController {
             int jsContainers = jsExecutor.getContainerCount();
             int totalContainers = javaContainers + pythonContainers + jsContainers;
 
-            String status = String.format(
-                    "容器状态统计:\n" +
-                            "Java执行器: %d 个容器\n" +
-                            "Python执行器: %d 个容器\n" +
-                            "JavaScript执行器: %d 个容器\n" +
-                            "总计: %d 个容器",
-                    javaContainers, pythonContainers, jsContainers, totalContainers
-            );
+            String status = String.format("容器状态统计:\n" + "Java执行器: %d 个容器\n" + "Python执行器: %d 个容器\n" + "JavaScript执行器: %d 个容器\n" + "总计: %d 个容器", javaContainers, pythonContainers, jsContainers, totalContainers);
 
             return ResponseEntity.ok(status);
         } catch (Exception e) {

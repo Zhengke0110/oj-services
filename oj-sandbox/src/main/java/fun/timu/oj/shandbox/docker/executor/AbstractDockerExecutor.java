@@ -19,8 +19,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,6 +49,9 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
     // 添加静态变量跟踪所有执行器实例
     private static final List<AbstractDockerExecutor<?>> ALL_EXECUTORS = new ArrayList<>();
     private static boolean shutdownHookAdded = false;
+
+    // 添加线程池用于并行清理
+    private static final ExecutorService CLEANUP_EXECUTOR = Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()));
 
     /**
      * 构造函数，初始化Docker客户端
@@ -488,23 +491,138 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
     }
 
     /**
-     * 清理所有由此执行器创建的容器
+     * 并行清理所有由此执行器创建的容器
      */
     protected void cleanupAllContainers() {
-        logger.info("清理所有容器，当前跟踪容器数量: " + createdContainers.size());
+        logger.info("开始并行清理所有容器，当前跟踪容器数量: " + createdContainers.size());
+
+        if (createdContainers.isEmpty()) {
+            logger.info("没有需要清理的容器");
+            return;
+        }
 
         // 复制列表避免并发修改异常
         List<String> containersToClean = new ArrayList<>(createdContainers);
-        for (String containerId : containersToClean) {
-            cleanupContainer(containerId);
+
+        // 使用并行清理
+        cleanupContainersParallel(containersToClean);
+    }
+
+    /**
+     * 并行清理容器列表
+     */
+    private void cleanupContainersParallel(List<String> containerIds) {
+        if (containerIds.isEmpty()) {
+            return;
         }
 
-        // 最后检查是否所有容器都已清理
-        if (!createdContainers.isEmpty()) {
-            logger.warning("有" + createdContainers.size() + "个容器未能正常清理");
-        } else {
-            logger.info("所有容器已成功清理");
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+        CountDownLatch latch = new CountDownLatch(containerIds.size());
+
+        logger.info("启动并行清理，容器数量: " + containerIds.size());
+        long startTime = System.currentTimeMillis();
+
+        // 为每个容器创建清理任务
+        List<CompletableFuture<Void>> cleanupTasks = new ArrayList<>();
+
+        for (String containerId : containerIds) {
+            CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+                try {
+                    if (cleanupSingleContainer(containerId)) {
+                        successCount.incrementAndGet();
+                    } else {
+                        failCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    logger.warning("并行清理容器异常: " + containerId + ", 错误: " + e.getMessage());
+                    failCount.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            }, CLEANUP_EXECUTOR);
+
+            cleanupTasks.add(task);
         }
+
+        try {
+            // 等待所有清理任务完成，最多等待60秒
+            boolean completed = latch.await(60, TimeUnit.SECONDS);
+
+            if (!completed) {
+                logger.warning("并行清理超时，可能还有容器未完成清理");
+                // 取消未完成的任务
+                cleanupTasks.forEach(task -> task.cancel(true));
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("并行清理完成 - 耗时: " + duration + "ms, 成功: " + successCount.get() + ", 失败: " + failCount.get());
+
+        } catch (InterruptedException e) {
+            logger.warning("并行清理被中断: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * 清理单个容器（线程安全版本）
+     *
+     * @param containerId 容器ID
+     * @return 是否清理成功
+     */
+    private boolean cleanupSingleContainer(String containerId) {
+        if (containerId == null) {
+            return false;
+        }
+
+        try {
+            logger.fine("开始清理容器: " + containerId);
+
+            // 检查容器是否存在
+            boolean containerExists = false;
+            try {
+                dockerClient.inspectContainerCmd(containerId).exec();
+                containerExists = true;
+            } catch (Exception e) {
+                logger.fine("容器不存在或已被移除: " + containerId);
+                synchronized (createdContainers) {
+                    createdContainers.remove(containerId);
+                }
+                return true;
+            }
+
+            if (containerExists) {
+                // 尝试停止容器（如果还在运行）
+                try {
+                    InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
+                    if (containerInfo.getState().getRunning()) {
+                        logger.fine("停止运行中的容器: " + containerId);
+                        dockerClient.stopContainerCmd(containerId).withTimeout(3).exec();
+                        Thread.sleep(500); // 短暂等待
+                    }
+                } catch (Exception e) {
+                    logger.fine("停止容器时出错，将尝试强制删除: " + containerId);
+                }
+
+                // 移除容器
+                try {
+                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
+                    logger.fine("容器已成功移除: " + containerId);
+                    synchronized (createdContainers) {
+                        createdContainers.remove(containerId);
+                    }
+                    return true;
+                } catch (Exception e) {
+                    logger.warning("移除容器失败: " + containerId + ", 错误: " + e.getMessage());
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            logger.warning("清理容器时发生异常: " + containerId + ", 错误: " + e.getMessage());
+            return false;
+        }
+
+        return false;
     }
 
     /**
@@ -520,60 +638,9 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
                 return;
             }
 
-            // 复制列表避免并发修改异常
+            // 使用并行清理
             List<String> containersToClean = new ArrayList<>(createdContainers);
-            int successCount = 0;
-            int failCount = 0;
-
-            // 清理所有创建的容器
-            for (String containerId : containersToClean) {
-                try {
-                    logger.info("开始清理容器: " + containerId);
-
-                    // 检查容器是否存在
-                    boolean containerExists = false;
-                    try {
-                        dockerClient.inspectContainerCmd(containerId).exec();
-                        containerExists = true;
-                        logger.info("容器存在，准备清理: " + containerId);
-                    } catch (Exception e) {
-                        logger.info("容器不存在或已被移除: " + containerId);
-                        createdContainers.remove(containerId);
-                        successCount++;
-                        continue;
-                    }
-
-                    if (containerExists) {
-                        // 尝试停止容器（如果还在运行）
-                        try {
-                            InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
-                            if (containerInfo.getState().getRunning()) {
-                                logger.info("停止运行中的容器: " + containerId);
-                                dockerClient.stopContainerCmd(containerId).withTimeout(5).exec();
-                                Thread.sleep(1000); // 等待容器完全停止
-                            }
-                        } catch (Exception e) {
-                            logger.warning("停止容器时出错，将尝试强制删除: " + containerId + ", 错误: " + e.getMessage());
-                        }
-
-                        // 移除容器
-                        try {
-                            dockerClient.removeContainerCmd(containerId).withForce(true).exec();
-                            logger.info("容器已成功移除: " + containerId);
-                            createdContainers.remove(containerId);
-                            successCount++;
-                        } catch (Exception e) {
-                            logger.severe("移除容器失败: " + containerId + ", 错误: " + e.getMessage());
-                            failCount++;
-                        }
-                    }
-                } catch (Exception e) {
-                    logger.severe("清理容器时发生异常: " + containerId + ", 错误: " + e.getMessage());
-                    failCount++;
-                }
-            }
-
-            logger.info("容器清理完成 - 成功: " + successCount + ", 失败: " + failCount);
+            cleanupContainersParallel(containersToClean);
 
             // 关闭Docker客户端
             if (dockerClient != null) {
@@ -619,19 +686,69 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
      * 清理所有执行器的容器
      */
     private static void cleanupAllExecutors() {
-//        System.out.println("开始清理 " + ALL_EXECUTORS.size() + " 个执行器的容器...");
+//        System.out.println("开始并行清理 " + ALL_EXECUTORS.size() + " 个执行器的容器...");
 
-        for (AbstractDockerExecutor<?> executor : ALL_EXECUTORS) {
-            try {
-//                System.out.println("清理执行器: " + executor.getClass().getSimpleName() + ", 容器数量: " + executor.createdContainers.size());
-                executor.cleanup();
-            } catch (Exception e) {
-                System.err.println("清理执行器失败: " + executor.getClass().getSimpleName() + ", 错误: " + e.getMessage());
-                e.printStackTrace();
-            }
+        if (ALL_EXECUTORS.isEmpty()) {
+            System.out.println("没有执行器需要清理");
+            return;
         }
 
-        System.out.println("=== 所有Docker容器清理完成 ===");
+        long startTime = System.currentTimeMillis();
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+
+        // 并行清理所有执行器
+        List<CompletableFuture<Void>> executorCleanupTasks = new ArrayList<>();
+
+        for (AbstractDockerExecutor<?> executor : ALL_EXECUTORS) {
+            CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+                try {
+//                    System.out.println("清理执行器: " + executor.getClass().getSimpleName() + ", 容器数量: " + executor.createdContainers.size());
+                    executor.cleanup();
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    System.err.println("清理执行器失败: " + executor.getClass().getSimpleName() + ", 错误: " + e.getMessage());
+                    failCount.incrementAndGet();
+                }
+            }, CLEANUP_EXECUTOR);
+
+            executorCleanupTasks.add(task);
+        }
+
+        try {
+            // 等待所有执行器清理完成
+            CompletableFuture<Void> allTasks = CompletableFuture.allOf(executorCleanupTasks.toArray(new CompletableFuture[0]));
+
+            // 最多等待120秒
+            allTasks.get(120, TimeUnit.SECONDS);
+
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("=== 所有Docker容器清理完成 ===");
+            System.out.println("清理统计 - 耗时: " + duration + "ms, 成功执行器: " + successCount.get() + ", 失败执行器: " + failCount.get());
+
+        } catch (Exception e) {
+            System.err.println("执行器并行清理异常: " + e.getMessage());
+        } finally {
+            // 关闭清理线程池
+            shutdownCleanupExecutor();
+        }
+    }
+
+    /**
+     * 关闭清理线程池
+     */
+    private static void shutdownCleanupExecutor() {
+        try {
+            CLEANUP_EXECUTOR.shutdown();
+            if (!CLEANUP_EXECUTOR.awaitTermination(10, TimeUnit.SECONDS)) {
+                System.out.println("强制关闭清理线程池...");
+                CLEANUP_EXECUTOR.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            System.err.println("关闭清理线程池被中断");
+            CLEANUP_EXECUTOR.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
