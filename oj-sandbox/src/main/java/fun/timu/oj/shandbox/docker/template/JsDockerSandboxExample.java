@@ -1,6 +1,8 @@
 package fun.timu.oj.shandbox.docker.template;
 
 import fun.timu.oj.shandbox.docker.executor.JavaScriptDockerExecutor;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -27,8 +29,6 @@ public class JsDockerSandboxExample {
             // 示例2: 使用命令行参数
             runWithArgsExample(executor);
 
-            // 示例3: 使用文件输入
-//            runWithFileExample(executor);
         }
 
         private void runSimpleExample(JavaScriptDockerExecutor executor) throws Exception {
@@ -41,7 +41,7 @@ public class JsDockerSandboxExample {
             int executionCount = 1; // 先只执行一次进行测试
 
             try {
-                JavaScriptDockerExecutor.ExecutionResult result = executor.executeJavaScriptCode(jsCode, expectedOutput, executionCount);
+                ExecutionResult result = executor.executeJavaScriptCode(jsCode, expectedOutput, executionCount);
 
                 printExecutionResults(result);
             } catch (Exception e) {
@@ -65,7 +65,7 @@ public class JsDockerSandboxExample {
             int executionCount = 1;
 
             try {
-                JavaScriptDockerExecutor.ExecutionResult result = executor.executeJavaScriptCodeWithArgs(jsCode, testArgs, expectedOutput, executionCount);
+                ExecutionResult result = executor.executeJavaScriptCodeWithArgs(jsCode, testArgs, expectedOutput, executionCount);
 
                 printExecutionResults(result);
 
@@ -83,41 +83,7 @@ public class JsDockerSandboxExample {
             }
         }
 
-        @Deprecated
-        private void runWithFileExample(JavaScriptDockerExecutor executor) throws Exception {
-            System.out.println("\n\n===== 示例3: 通过文件读取测试用例 =====");
-
-            // 从文件读取输入的JavaScript代码
-            String jsCode = "// 从文件读取测试用例进行处理的示例\n" + "const fs = require('fs');\n" + "\n" + "console.log('通过文件读取测试用例');\n" + "\n" + "// 检查参数\n" + "if (process.argv.length < 3) {\n" + "  console.log('请提供测试文件路径');\n" + "  process.exit(1);\n" + "}\n" + "\n" + "// 获取测试文件路径\n" + "const testFilePath = process.argv[2];\n" + "\n" + "try {\n" + "  // 读取文件内容\n" + "  const data = fs.readFileSync(testFilePath, 'utf8');\n" + "  const lines = data.trim().split('\\n');\n" + "  \n" + "  // 第一行：数字的数量\n" + "  const n = parseInt(lines[0]);\n" + "  console.log(`读取了 ${n} 个数字`);\n" + "  \n" + "  // 第二行：数字列表\n" + "  const numbers = lines[1].split(/\\s+/).map(Number);\n" + "  \n" + "  if (numbers.length < n) {\n" + "    console.log('输入数字不足');\n" + "    process.exit(1);\n" + "  }\n" + "  \n" + "  // 计算总和\n" + "  let sum = 0;\n" + "  process.stdout.write('输入的数字: ');\n" + "  \n" + "  for (let i = 0; i < n; i++) {\n" + "    process.stdout.write(numbers[i] + (i < n-1 ? ', ' : ''));\n" + "    sum += numbers[i];\n" + "  }\n" + "  \n" + "  console.log();\n" + "  console.log(`总和 = ${sum}`);\n" + "  console.log(`平均值 = ${sum / n}`);\n" + "  \n" + "} catch (err) {\n" + "  console.log(`读取或处理文件时出错: ${err.message}`);\n" + "  process.exit(1);\n" + "}\n";
-
-            // 测试文件内容
-            String testFileContent = "5\n10 20 30 40 50";
-
-            // 期望的输出
-            String expectedOutput = "通过文件读取测试用例\n" + "读取了 5 个数字\n" + "输入的数字: 10, 20, 30, 40, 50\n" + "总和 = 150\n" + "平均值 = 30";
-
-            int executionCount = 1;
-
-            try {
-                JavaScriptDockerExecutor.ExecutionResult result = executor.executeJavaScriptCodeWithTestFile(jsCode, testFileContent, expectedOutput, executionCount);
-
-                printExecutionResults(result);
-
-                // 尝试不同的测试用例
-                System.out.println("\n--- 测试不同输入 ---");
-                String newTestFileContent = "3\n100 200 300";
-                String newExpectedOutput = "通过文件读取测试用例\n" + "读取了 3 个数字\n" + "输入的数字: 100, 200, 300\n" + "总和 = 600\n" + "平均值 = 200";
-
-                result = executor.executeJavaScriptCodeWithTestFile(jsCode, newTestFileContent, newExpectedOutput, executionCount);
-                printExecutionResults(result);
-
-            } catch (Exception e) {
-                System.err.println("执行代码(带测试文件)时出错: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-
-        private void printExecutionResults(JavaScriptDockerExecutor.ExecutionResult result) {
+        private void printExecutionResults(ExecutionResult result) {
             System.out.println("\n--- 执行结果 ---");
             System.out.println("成功: " + result.isSuccess());
             System.out.println("输出匹配: " + result.isOutputMatched());
@@ -129,7 +95,7 @@ public class JsDockerSandboxExample {
 
             System.out.println("\n--- 单次执行详情 ---");
             for (int i = 0; i < result.getExecutionResults().size(); i++) {
-                JavaScriptDockerExecutor.ExecutionMetrics metrics = result.getExecutionResults().get(i);
+                ExecutionMetrics metrics = result.getExecutionResults().get(i);
                 System.out.println("执行 #" + (i + 1));
                 System.out.println("  状态: " + metrics.getStatus());
                 System.out.println("  输出: " + metrics.getOutput());

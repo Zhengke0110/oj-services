@@ -1,9 +1,10 @@
 package fun.timu.oj.shandbox.controller;
 
-import fun.timu.oj.shandbox.docker.executor.AbstractDockerExecutor;
 import fun.timu.oj.shandbox.docker.executor.DockerCodeExecutor;
 import fun.timu.oj.shandbox.docker.executor.JavaScriptDockerExecutor;
 import fun.timu.oj.shandbox.docker.executor.PythonDockerExecutor;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import fun.timu.oj.shandbox.interfaces.ExecuteCodeRequest;
 import fun.timu.oj.shandbox.interfaces.ExecuteCodeResponse;
 import fun.timu.oj.shandbox.interfaces.JudgeInfo;
@@ -131,7 +132,7 @@ public class MainController {
      * 内部方法：执行Java代码并返回接口定义的响应对象
      */
     private ExecuteCodeResponse executeJavaCodeInternal(ExecuteCodeRequest request) throws Exception {
-        DockerCodeExecutor.JavaExecutionResult result;
+        ExecutionResult result;
 
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
             // 仅支持命令行参数模式
@@ -149,7 +150,7 @@ public class MainController {
      * 内部方法：执行JavaScript代码并返回接口定义的响应对象
      */
     private ExecuteCodeResponse executeJavaScriptCodeInternal(ExecuteCodeRequest request) throws Exception {
-        JavaScriptDockerExecutor.JSExecutionResult result;
+        ExecutionResult result;
 
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
             // 仅支持命令行参数模式
@@ -167,7 +168,7 @@ public class MainController {
      * 内部方法：执行Python代码并返回接口定义的响应对象
      */
     private ExecuteCodeResponse executePythonCodeInternal(ExecuteCodeRequest request) throws Exception {
-        PythonDockerExecutor.PythonExecutionResult result;
+        ExecutionResult result;
 
         if (request.getInputs() != null && !request.getInputs().isEmpty()) {
             // 仅支持命令行参数模式
@@ -184,7 +185,7 @@ public class MainController {
     /**
      * 转换Docker执行结果为接口响应模型
      */
-    private ExecuteCodeResponse convertToExecuteCodeResponse(AbstractDockerExecutor.ExecutionResult result) {
+    private ExecuteCodeResponse convertToExecuteCodeResponse(ExecutionResult result) {
         ExecuteCodeResponse response = new ExecuteCodeResponse();
 
         // 设置执行状态
@@ -192,7 +193,7 @@ public class MainController {
 
         // 设置输出信息
         List<String> outputs = new ArrayList<>();
-        for (AbstractDockerExecutor.ExecutionMetrics metric : result.getExecutionResults()) {
+        for (ExecutionMetrics metric : result.getExecutionResults()) {
             outputs.add(metric.getOutput());
         }
         response.setOutput(outputs);

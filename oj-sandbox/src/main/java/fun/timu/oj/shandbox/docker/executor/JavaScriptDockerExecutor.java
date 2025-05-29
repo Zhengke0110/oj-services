@@ -6,6 +6,9 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.JavaScriptExecutionMetrics;
 
 import java.nio.file.Paths;
 import java.nio.file.Files;
@@ -21,7 +24,7 @@ import java.util.logging.Level;
  * JavaScript代码执行器
  * 用于在Docker容器中执行JavaScript代码并验证结果
  */
-public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptDockerExecutor.JSExecutionResult> {
+public class JavaScriptDockerExecutor extends AbstractDockerExecutor<ExecutionResult> {
     private static final String DOCKER_IMAGE = "node:18-alpine";
     private static final int CONTAINER_WAIT_TIME = 2; // 容器启动等待秒数
 
@@ -116,7 +119,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
 
             if (checkNodeExec.getExitCode() != 0) {
                 logger.severe("Node.js不可用，退出代码: " + checkNodeExec.getExitCode());
-                return new JSExecutionMetricsImpl(
+                return new JavaScriptExecutionMetrics(
                         "ENVIRONMENT_ERROR",
                         "Node.js不可用: " + checkNodeExec.getOutput(),
                         System.currentTimeMillis() - startTime,
@@ -152,7 +155,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JSExecutionMetricsImpl(
+            return new JavaScriptExecutionMetrics(
                     exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
                     output,
                     System.currentTimeMillis() - startTime,
@@ -237,7 +240,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JSExecutionMetricsImpl(
+            return new JavaScriptExecutionMetrics(
                     exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
                     output,
                     System.currentTimeMillis() - startTime,
@@ -304,7 +307,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
             CompletedExecution catFileExec = executeCommand(catFileCmd.getId());
             if (catFileExec.getExitCode() != 0) {
                 logger.severe("测试文件无法读取: " + catFileExec.getOutput());
-                return new JSExecutionMetricsImpl(
+                return new JavaScriptExecutionMetrics(
                         "FILE_ERROR",
                         "测试文件无法读取: " + catFileExec.getOutput(),
                         System.currentTimeMillis() - startTime,
@@ -329,7 +332,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JSExecutionMetricsImpl(
+            return new JavaScriptExecutionMetrics(
                     exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
                     output,
                     System.currentTimeMillis() - startTime,
@@ -344,11 +347,11 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
 
     @Override
     protected ExecutionMetrics createErrorExecutionMetrics(String status, String errorMessage) {
-        return new JSExecutionMetricsImpl(status, errorMessage, 0, 0, false);
+        return new JavaScriptExecutionMetrics(status, errorMessage, 0, 0, false);
     }
 
     @Override
-    protected JSExecutionResult calculateAverageMetrics(List<ExecutionMetrics> metrics) {
+    protected ExecutionResult calculateAverageMetrics(List<ExecutionMetrics> metrics) {
         long totalExecutionTime = 0;
         long totalMemoryUsed = 0;
         long maxExecutionTime = 0;
@@ -363,7 +366,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
         }
 
         int size = metrics.size();
-        JSExecutionResult result = new JSExecutionResult();
+        ExecutionResult result = new ExecutionResult();
         result.setExecutionResults(metrics);
         result.setAverageExecutionTime(size > 0 ? totalExecutionTime / size : 0);
         result.setAverageMemoryUsed(size > 0 ? totalMemoryUsed / size : 0);
@@ -376,6 +379,7 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
 
     /**
      * 设置文件可执行权限
+     *
      * @param filePath 需要设置权限的文件路径
      */
     private void setExecutablePermissions(String filePath) {
@@ -415,40 +419,43 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
         }
 
         @Override
-        public String getStatus() { return status; }
-        
-        @Override
-        public String getOutput() { return output; }
-        
-        @Override
-        public long getExecutionTime() { return executionTime; }
-        
-        @Override
-        public long getMemoryUsed() { return memoryUsed; }
-        
-        @Override
-        public boolean isOutputMatched() { return outputMatched; }
-    }
+        public String getStatus() {
+            return status;
+        }
 
-    /**
-     * JavaScript执行结果的实现类
-     */
-    public static class JSExecutionResult extends AbstractDockerExecutor.ExecutionResult {
-        // JavaScript特定的字段和方法可以在这里添加
+        @Override
+        public String getOutput() {
+            return output;
+        }
+
+        @Override
+        public long getExecutionTime() {
+            return executionTime;
+        }
+
+        @Override
+        public long getMemoryUsed() {
+            return memoryUsed;
+        }
+
+        @Override
+        public boolean isOutputMatched() {
+            return outputMatched;
+        }
     }
 
     /**
      * 为了向后兼容旧版API，添加适配方法
      */
-    public JSExecutionResult executeJavaScriptCode(String jsCode, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executeJavaScriptCode(String jsCode, String expectedOutput, int executionCount) throws Exception {
         return executeCode(jsCode, expectedOutput, executionCount);
     }
 
-    public JSExecutionResult executeJavaScriptCodeWithArgs(String jsCode, String[] args, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executeJavaScriptCodeWithArgs(String jsCode, String[] args, String expectedOutput, int executionCount) throws Exception {
         return executeCodeWithArgs(jsCode, args, expectedOutput, executionCount);
     }
 
-    public JSExecutionResult executeJavaScriptCodeWithTestFile(String jsCode, String testCaseContent, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executeJavaScriptCodeWithTestFile(String jsCode, String testCaseContent, String expectedOutput, int executionCount) throws Exception {
         return executeCodeWithTestFile(jsCode, testCaseContent, expectedOutput, executionCount);
     }
 }

@@ -1,7 +1,8 @@
 package fun.timu.oj.shandbox.docker.template;
 
-
 import fun.timu.oj.shandbox.docker.executor.DockerCodeExecutor;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -41,7 +42,7 @@ public class DockerSandboxExample {
             int executionCount = 2;
 
             try {
-                DockerCodeExecutor.ExecutionResult result = executor.executeJavaCode(javaCode, expectedOutput, executionCount);
+                ExecutionResult result = executor.executeJavaCode(javaCode, expectedOutput, executionCount);
 
                 printExecutionResults(result);
             } catch (Exception e) {
@@ -65,7 +66,7 @@ public class DockerSandboxExample {
             int executionCount = 2;
 
             try {
-                DockerCodeExecutor.ExecutionResult result = executor.executeJavaCodeWithArgs(javaCode, testArgs, expectedOutput, executionCount);
+                ExecutionResult result = executor.executeJavaCodeWithArgs(javaCode, testArgs, expectedOutput, executionCount);
 
                 printExecutionResults(result);
 
@@ -83,41 +84,7 @@ public class DockerSandboxExample {
             }
         }
 
-        @Deprecated
-        private void runCalculatorWithTestFileExample(DockerCodeExecutor executor) throws Exception {
-            System.out.println("\n\n===== 示例3: 通过文件读取测试用例 =====");
-
-            // 从文件读取输入的代码
-            String javaCode = "import java.io.BufferedReader;\n" + "import java.io.FileReader;\n" + "import java.io.IOException;\n" + "\n" + "public class Solution {\n" + "    public static void main(String[] args) {\n" + "        System.out.println(\"通过文件读取测试用例\");\n" + "        \n" + "        // 检查参数\n" + "        if (args.length < 1) {\n" + "            System.out.println(\"请提供测试文件路径\");\n" + "            return;\n" + "        }\n" + "        \n" + "        String testFilePath = args[0];\n" + "        try (BufferedReader reader = new BufferedReader(new FileReader(testFilePath))) {\n" + "            // 读取第一行：操作数数量\n" + "            int n = Integer.parseInt(reader.readLine().trim());\n" + "            System.out.println(\"读取了 \" + n + \" 个数字\");\n" + "            \n" + "            // 读取第二行：操作数列表\n" + "            String[] numbers = reader.readLine().trim().split(\"\\\\s+\");\n" + "            if (numbers.length < n) {\n" + "                System.out.println(\"输入数字不足\");\n" + "                return;\n" + "            }\n" + "            \n" + "            // 计算总和\n" + "            int sum = 0;\n" + "            System.out.print(\"输入的数字: \");\n" + "            for (int i = 0; i < n; i++) {\n" + "                int num = Integer.parseInt(numbers[i]);\n" + "                System.out.print(num + (i < n-1 ? \", \" : \"\"));\n" + "                sum += num;\n" + "            }\n" + "            System.out.println();\n" + "            System.out.println(\"总和 = \" + sum);\n" + "            System.out.println(\"平均值 = \" + (double)sum / n);\n" + "            \n" + "        } catch (IOException e) {\n" + "            System.out.println(\"读取文件时出错: \" + e.getMessage());\n" + "        } catch (NumberFormatException e) {\n" + "            System.out.println(\"解析数字时出错: \" + e.getMessage());\n" + "        }\n" + "    }\n" + "}";
-
-            // 测试文件内容
-            String testFileContent = "5\n10 20 30 40 50";
-
-            // 期望的输出
-            String expectedOutput = "通过文件读取测试用例\n" + "读取了 5 个数字\n" + "输入的数字: 10, 20, 30, 40, 50\n" + "总和 = 150\n" + "平均值 = 30.0";
-
-            int executionCount = 1;
-
-            try {
-                DockerCodeExecutor.ExecutionResult result = executor.executeJavaCodeWithTestFile(javaCode, testFileContent, expectedOutput, executionCount);
-
-                printExecutionResults(result);
-
-                // 尝试不同的测试用例
-                System.out.println("\n--- 测试不同输入 ---");
-                String newTestFileContent = "3\n100 200 300";
-                String newExpectedOutput = "通过文件读取测试用例\n" + "读取了 3 个数字\n" + "输入的数字: 100, 200, 300\n" + "总和 = 600\n" + "平均值 = 200.0";
-
-                result = executor.executeJavaCodeWithTestFile(javaCode, newTestFileContent, newExpectedOutput, 1);
-                printExecutionResults(result);
-
-            } catch (Exception e) {
-                System.err.println("Error executing code with test file: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-
-        private void printExecutionResults(DockerCodeExecutor.ExecutionResult result) {
+        private void printExecutionResults(ExecutionResult result) {
             System.out.println("\n--- 执行结果 ---");
             System.out.println("成功: " + result.isSuccess());
             System.out.println("输出匹配: " + result.isOutputMatched());
@@ -129,7 +96,7 @@ public class DockerSandboxExample {
 
             System.out.println("\n--- 单次执行详情 ---");
             for (int i = 0; i < result.getExecutionResults().size(); i++) {
-                DockerCodeExecutor.ExecutionMetrics metrics = result.getExecutionResults().get(i);
+                ExecutionMetrics metrics = result.getExecutionResults().get(i);
                 System.out.println("执行 #" + (i + 1));
                 System.out.println("  状态: " + metrics.getStatus());
                 System.out.println("  输出: " + metrics.getOutput());

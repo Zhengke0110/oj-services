@@ -1,6 +1,8 @@
 package fun.timu.oj.shandbox.docker.template;
 
 import fun.timu.oj.shandbox.docker.executor.PythonDockerExecutor;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,7 +14,7 @@ public class PythonDockerSandboxExample {
         SpringApplication.run(PythonDockerSandboxExample.class, args);
     }
 
-        @Component
+    @Component
     public class SandboxRunner implements CommandLineRunner {
         @Override
         public void run(String... args) throws Exception {
@@ -27,8 +29,6 @@ public class PythonDockerSandboxExample {
             // 示例2: 通过命令行参数传入测试用例
             runWithArgsExample(executor);
 
-            // 示例3: 通过文件读取测试用例
-//            runWithTestFileExample(executor);
         }
 
         private void runSimpleExample(PythonDockerExecutor executor) throws Exception {
@@ -42,8 +42,7 @@ public class PythonDockerSandboxExample {
 
             try {
                 // 第一次执行时强制拉取镜像，确保环境正确
-                PythonDockerExecutor.ExecutionResult result = executor.executePythonCode(pythonCode, expectedOutput, executionCount, true);
-
+                ExecutionResult result = executor.executePythonCode(pythonCode, expectedOutput, executionCount, true);
                 printExecutionResults(result);
             } catch (Exception e) {
                 System.err.println("执行代码时出错: " + e.getMessage());
@@ -66,8 +65,7 @@ public class PythonDockerSandboxExample {
             int executionCount = 1;
 
             try {
-                PythonDockerExecutor.ExecutionResult result = executor.executePythonCodeWithArgs(pythonCode, testArgs, expectedOutput, executionCount, true);
-
+                ExecutionResult result = executor.executePythonCodeWithArgs(pythonCode, testArgs, expectedOutput, executionCount);
                 printExecutionResults(result);
 
                 // 测试不同输入
@@ -100,7 +98,7 @@ public class PythonDockerSandboxExample {
             int executionCount = 1;
 
             try {
-                PythonDockerExecutor.ExecutionResult result = executor.executePythonCodeWithTestFile(pythonCode, testFileContent, expectedOutput, executionCount);
+                ExecutionResult result = executor.executePythonCodeWithTestFile(pythonCode, testFileContent, expectedOutput, executionCount);
 
                 printExecutionResults(result);
 
@@ -118,7 +116,7 @@ public class PythonDockerSandboxExample {
             }
         }
 
-        private void printExecutionResults(PythonDockerExecutor.ExecutionResult result) {
+        private void printExecutionResults(ExecutionResult result) {
             System.out.println("\n--- 执行结果 ---");
             System.out.println("成功: " + result.isSuccess());
             System.out.println("输出匹配: " + result.isOutputMatched());
@@ -129,7 +127,7 @@ public class PythonDockerSandboxExample {
 
             System.out.println("\n--- 单次执行详情 ---");
             for (int i = 0; i < result.getExecutionResults().size(); i++) {
-                PythonDockerExecutor.ExecutionMetrics metrics = result.getExecutionResults().get(i);
+                ExecutionMetrics metrics = result.getExecutionResults().get(i);
                 System.out.println("执行 #" + (i + 1));
                 System.out.println("  状态: " + metrics.getStatus());
                 System.out.println("  输出: " + metrics.getOutput());

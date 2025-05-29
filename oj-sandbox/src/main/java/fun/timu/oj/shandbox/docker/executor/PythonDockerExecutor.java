@@ -5,6 +5,9 @@ import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.PythonExecutionMetrics;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Python代码执行器
  * 用于在Docker容器中执行Python代码并验证结果
  */
-public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExecutor.PythonExecutionResult> {
+public class PythonDockerExecutor extends AbstractDockerExecutor<ExecutionResult> {
     private static final String DOCKER_IMAGE = "python:3.9-slim";
 
     public PythonDockerExecutor() {
@@ -121,7 +124,7 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new PythonExecutionMetricsImpl(
+            return new PythonExecutionMetrics(
                     exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
                     output,
                     System.currentTimeMillis() - startTime,
@@ -224,7 +227,7 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new PythonExecutionMetricsImpl(
+            return new PythonExecutionMetrics(
                     exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
                     output,
                     System.currentTimeMillis() - startTime,
@@ -319,7 +322,7 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
 
             if (catFileExec.getExitCode() != 0) {
                 logger.severe("测试文件无法读取: " + catFileExec.getOutput());
-                return new PythonExecutionMetricsImpl(
+                return new PythonExecutionMetrics(
                         "FILE_ERROR",
                         "测试文件无法读取: " + catFileExec.getOutput(),
                         System.currentTimeMillis() - startTime,
@@ -344,7 +347,7 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new PythonExecutionMetricsImpl(
+            return new PythonExecutionMetrics(
                     exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
                     output,
                     System.currentTimeMillis() - startTime,
@@ -360,11 +363,11 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
 
     @Override
     protected ExecutionMetrics createErrorExecutionMetrics(String status, String errorMessage) {
-        return new PythonExecutionMetricsImpl(status, errorMessage, 0, 0, false);
+        return new PythonExecutionMetrics(status, errorMessage, 0, 0, false);
     }
 
     @Override
-    protected PythonExecutionResult calculateAverageMetrics(List<ExecutionMetrics> metrics) {
+    protected ExecutionResult calculateAverageMetrics(List<ExecutionMetrics> metrics) {
         long totalExecutionTime = 0;
         long totalMemoryUsed = 0;
         long maxExecutionTime = 0;
@@ -379,7 +382,7 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
         }
 
         int size = metrics.size();
-        PythonExecutionResult result = new PythonExecutionResult();
+        ExecutionResult result = new ExecutionResult();
         result.setExecutionResults(metrics);
         result.setAverageExecutionTime(size > 0 ? totalExecutionTime / size : 0);
         result.setAverageMemoryUsed(size > 0 ? totalMemoryUsed / size : 0);
@@ -391,80 +394,29 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
     }
 
     /**
-     * Python执行指标的实现类
-     */
-    public static class PythonExecutionMetricsImpl implements ExecutionMetrics {
-        private final String status;
-        private final String output;
-        private final long executionTime; // 毫秒
-        private final long memoryUsed; // 字节
-        private final boolean outputMatched;
-
-        public PythonExecutionMetricsImpl(String status, String output, long executionTime, long memoryUsed, boolean outputMatched) {
-            this.status = status;
-            this.output = output;
-            this.executionTime = executionTime;
-            this.memoryUsed = memoryUsed;
-            this.outputMatched = outputMatched;
-        }
-
-        @Override
-        public String getStatus() {
-            return status;
-        }
-
-        @Override
-        public String getOutput() {
-            return output;
-        }
-
-        @Override
-        public long getExecutionTime() {
-            return executionTime;
-        }
-
-        @Override
-        public long getMemoryUsed() {
-            return memoryUsed;
-        }
-
-        @Override
-        public boolean isOutputMatched() {
-            return outputMatched;
-        }
-    }
-
-    /**
-     * Python执行结果的实现类
-     */
-    public static class PythonExecutionResult extends AbstractDockerExecutor.ExecutionResult {
-        // Python特定的字段和方法可以在这里添加
-    }
-
-    /**
      * 为了向后兼容旧版API，添加适配方法
      */
-    public PythonExecutionResult executePythonCode(String pythonCode, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executePythonCode(String pythonCode, String expectedOutput, int executionCount) throws Exception {
         return executeCode(pythonCode, expectedOutput, executionCount);
     }
 
-    public PythonExecutionResult executePythonCode(String pythonCode, String expectedOutput, int executionCount, boolean forcePull) throws Exception {
+    public ExecutionResult executePythonCode(String pythonCode, String expectedOutput, int executionCount, boolean forcePull) throws Exception {
         return executeCode(pythonCode, expectedOutput, executionCount, forcePull);
     }
 
-    public PythonExecutionResult executePythonCodeWithArgs(String pythonCode, String[] args, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executePythonCodeWithArgs(String pythonCode, String[] args, String expectedOutput, int executionCount) throws Exception {
         return executeCodeWithArgs(pythonCode, args, expectedOutput, executionCount);
     }
 
-    public PythonExecutionResult executePythonCodeWithArgs(String pythonCode, String[] args, String expectedOutput, int executionCount, boolean forcePull) throws Exception {
+    public ExecutionResult executePythonCodeWithArgs(String pythonCode, String[] args, String expectedOutput, int executionCount, boolean forcePull) throws Exception {
         return executeCodeWithArgs(pythonCode, args, expectedOutput, executionCount, forcePull);
     }
 
-    public PythonExecutionResult executePythonCodeWithTestFile(String pythonCode, String testCaseContent, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executePythonCodeWithTestFile(String pythonCode, String testCaseContent, String expectedOutput, int executionCount) throws Exception {
         return executeCodeWithTestFile(pythonCode, testCaseContent, expectedOutput, executionCount);
     }
 
-    public PythonExecutionResult executePythonCodeWithTestFile(String pythonCode, String testCaseContent, String expectedOutput, int executionCount, boolean forcePull) throws Exception {
+    public ExecutionResult executePythonCodeWithTestFile(String pythonCode, String testCaseContent, String expectedOutput, int executionCount, boolean forcePull) throws Exception {
         return executeCodeWithTestFile(pythonCode, testCaseContent, expectedOutput, executionCount, forcePull);
     }
 }

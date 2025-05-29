@@ -5,6 +5,9 @@ import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
+import fun.timu.oj.shandbox.docker.entity.ExecutionMetrics;
+import fun.timu.oj.shandbox.docker.entity.ExecutionResult;
+import fun.timu.oj.shandbox.docker.entity.JavaExecutionMetrics;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Java代码执行器
  * 用于在Docker容器中执行Java代码并验证结果
  */
-public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecutor.JavaExecutionResult> {
+public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> {
     private static final String DOCKER_IMAGE = "openjdk:11";
 
     public DockerCodeExecutor() {
@@ -72,7 +75,7 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
-                return new JavaExecutionMetricsImpl("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
+                return new JavaExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
             // 执行Java程序
@@ -85,7 +88,12 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JavaExecutionMetricsImpl(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
+            return new JavaExecutionMetrics(
+                exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
+                output,
+                System.currentTimeMillis() - startTime,
+                memoryUsage.get(),
+                matched);
         } finally {
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
@@ -121,7 +129,7 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
-                return new JavaExecutionMetricsImpl("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
+                return new JavaExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
             // 执行Java程序（带参数）
@@ -145,7 +153,12 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JavaExecutionMetricsImpl(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
+            return new JavaExecutionMetrics(
+                exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
+                output,
+                System.currentTimeMillis() - startTime,
+                memoryUsage.get(),
+                matched);
         } finally {
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
@@ -181,7 +194,7 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
-                return new JavaExecutionMetricsImpl("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
+                return new JavaExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
             // 执行Java程序（带测试文件）
@@ -194,7 +207,12 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JavaExecutionMetricsImpl(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
+            return new JavaExecutionMetrics(
+                exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
+                output,
+                System.currentTimeMillis() - startTime,
+                memoryUsage.get(),
+                matched);
         } finally {
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
@@ -203,11 +221,11 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
 
     @Override
     protected ExecutionMetrics createErrorExecutionMetrics(String status, String errorMessage) {
-        return new JavaExecutionMetricsImpl(status, errorMessage, 0, 0, false);
+        return new JavaExecutionMetrics(status, errorMessage, 0, 0, false);
     }
 
     @Override
-    protected JavaExecutionResult calculateAverageMetrics(List<ExecutionMetrics> metrics) {
+    protected ExecutionResult calculateAverageMetrics(List<ExecutionMetrics> metrics) {
         long totalExecutionTime = 0;
         long totalMemoryUsed = 0;
         long maxExecutionTime = 0;
@@ -222,7 +240,7 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
         }
 
         int size = metrics.size();
-        JavaExecutionResult result = new JavaExecutionResult();
+        ExecutionResult result = new ExecutionResult();
         result.setExecutionResults(metrics);
         result.setAverageExecutionTime(size > 0 ? totalExecutionTime / size : 0);
         result.setAverageMemoryUsed(size > 0 ? totalMemoryUsed / size : 0);
@@ -234,68 +252,17 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
     }
 
     /**
-     * Java执行指标的实现类
-     */
-    public static class JavaExecutionMetricsImpl implements ExecutionMetrics {
-        private final String status;
-        private final String output;
-        private final long executionTime; // 毫秒
-        private final long memoryUsed; // 字节
-        private final boolean outputMatched;
-
-        public JavaExecutionMetricsImpl(String status, String output, long executionTime, long memoryUsed, boolean outputMatched) {
-            this.status = status;
-            this.output = output;
-            this.executionTime = executionTime;
-            this.memoryUsed = memoryUsed;
-            this.outputMatched = outputMatched;
-        }
-
-        @Override
-        public String getStatus() {
-            return status;
-        }
-
-        @Override
-        public String getOutput() {
-            return output;
-        }
-
-        @Override
-        public long getExecutionTime() {
-            return executionTime;
-        }
-
-        @Override
-        public long getMemoryUsed() {
-            return memoryUsed;
-        }
-
-        @Override
-        public boolean isOutputMatched() {
-            return outputMatched;
-        }
-    }
-
-    /**
-     * Java执行结果的实现类
-     */
-    public static class JavaExecutionResult extends AbstractDockerExecutor.ExecutionResult {
-        // Java特定的字段和方法可以在这里添加
-    }
-
-    /**
      * 为了向后兼容旧版API，添加适配方法
      */
-    public JavaExecutionResult executeJavaCode(String javaCode, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executeJavaCode(String javaCode, String expectedOutput, int executionCount) throws Exception {
         return executeCode(javaCode, expectedOutput, executionCount);
     }
 
-    public JavaExecutionResult executeJavaCodeWithArgs(String javaCode, String[] args, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executeJavaCodeWithArgs(String javaCode, String[] args, String expectedOutput, int executionCount) throws Exception {
         return executeCodeWithArgs(javaCode, args, expectedOutput, executionCount);
     }
 
-    public JavaExecutionResult executeJavaCodeWithTestFile(String javaCode, String testCaseContent, String expectedOutput, int executionCount) throws Exception {
+    public ExecutionResult executeJavaCodeWithTestFile(String javaCode, String testCaseContent, String expectedOutput, int executionCount) throws Exception {
         return executeCodeWithTestFile(javaCode, testCaseContent, expectedOutput, executionCount);
     }
 }
