@@ -6,11 +6,62 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>oj-services</name>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.6</version>
+        <relativePath/>
+    </parent>
+
     <properties>
+        <!-- 设置Java版本 -->
         <java.version>11</java.version>
+        <!-- 设置Maven编译器源代码版本 -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <!-- 设置Maven编译器目标版本 -->
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- 设置Spring Boot版本 -->
+        <spring.boot.version>2.7.6</spring.boot.version>
+        <!-- 设置Spring Cloud版本 -->
         <spring.cloud.version>2021.0.5</spring.cloud.version>
-        <spring.cloud.alibaba.version>2021.0.4.0</spring.cloud.alibaba.version>
+        <!-- 设置阿里巴巴Cloud版本 -->
+        <spring.cloud.alibaba.version>2021.0.5.0</spring.cloud.alibaba.version>
+        <!-- 设置MyBatis-Plus Boot Starter版本 -->
+        <mybatisplus.boot.starter.version>3.4.0</mybatisplus.boot.starter.version>
+        <!-- 设置Lombok版本 -->
+        <lombok.version>1.18.16</lombok.version>
+        <!-- 设置Apache Commons Lang3版本 -->
+        <commons.lang3.version>3.9</commons.lang3.version>
+        <!-- 设置Apache Commons Codec版本 -->
+        <commons.codec.version>1.15</commons.codec.version>
+        <!-- 设置XXL-JOB版本 -->
+        <xxl-job.version>2.5.0</xxl-job.version>
+        <!-- 设置阿里云OSS版本 -->
+        <aliyun.oss.version>3.10.2</aliyun.oss.version>
+        <!-- 设置验证码版本 -->
+        <captcha.version>1.1.0</captcha.version>
+        <!-- 设置Redission版本 -->
+        <redission.version>3.10.1</redission.version>
+        <!-- 设置JWT版本 -->
+        <jwt.version>0.7.0</jwt.version>
+        <!-- 设置Sharding-JDBC版本 -->
+        <sharding-jdbc.version>4.1.1</sharding-jdbc.version>
+        <!-- 设置JUnit版本 -->
+        <junit.version>4.12</junit.version>
+        <!-- 设置Druid版本 -->
+        <druid.version>1.1.16</druid.version>
+        <!-- 设置Caffeine缓存版本 -->
+        <caffeine.version>2.9.3</caffeine.version>
+        <!-- 跳过单元测试 -->
+        <skipTests>true</skipTests>
+        <!-- 配置Docker Java版本 -->
         <docker-java.version>3.2.14</docker-java.version>
+        <!-- 设置Docker镜像前缀 -->
+        <docker.image.prefix>zhengke0110-cloud</docker.image.prefix>
     </properties>
 
     <dependencies>
@@ -24,17 +75,29 @@
         <module>oj-sandbox</module>
         <module>oj-gateway</module>
         <module>oj-common</module>
-        <module>oj-backed</module>
     </modules>
-
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.6</version>
-        <relativePath/> <!-- lookup parent from repository -->
-    </parent>
+    <!--锁定版本-->
     <dependencyManagement>
         <dependencies>
+            <!--https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies/2.3.3.RELEASE-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-dependencies/Hoxton.SR8-->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--https://mvnrepository.com/artifact/com.alibaba.cloud/spring-cloud-alibaba-dependencies/2.2.1.RELEASE-->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
@@ -42,7 +105,135 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+
+            <!--mybatis plus和springboot整合-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>${mybatisplus.boot.starter.version}</version>
+            </dependency>
+
+            <!--https://mvnrepository.com/artifact/org.projectlombok/lombok/1.18.16-->
+            <!--scope=provided，说明它只在编译阶段生效，不需要打入包中, Lombok在编译期将带Lombok注解的Java文件正确编译为完整的Class文件-->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <!--<scope>provided</scope>-->
+            </dependency>
+
+
+            <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3.version}</version>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
+            <!--用于加密-->
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons.codec.version}</version>
+            </dependency>
+
+
+            <!--验证码kaptcha依赖包-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>kaptcha-spring-boot-starter</artifactId>
+                <version>${captcha.version}</version>
+            </dependency>
+
+
+            <!--阿里云oss-->
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${aliyun.oss.version}</version>
+            </dependency>
+
+
+            <!-- JWT相关 -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt</artifactId>
+                <version>${jwt.version}</version>
+            </dependency>
+
+
+            <!--分布式锁-->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson</artifactId>
+                <version>${redission.version}</version>
+            </dependency>
+
+
+            <!--https://mvnrepository.com/artifact/org.apache.shardingsphere/sharding-jdbc-spring-boot-starter-->
+            <dependency>
+                <groupId>org.apache.shardingsphere</groupId>
+                <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+                <version>${sharding-jdbc.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+            </dependency>
+
+
+            <!-- https://mvnrepository.com/artifact/com.xuxueli/xxl-job-core -->
+            <dependency>
+                <groupId>com.xuxueli</groupId>
+                <artifactId>xxl-job-core</artifactId>
+                <version>${xxl-job.version}</version>
+            </dependency>
+
+            <!-- Caffeine缓存 - 用于Spring Cloud LoadBalancer -->
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
+
+            <!-- Spring Cache支持 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-cache</artifactId>
+                <version>${spring.boot.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <configuration>
+                    <fork>true</fork>
+                    <addResources>true</addResources>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 
 </project>
