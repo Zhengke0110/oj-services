@@ -59,41 +59,59 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
             Volume codeVolume = new Volume(WORK_DIR);
             Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            // 创建容器
+            // 创建容器 - 使用长时间运行的容器
             HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // 隔离网络
 
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR).exec();
+            logger.info("创建Docker容器");
+            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
+                    // 使用命令保持容器运行
+                    .withCmd("tail", "-f", "/dev/null").exec();
 
             containerId = container.getId();
             createdContainers.add(containerId);
+            logger.info("容器创建成功: " + containerId);
 
             // 启动容器
+            logger.info("启动容器");
             dockerClient.startContainerCmd(containerId).exec();
 
+            // 等待容器启动完成
+            Thread.sleep(1000);
+
+            // 检查容器是否在运行
+            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+            if (!isRunning) {
+                throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+            }
+
+            logger.info("容器已启动并正在运行");
+
             // 编译Java文件
+            logger.info("编译Java代码: " + mainClassName + ".java");
             ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId).withCmd("javac", mainClassName + ".java").withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
+                logger.severe("Java编译失败: " + compileExec.getOutput());
                 return new JavaExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
+            logger.info("Java编译成功");
+
             // 执行Java程序
+            logger.info("执行Java程序: " + mainClassName);
             ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId).withCmd("java", mainClassName).withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution exec = executeCommand(execCmd.getId());
             String output = exec.getOutput().trim();
+            logger.info("代码执行完成，输出: " + output);
+            logger.info("退出代码: " + exec.getExitCode());
 
             // 收集内存使用情况
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JavaExecutionMetrics(
-                exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
-                output,
-                System.currentTimeMillis() - startTime,
-                memoryUsage.get(),
-                matched);
+            return new JavaExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
@@ -113,24 +131,44 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
             Volume codeVolume = new Volume(WORK_DIR);
             Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            // 创建容器
+            // 创建容器 - 使用长时间运行的容器
             HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // 隔离网络
 
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR).exec();
+            logger.info("创建Docker容器(带参数)");
+            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
+                    // 使用命令保持容器运行
+                    .withCmd("tail", "-f", "/dev/null").exec();
 
             containerId = container.getId();
             createdContainers.add(containerId);
+            logger.info("容器创建成功: " + containerId);
 
             // 启动容器
+            logger.info("启动容器");
             dockerClient.startContainerCmd(containerId).exec();
 
+            // 等待容器启动完成
+            Thread.sleep(1000);
+
+            // 检查容器是否在运行
+            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+            if (!isRunning) {
+                throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+            }
+
+            logger.info("容器已启动并正在运行");
+
             // 编译Java文件
+            logger.info("编译Java代码: " + mainClassName + ".java");
             ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId).withCmd("javac", mainClassName + ".java").withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
+                logger.severe("Java编译失败: " + compileExec.getOutput());
                 return new JavaExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
+
+            logger.info("Java编译成功");
 
             // 执行Java程序（带参数）
             List<String> cmdList = new ArrayList<>();
@@ -144,21 +182,19 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
                 }
             }
 
+            logger.info("执行命令: " + String.join(" ", cmdList));
             ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId).withCmd(cmdList.toArray(new String[0])).withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution exec = executeCommand(execCmd.getId());
             String output = exec.getOutput().trim();
+            logger.info("代码执行完成，输出: " + output);
+            logger.info("退出代码: " + exec.getExitCode());
 
             // 收集内存使用情况
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JavaExecutionMetrics(
-                exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
-                output,
-                System.currentTimeMillis() - startTime,
-                memoryUsage.get(),
-                matched);
+            return new JavaExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
@@ -178,41 +214,65 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<ExecutionResult> 
             Volume codeVolume = new Volume(WORK_DIR);
             Bind bind = new Bind(tempDirectory.toAbsolutePath().toString(), codeVolume);
 
-            // 创建容器
+            // 创建容器 - 使用长时间运行的容器
             HostConfig hostConfig = HostConfig.newHostConfig().withBinds(bind).withMemory((long) MEMORY_LIMIT).withCpuCount((long) CPU_LIMIT).withNetworkMode("none"); // 隔离网络
 
-            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR).exec();
+            logger.info("创建Docker容器(带测试文件)");
+            CreateContainerResponse container = dockerClient.createContainerCmd(dockerImage).withHostConfig(hostConfig).withWorkingDir(WORK_DIR)
+                    // 使用命令保持容器运行
+                    .withCmd("tail", "-f", "/dev/null").exec();
 
             containerId = container.getId();
             createdContainers.add(containerId);
+            logger.info("容器创建成功: " + containerId);
 
             // 启动容器
+            logger.info("启动容器");
             dockerClient.startContainerCmd(containerId).exec();
 
+            // 等待容器启动完成
+            Thread.sleep(1000);
+
+            // 检查容器是否在运行
+            boolean isRunning = dockerClient.inspectContainerCmd(containerId).exec().getState().getRunning();
+            if (!isRunning) {
+                throw new RuntimeException("容器未能成功启动，请检查Docker服务");
+            }
+
+            logger.info("容器已启动并正在运行");
+
             // 编译Java文件
+            logger.info("编译Java代码: " + mainClassName + ".java");
             ExecCreateCmdResponse compileCmd = dockerClient.execCreateCmd(containerId).withCmd("javac", mainClassName + ".java").withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution compileExec = executeCommand(compileCmd.getId());
             if (compileExec.getExitCode() != 0) {
+                logger.severe("Java编译失败: " + compileExec.getOutput());
                 return new JavaExecutionMetrics("COMPILATION_ERROR", compileExec.getOutput(), System.currentTimeMillis() - startTime, 0, false);
             }
 
+            logger.info("Java编译成功");
+
+            // 检查测试文件是否存在
+            ExecCreateCmdResponse checkFileCmd = dockerClient.execCreateCmd(containerId).withCmd("ls", "-la", WORK_DIR).withAttachStdout(true).withAttachStderr(true).exec();
+
+            CompletedExecution checkFileExec = executeCommand(checkFileCmd.getId());
+            logger.info("目录内容: " + checkFileExec.getOutput().trim());
+
             // 执行Java程序（带测试文件）
+            logger.info("执行Java程序(带测试文件): " + mainClassName);
             ExecCreateCmdResponse execCmd = dockerClient.execCreateCmd(containerId).withCmd("java", mainClassName, testFileName).withAttachStdout(true).withAttachStderr(true).exec();
 
             CompletedExecution exec = executeCommand(execCmd.getId());
             String output = exec.getOutput().trim();
+            logger.info("代码执行完成，输出: " + output);
+            logger.info("退出代码: " + exec.getExitCode());
 
             // 收集内存使用情况
             memoryUsage = collectContainerMemoryUsage(containerId);
 
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
-            return new JavaExecutionMetrics(
-                exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR",
-                output,
-                System.currentTimeMillis() - startTime,
-                memoryUsage.get(),
-                matched);
+            return new JavaExecutionMetrics(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
             // 注释掉：不再每次执行后清理容器，提升性能
             // cleanupContainer(containerId);
