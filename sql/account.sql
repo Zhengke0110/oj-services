@@ -6,7 +6,6 @@ CREATE TABLE `account` (
     `account_no`   BIGINT NOT NULL COMMENT '用户唯一标识(业务主键)',
     
     -- 基础信息
-    `username`     VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '用户名',
     `nickname`     VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '昵称',
     `head_img`     VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '头像URL',
     
@@ -23,9 +22,6 @@ CREATE TABLE `account` (
     -- 统计信息(用于沙箱访问控制)
     `total_execution_count` BIGINT NOT NULL DEFAULT 0 COMMENT '总代码执行次数',
     `last_execution_time`   BIGINT DEFAULT NULL COMMENT '最后执行时间戳(毫秒)',
-    `daily_execution_count` BIGINT NOT NULL DEFAULT 0 COMMENT '当日代码执行次数',
-    `daily_reset_date`      DATE DEFAULT NULL COMMENT '当日统计重置日期',
-    `daily_execution_limit` BIGINT NOT NULL DEFAULT 100 COMMENT '每日执行次数限制',
     
     -- 配额限制(基于认证级别)
     `execution_timeout`     INT NOT NULL DEFAULT 5000 COMMENT '单次执行超时时间(毫秒)',
@@ -44,7 +40,6 @@ CREATE TABLE `account` (
     
     -- 唯一键约束(支持软删除)
     UNIQUE KEY `uk_account_no` (`account_no`) USING BTREE,
-    UNIQUE KEY `uk_username_active` (`username`) USING BTREE,
     UNIQUE KEY `uk_phone_active` (`phone`) USING BTREE,
     
     -- 普通索引
@@ -53,11 +48,9 @@ CREATE TABLE `account` (
     INDEX `idx_is_deleted` (`is_deleted`),
     INDEX `idx_created_at` (`created_at`),
     INDEX `idx_last_execution_time` (`last_execution_time`),
-    INDEX `idx_daily_reset_date` (`daily_reset_date`),
     
     -- 复合索引(用于沙箱访问控制查询)
     INDEX `idx_account_status_auth` (`account_no`, `status`, `auth`),
-    INDEX `idx_execution_stats` (`account_no`, `daily_execution_count`, `daily_reset_date`),
     INDEX `idx_status_deleted` (`status`, `is_deleted`)
     
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户账户表(优化版，兼容沙箱执行记录)';
@@ -72,4 +65,4 @@ CHECK (`status` IN (0, 1, 2));
 
 -- 创建执行限制检查约束
 ALTER TABLE `account` ADD CONSTRAINT `chk_account_execution_limits` 
-CHECK (`daily_execution_limit` >= 0 AND `execution_timeout` > 0 AND `memory_limit` > 0 AND `daily_execution_count` >= 0);
+CHECK (`execution_timeout` > 0 AND `memory_limit` > 0);

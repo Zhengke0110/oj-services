@@ -5,30 +5,27 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class LoginUser {
     /**
-     * 账号
+     * 用户唯一标识
      */
-    private long accountNo;
+    private Long accountNo;
 
     /**
-     * 用户名
+     * 昵称
      */
-    private String username;
+    private String nickname;
 
     /**
-     * 头像
+     * 头像URL
      */
     private String headImg;
-
-    /**
-     * 邮箱
-     */
-    private String mail;
 
     /**
      * 手机号
@@ -36,7 +33,17 @@ public class LoginUser {
     private String phone;
 
     /**
-     * 认证级别
+     * 认证级别：DEFAULT，REALNAME，ENTERPRISE
      */
     private String auth;
+
+    /**
+     * 账户状态：0-禁用，1-启用，2-锁定
+     */
+    private Integer status;
+
+    /**
+     * 最后登录时间
+     */
+    private Date lastLoginAt;
 }

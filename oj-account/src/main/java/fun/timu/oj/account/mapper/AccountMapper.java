@@ -1,6 +1,6 @@
 package fun.timu.oj.account.mapper;
 
-import fun.timu.oj.account.model.DO.Account;
+import fun.timu.oj.account.model.DO.AccountDO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * @Entity fun.timu.oj.account.model.DO.Account
  */
 @Mapper
-public interface AccountMapper extends BaseMapper<Account> {
+public interface AccountMapper extends BaseMapper<AccountDO> {
 
 }
 

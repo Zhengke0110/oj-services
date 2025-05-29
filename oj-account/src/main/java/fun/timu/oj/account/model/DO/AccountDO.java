@@ -14,7 +14,7 @@ import lombok.Data;
  */
 @TableName(value ="account")
 @Data
-public class Account implements Serializable {
+public class AccountDO implements Serializable {
     /**
      * 主键ID
      */
@@ -25,11 +25,6 @@ public class Account implements Serializable {
      * 用户唯一标识(业务主键)
      */
     private Long accountNo;
-
-    /**
-     * 用户名
-     */
-    private String username;
 
     /**
      * 昵称
@@ -70,21 +65,6 @@ public class Account implements Serializable {
      * 最后执行时间戳(毫秒)
      */
     private Long lastExecutionTime;
-
-    /**
-     * 当日代码执行次数
-     */
-    private Long dailyExecutionCount;
-
-    /**
-     * 当日统计重置日期
-     */
-    private Date dailyResetDate;
-
-    /**
-     * 每日执行次数限制
-     */
-    private Long dailyExecutionLimit;
 
     /**
      * 单次执行超时时间(毫秒)

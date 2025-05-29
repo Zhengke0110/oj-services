@@ -105,7 +105,7 @@ public class JWTUtil {
         // 构建JWT，设置主题、用户信息、签发时间、过期时间和签名算法
         String token = Jwts.builder().setSubject(SUBJECT)
                 // 配置payload
-                .claim("head_img", loginUser.getHeadImg()).claim("account_no", loginUser.getAccountNo()).claim("username", loginUser.getUsername()).claim("mail", loginUser.getMail()).claim("phone", loginUser.getPhone()).claim("auth", loginUser.getAuth()).setIssuedAt(new Date()).setExpiration(new Date(CommonUtil.getCurrentTimestamp() + EXPIRED)).signWith(SignatureAlgorithm.HS256, SECRET).compact();
+                .claim("head_img", loginUser.getHeadImg()).claim("account_no", loginUser.getAccountNo()).claim("phone", loginUser.getPhone()).claim("auth", loginUser.getAuth()).setIssuedAt(new Date()).setExpiration(new Date(CommonUtil.getCurrentTimestamp() + EXPIRED)).signWith(SignatureAlgorithm.HS256, SECRET).compact();
 
         // 在令牌前添加前缀
         token = TOKNE_PREFIX + token;

@@ -75,13 +75,11 @@ public class LoginInterceptor implements HandlerInterceptor {
             // 从令牌中获取用户信息
             Long accountNo = Long.parseLong(claims.get("account_no").toString());
             String headImg = (String) claims.get("head_img");
-            String username = (String) claims.get("username");
-            String mail = (String) claims.get("mail");
             String phone = (String) claims.get("phone");
             String auth = (String) claims.get("auth");
 
-            // 构建登录用户对象
-            LoginUser loginUser = LoginUser.builder().accountNo(accountNo).auth(auth).phone(phone).headImg(headImg).mail(mail).username(username).build();
+            // 构建登录用户对象 - 移除username属性
+            LoginUser loginUser = LoginUser.builder().accountNo(accountNo).headImg(headImg).phone(phone).auth(auth).build();
 
             // 将登录用户对象存储在ThreadLocal中，以便后续使用
             threadLocal.set(loginUser);
