@@ -262,29 +262,24 @@ public class LongRunningContainerManager {
      * 确保Docker镜像存在
      */
     private void ensureDockerImage(String dockerImage) throws Exception {
-        try {
-            // 首先尝试检查镜像是否存在
-            dockerClient.inspectImageCmd(dockerImage).exec();
+        // 使用更精确的镜像检查方法
+        if (isImageAvailable(dockerImage)) {
             logger.info("镜像已存在，跳过拉取: " + dockerImage);
             return;
-        } catch (NotFoundException e) {
-            // 镜像不存在，需要拉取
-            logger.info("本地镜像不存在，开始拉取Docker镜像: " + dockerImage);
-        } catch (Exception e) {
-            // 其他异常，可能是网络问题或Docker服务问题，记录警告但继续尝试拉取
-            logger.warning("检查镜像时发生异常: " + e.getMessage() + "，尝试拉取镜像: " + dockerImage);
         }
 
         try {
             // 拉取镜像
-            logger.info("正在拉取Docker镜像: " + dockerImage + "，请稍候...");
+            logger.info("开始拉取Docker镜像: " + dockerImage + "，请稍候...");
             dockerClient.pullImageCmd(dockerImage)
                     .start()
                     .awaitCompletion(120, java.util.concurrent.TimeUnit.SECONDS);
             logger.info("镜像拉取成功: " + dockerImage);
 
             // 验证镜像已成功拉取
-            dockerClient.inspectImageCmd(dockerImage).exec();
+            if (!isImageAvailable(dockerImage)) {
+                throw new RuntimeException("镜像拉取后验证失败: " + dockerImage);
+            }
             logger.fine("镜像拉取验证成功: " + dockerImage);
 
         } catch (InterruptedException e) {
