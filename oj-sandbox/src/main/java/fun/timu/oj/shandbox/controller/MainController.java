@@ -229,16 +229,103 @@ public class MainController {
 
     /**
      * 在应用关闭时，确保资源被释放
+     * 现在统一清理所有容器以提升运行期间的性能
      */
     @PreDestroy
     public void cleanup() {
+        logger.info("=== SpringBoot @PreDestroy 被调用，开始清理容器资源 ===");
+
         try {
-            // 清理执行器资源
+            logger.info("应用关闭时开始清理所有容器资源...");
+
+            // 统计容器数量 - 修复访问权限问题
+            int javaContainers = javaExecutor.getContainerCount();
+            int pythonContainers = pythonExecutor.getContainerCount();
+            int jsContainers = jsExecutor.getContainerCount();
+            int totalContainers = javaContainers + pythonContainers + jsContainers;
+
+            logger.info("待清理容器详情: Java=" + javaContainers +
+                    ", Python=" + pythonContainers +
+                    ", JavaScript=" + jsContainers +
+                    ", 总计=" + totalContainers);
+
+            if (totalContainers == 0) {
+                logger.info("没有需要清理的容器");
+                return;
+            }
+
+            // 清理执行器资源，现在会清理所有累积的容器
+            logger.info("清理Java执行器...");
             javaExecutor.cleanup();
+
+            logger.info("清理Python执行器...");
             pythonExecutor.cleanup();
+
+            logger.info("清理JavaScript执行器...");
             jsExecutor.cleanup();
+
+            logger.info("=== 所有容器资源清理完成 ===");
         } catch (Exception e) {
             logger.severe("清理资源时出错: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 添加一个手动清理接口，用于调试和紧急清理
+     */
+    @PostMapping("/cleanup")
+    public ResponseEntity<String> manualCleanup(@RequestHeader(name = AUTH_REQUEST_HEADER, required = false) String auth) {
+        if (!authenticateRequest(auth)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未授权的访问");
+        }
+
+        try {
+            logger.info("手动触发容器清理...");
+
+            // 显示清理前的容器状态
+            int totalContainers = javaExecutor.getContainerCount() +
+                    pythonExecutor.getContainerCount() +
+                    jsExecutor.getContainerCount();
+
+            logger.info("清理前容器总数: " + totalContainers);
+
+            cleanup();
+            return ResponseEntity.ok("容器清理完成，清理了 " + totalContainers + " 个容器");
+        } catch (Exception e) {
+            logger.severe("手动清理失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("清理失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 添加一个容器状态查询接口，用于监控
+     */
+    @GetMapping("/containers/status")
+    public ResponseEntity<String> getContainerStatus(@RequestHeader(name = AUTH_REQUEST_HEADER, required = false) String auth) {
+        if (!authenticateRequest(auth)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未授权的访问");
+        }
+
+        try {
+            int javaContainers = javaExecutor.getContainerCount();
+            int pythonContainers = pythonExecutor.getContainerCount();
+            int jsContainers = jsExecutor.getContainerCount();
+            int totalContainers = javaContainers + pythonContainers + jsContainers;
+
+            String status = String.format(
+                    "容器状态统计:\n" +
+                            "Java执行器: %d 个容器\n" +
+                            "Python执行器: %d 个容器\n" +
+                            "JavaScript执行器: %d 个容器\n" +
+                            "总计: %d 个容器",
+                    javaContainers, pythonContainers, jsContainers, totalContainers
+            );
+
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            logger.severe("获取容器状态失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("获取状态失败: " + e.getMessage());
         }
     }
 }

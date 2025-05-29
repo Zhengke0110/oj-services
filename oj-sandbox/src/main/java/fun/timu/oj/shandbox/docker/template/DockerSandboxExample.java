@@ -13,7 +13,7 @@ public class DockerSandboxExample {
         SpringApplication.run(DockerSandboxExample.class, args);
     }
 
-//    @Component
+    @Component
     public class SandboxRunner implements CommandLineRunner {
         @Override
         public void run(String... args) throws Exception {
@@ -28,7 +28,7 @@ public class DockerSandboxExample {
             runCalculatorWithArgsExample(executor);
 
             // 示例3: 通过文件读取测试用例
-            runCalculatorWithTestFileExample(executor);
+//            runCalculatorWithTestFileExample(executor);
         }
 
         private void runFibonacciExample(DockerCodeExecutor executor) throws Exception {
@@ -83,6 +83,7 @@ public class DockerSandboxExample {
             }
         }
 
+        @Deprecated
         private void runCalculatorWithTestFileExample(DockerCodeExecutor executor) throws Exception {
             System.out.println("\n\n===== 示例3: 通过文件读取测试用例 =====");
 
@@ -121,9 +122,10 @@ public class DockerSandboxExample {
             System.out.println("成功: " + result.isSuccess());
             System.out.println("输出匹配: " + result.isOutputMatched());
             System.out.println("平均执行时间: " + result.getAverageExecutionTime() + " ms");
-            System.out.println("平均内存使用: " + (result.getAverageMemoryUsed() / 1024) + " KB");
+            System.out.println("平均内存使用: " + String.format("%.2f", result.getAverageMemoryUsed() / 1024.0) + " KB");
             System.out.println("最长执行时间: " + result.getMaxExecutionTime() + " ms");
-            System.out.println("最大内存使用: " + (result.getMaxMemoryUsed() / 1024) + " KB");
+            System.out.println("最大内存使用: " + String.format("%.2f", result.getMaxMemoryUsed() / 1024.0) + " KB");
+            System.out.println("注意：容器将在应用结束时统一清理以提升性能");
 
             System.out.println("\n--- 单次执行详情 ---");
             for (int i = 0; i < result.getExecutionResults().size(); i++) {

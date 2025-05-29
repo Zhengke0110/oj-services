@@ -160,7 +160,8 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
                     matched);
 
         } finally {
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupContainer(containerId);
         }
     }
 
@@ -244,7 +245,8 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
                     matched);
 
         } finally {
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupContainer(containerId);
         }
     }
 
@@ -335,7 +337,8 @@ public class JavaScriptDockerExecutor extends AbstractDockerExecutor<JavaScriptD
                     matched);
 
         } finally {
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupContainer(containerId);
         }
     }
 

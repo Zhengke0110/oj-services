@@ -46,6 +46,10 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
     // 跟踪当前执行器创建的容器ID列表
     protected List<String> createdContainers = new ArrayList<>();
 
+    // 添加静态变量跟踪所有执行器实例
+    private static final List<AbstractDockerExecutor<?>> ALL_EXECUTORS = new ArrayList<>();
+    private static boolean shutdownHookAdded = false;
+
     /**
      * 构造函数，初始化Docker客户端
      *
@@ -58,6 +62,9 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
 
         DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
         dockerClient = DockerClientImpl.getInstance(config, new ApacheDockerHttpClient.Builder().dockerHost(config.getDockerHost()).sslConfig(config.getSSLConfig()).maxConnections(100).connectionTimeout(Duration.ofSeconds(30)).responseTimeout(Duration.ofSeconds(45)).build());
+
+        // 注册当前实例并确保全局关闭钩子
+        registerExecutorInstance();
     }
 
     /**
@@ -142,8 +149,8 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
             // 清理临时目录
             cleanupTempDirectory();
 
-            // 清理所有容器
-            cleanupAllContainers();
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupAllContainers();
         }
     }
 
@@ -219,8 +226,8 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
             // 清理临时目录
             cleanupTempDirectory();
 
-            // 清理所有容器
-            cleanupAllContainers();
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupAllContainers();
         }
     }
 
@@ -303,8 +310,8 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
             // 清理临时目录
             cleanupTempDirectory();
 
-            // 清理所有容器
-            cleanupAllContainers();
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupAllContainers();
         }
     }
 
@@ -506,27 +513,67 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
      */
     public void cleanup() {
         try {
-            // 清理所有创建的容器
-            for (String containerId : createdContainers) {
-                try {
-                    // 尝试停止容器（如果还在运行）
-                    dockerClient.stopContainerCmd(containerId).withTimeout(5).exec();
-                    logger.info("容器已停止: " + containerId);
-                } catch (Exception e) {
-                    logger.warning("停止容器时出错 " + containerId + ": " + e.getMessage());
-                }
+            logger.info("开始清理所有Docker容器资源，当前跟踪容器数量: " + createdContainers.size());
 
+            if (createdContainers.isEmpty()) {
+                logger.info("没有需要清理的容器");
+                return;
+            }
+
+            // 复制列表避免并发修改异常
+            List<String> containersToClean = new ArrayList<>(createdContainers);
+            int successCount = 0;
+            int failCount = 0;
+
+            // 清理所有创建的容器
+            for (String containerId : containersToClean) {
                 try {
-                    // 移除容器
-                    dockerClient.removeContainerCmd(containerId).withForce(true).exec();
-                    logger.info("容器已移除: " + containerId);
+                    logger.info("开始清理容器: " + containerId);
+
+                    // 检查容器是否存在
+                    boolean containerExists = false;
+                    try {
+                        dockerClient.inspectContainerCmd(containerId).exec();
+                        containerExists = true;
+                        logger.info("容器存在，准备清理: " + containerId);
+                    } catch (Exception e) {
+                        logger.info("容器不存在或已被移除: " + containerId);
+                        createdContainers.remove(containerId);
+                        successCount++;
+                        continue;
+                    }
+
+                    if (containerExists) {
+                        // 尝试停止容器（如果还在运行）
+                        try {
+                            InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
+                            if (containerInfo.getState().getRunning()) {
+                                logger.info("停止运行中的容器: " + containerId);
+                                dockerClient.stopContainerCmd(containerId).withTimeout(5).exec();
+                                Thread.sleep(1000); // 等待容器完全停止
+                            }
+                        } catch (Exception e) {
+                            logger.warning("停止容器时出错，将尝试强制删除: " + containerId + ", 错误: " + e.getMessage());
+                        }
+
+                        // 移除容器
+                        try {
+                            dockerClient.removeContainerCmd(containerId).withForce(true).exec();
+                            logger.info("容器已成功移除: " + containerId);
+                            createdContainers.remove(containerId);
+                            successCount++;
+                        } catch (Exception e) {
+                            logger.severe("移除容器失败: " + containerId + ", 错误: " + e.getMessage());
+                            failCount++;
+                        }
+                    }
                 } catch (Exception e) {
-                    logger.warning("移除容器时出错 " + containerId + ": " + e.getMessage());
+                    logger.severe("清理容器时发生异常: " + containerId + ", 错误: " + e.getMessage());
+                    failCount++;
                 }
             }
 
-            // 清空列表
-            createdContainers.clear();
+            logger.info("容器清理完成 - 成功: " + successCount + ", 失败: " + failCount);
 
             // 关闭Docker客户端
             if (dockerClient != null) {
@@ -537,9 +584,54 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
                     logger.warning("关闭Docker客户端时出错: " + e.getMessage());
                 }
             }
+
+            logger.info("Docker资源清理完成");
         } catch (Exception e) {
             logger.severe("清理资源时出错: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+
+    /**
+     * 注册执行器实例并添加全局关闭钩子
+     */
+    private synchronized void registerExecutorInstance() {
+        ALL_EXECUTORS.add(this);
+
+        // 只添加一次全局关闭钩子
+        if (!shutdownHookAdded) {
+            addGlobalShutdownHook();
+            shutdownHookAdded = true;
+        }
+    }
+
+    /**
+     * 添加全局JVM关闭钩子，确保在应用意外退出时也能清理所有容器
+     */
+    private static void addGlobalShutdownHook() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("=== JVM关闭钩子被触发，开始清理所有Docker容器 ===");
+            cleanupAllExecutors();
+        }, "DockerExecutor-Cleanup-Thread"));
+    }
+
+    /**
+     * 清理所有执行器的容器
+     */
+    private static void cleanupAllExecutors() {
+//        System.out.println("开始清理 " + ALL_EXECUTORS.size() + " 个执行器的容器...");
+
+        for (AbstractDockerExecutor<?> executor : ALL_EXECUTORS) {
+            try {
+//                System.out.println("清理执行器: " + executor.getClass().getSimpleName() + ", 容器数量: " + executor.createdContainers.size());
+                executor.cleanup();
+            } catch (Exception e) {
+                System.err.println("清理执行器失败: " + executor.getClass().getSimpleName() + ", 错误: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("=== 所有Docker容器清理完成 ===");
     }
 
     /**
@@ -605,6 +697,24 @@ public abstract class AbstractDockerExecutor<T extends AbstractDockerExecutor.Ex
             logger.log(Level.WARNING, "获取容器统计信息时出错: " + e.getMessage());
         }
         return memoryUsage;
+    }
+
+    /**
+     * 获取当前跟踪的容器数量
+     *
+     * @return 容器数量
+     */
+    public int getContainerCount() {
+        return createdContainers.size();
+    }
+
+    /**
+     * 获取当前跟踪的容器ID列表（只读）
+     *
+     * @return 容器ID列表的副本
+     */
+    public List<String> getContainerIds() {
+        return new ArrayList<>(createdContainers);
     }
 
     // 需要子类实现的抽象方法

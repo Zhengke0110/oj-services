@@ -87,7 +87,8 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
             return new JavaExecutionMetricsImpl(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupContainer(containerId);
         }
     }
 
@@ -146,7 +147,8 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
             return new JavaExecutionMetricsImpl(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupContainer(containerId);
         }
     }
 
@@ -194,7 +196,8 @@ public class DockerCodeExecutor extends AbstractDockerExecutor<DockerCodeExecuto
             boolean matched = expectedOutput != null && output.equals(expectedOutput.trim());
             return new JavaExecutionMetricsImpl(exec.getExitCode() == 0 ? "COMPLETED" : "RUNTIME_ERROR", output, System.currentTimeMillis() - startTime, memoryUsage.get(), matched);
         } finally {
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // cleanupContainer(containerId);
         }
     }
 

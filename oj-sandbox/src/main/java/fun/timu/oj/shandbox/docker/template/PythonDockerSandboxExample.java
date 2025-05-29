@@ -12,7 +12,7 @@ public class PythonDockerSandboxExample {
         SpringApplication.run(PythonDockerSandboxExample.class, args);
     }
 
-    //    @Component
+        @Component
     public class SandboxRunner implements CommandLineRunner {
         @Override
         public void run(String... args) throws Exception {
@@ -28,7 +28,7 @@ public class PythonDockerSandboxExample {
             runWithArgsExample(executor);
 
             // 示例3: 通过文件读取测试用例
-            runWithTestFileExample(executor);
+//            runWithTestFileExample(executor);
         }
 
         private void runSimpleExample(PythonDockerExecutor executor) throws Exception {
@@ -84,6 +84,7 @@ public class PythonDockerSandboxExample {
             }
         }
 
+        @Deprecated
         private void runWithTestFileExample(PythonDockerExecutor executor) throws Exception {
             System.out.println("\n\n===== 示例3: 通过文件读取测试用例 =====");
 

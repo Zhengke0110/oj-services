@@ -129,8 +129,9 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
                     matched);
 
         } finally {
-            // 清理容器
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // 容器将在应用结束时统一清理
+            // cleanupContainer(containerId);
         }
     }
 
@@ -231,8 +232,9 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
                     matched);
 
         } finally {
-            // 清理容器
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // 容器将在应用结束时统一清理
+            // cleanupContainer(containerId);
         }
     }
 
@@ -350,8 +352,9 @@ public class PythonDockerExecutor extends AbstractDockerExecutor<PythonDockerExe
                     matched);
 
         } finally {
-            // 清理容器
-            cleanupContainer(containerId);
+            // 注释掉：不再每次执行后清理容器，提升性能
+            // 容器将在应用结束时统一清理
+            // cleanupContainer(containerId);
         }
     }
 
