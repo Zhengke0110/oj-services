@@ -14,7 +14,7 @@ public class DockerSandboxExample {
         SpringApplication.run(DockerSandboxExample.class, args);
     }
 
-    @Component
+//    @Component
     public class SandboxRunner implements CommandLineRunner {
         @Override
         public void run(String... args) throws Exception {
