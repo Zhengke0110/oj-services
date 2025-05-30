@@ -12,4 +12,5 @@ public interface AccountManager {
     AccountDO detail(long accountNo);
 
     int updateInfo(AccountDO accountDO);
+
 }

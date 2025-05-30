@@ -68,7 +68,6 @@ public class FileServiceImpl implements FileService {
                 String imgUrl = "https://" + bucketName + "." + endpoint + "/" + newFilename;
                 return imgUrl;
             }
-
         } catch (IOException e) {
             // 记录文件上传失败的日志信息
             log.error("文件上传失败:{}", e.getMessage());
@@ -76,7 +75,6 @@ public class FileServiceImpl implements FileService {
             // 关闭OSS客户端连接
             ossClient.shutdown();
         }
-
         return null;
     }
 }

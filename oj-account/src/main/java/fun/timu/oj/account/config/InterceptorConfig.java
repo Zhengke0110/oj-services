@@ -43,7 +43,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
                 // 排除不拦截的路径
                 // 列出不需要登录验证即可访问的API路径，例如注册、上传和登录等操作
                 //排除不拦截
-                .excludePathPatterns("/api/account/*/register", "/api/account/*/upload", "/api/account/*/login", "/api/notify/v1/captcha", "/api/notify/*/send_code", "/api/traffic/*/reduce");
+                .excludePathPatterns("/api/account/*/register", "/api/account/*/upload", "/api/account/*/login", "/api/notify/v1/captcha", "/api/notify/*/send_code");
 
     }
 }

@@ -9,6 +9,7 @@
         <result property="headImg" column="head_img" />
         <result property="phone" column="phone" />
         <result property="pwd" column="pwd" />
+        <result property="secret" column="secret" />
         <result property="auth" column="auth" />
         <result property="status" column="status" />
         <result property="totalExecutionCount" column="total_execution_count" />
@@ -21,7 +22,7 @@
         <result property="lastLoginAt" column="last_login_at" />
     </resultMap>    <sql id="Base_Column_List">
         id,account_no,nickname,head_img,phone,
-        pwd,auth,status,total_execution_count,last_execution_time,
+        pwd,secret,auth,status,total_execution_count,last_execution_time,
         execution_timeout,memory_limit,is_deleted,created_at,updated_at,
         last_login_at
     </sql>

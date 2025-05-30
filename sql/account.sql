@@ -14,7 +14,8 @@ CREATE TABLE `account` (
     
     -- 安全信息
     `pwd`          VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '密码(加密后)',
-    
+    `secret`       varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin  DEFAULT NULL COMMENT '盐，用于个人敏感信息处理',
+
     -- 权限和状态
     `auth`   VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'DEFAULT' COMMENT '认证级别：DEFAULT，REALNAME，ENTERPRISE',
     `status`       TINYINT NOT NULL DEFAULT 1 COMMENT '账户状态：0-禁用，1-启用，2-锁定',

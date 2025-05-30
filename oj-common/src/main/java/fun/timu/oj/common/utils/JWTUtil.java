@@ -18,17 +18,17 @@ public class JWTUtil {
     /**
      * 主题
      */
-    private static final String SUBJECT = "cloud";
+    private static final String SUBJECT = "oj";
 
     /**
      * 加密密钥
      */
-    private static final String SECRET = "cloud.net168";
+    private static final String SECRET = "oj.net168";
 
     /**
      * 令牌前缀
      */
-    private static final String TOKNE_PREFIX = "cloud-link";
+    private static final String TOKNE_PREFIX = "oj";
 
 
     /**

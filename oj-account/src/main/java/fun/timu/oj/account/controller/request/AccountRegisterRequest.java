@@ -12,6 +12,11 @@ public class AccountRegisterRequest {
      * 头像
      */
     private String headImg;
+    /**
+     * 昵称
+     */
+    @Size(max = 20, message = "昵称长度不能超过20个字符")
+    private String nickname;
 
     /**
      * 手机号
