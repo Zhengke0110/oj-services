@@ -14,7 +14,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.Resource;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -23,10 +22,10 @@ public class NotifyServiceImpl implements NotifyService {
 
     private static final int CODE_EXPIRED = 60 * 1000 * 10;
 
-    @Resource
+    @Autowired
     private RestTemplate restTemplate;
 
-    @Resource
+    @Autowired
     private StringRedisTemplate redisTemplate;
 
     /**
