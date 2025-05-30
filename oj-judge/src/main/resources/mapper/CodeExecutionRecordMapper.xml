@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="fun.timu.oj.judge.mapper.CodeExecutionRecordMapper">
+
+    <resultMap id="BaseResultMap" type="fun.timu.oj.judge.model.DO.CodeExecutionRecordDO">
+        <id property="id" column="id"/>
+        <result property="requestId" column="request_id"/>
+        <result property="language" column="language"/>
+        <result property="codeContent" column="code_content"/>
+        <result property="codeHash" column="code_hash"/>
+        <result property="dockerImage" column="docker_image"/>
+        <result property="containerId" column="container_id"/>
+        <result property="executionHost" column="execution_host"/>
+        <result property="executionMode" column="execution_mode"/>
+        <result property="commandArgs" column="command_args"/>
+        <result property="executionCount" column="execution_count"/>
+        <result property="actualExecutionCount" column="actual_execution_count"/>
+        <result property="success" column="success"/>
+        <result property="executionStatus" column="execution_status"/>
+        <result property="actualOutput" column="actual_output"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="executionTime" column="execution_time"/>
+        <result property="memoryUsed" column="memory_used"/>
+        <result property="maxExecutionTime" column="max_execution_time"/>
+        <result property="maxMemoryUsed" column="max_memory_used"/>
+        <result property="accountNo" column="account_no"/>
+        <result property="problemId" column="problem_id"/>
+        <result property="solutionId" column="solution_id"/>
+        <result property="expectedOutput" column="expected_output"/>
+        <result property="outputMatched" column="output_matched"/>
+        <result property="clientIp" column="client_ip"/>
+        <result property="userAgent" column="user_agent"/>
+        <result property="submissionTime" column="submission_time"/>
+        <result property="executionStartTime" column="execution_start_time"/>
+        <result property="executionEndTime" column="execution_end_time"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="additionalInfo" column="additional_info"/>
+        <result property="isDeleted" column="is_deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,request_id,language,code_content,code_hash,docker_image,
+        container_id,execution_host,execution_mode,command_args,execution_count,
+        actual_execution_count,success,execution_status,actual_output,error_message,
+        execution_time,memory_used,max_execution_time,max_memory_used,account_no,
+        problem_id,solution_id,expected_output,output_matched,client_ip,
+        user_agent,submission_time,execution_start_time,execution_end_time,created_at,
+        updated_at,additional_info,is_deleted
+    </sql>
+</mapper>

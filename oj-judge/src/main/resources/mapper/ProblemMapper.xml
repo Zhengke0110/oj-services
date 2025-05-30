@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="fun.timu.oj.judge.mapper.ProblemMapper">
+
+    <resultMap id="BaseResultMap" type="fun.timu.oj.judge.model.DO.ProblemDO">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="titleEn" column="title_en"/>
+        <result property="description" column="description"/>
+        <result property="descriptionEn" column="description_en"/>
+        <result property="problemType" column="problem_type"/>
+        <result property="difficulty" column="difficulty"/>
+        <result property="timeLimit" column="time_limit"/>
+        <result property="memoryLimit" column="memory_limit"/>
+        <result property="supportedLanguages" column="supported_languages"/>
+        <result property="solutionTemplates" column="solution_templates"/>
+        <result property="inputDescription" column="input_description"/>
+        <result property="outputDescription" column="output_description"/>
+        <result property="hasInput" column="has_input"/>
+        <result property="inputFormat" column="input_format"/>
+        <result property="examples" column="examples"/>
+        <result property="status" column="status"/>
+        <result property="visibility" column="visibility"/>
+        <result property="submissionCount" column="submission_count"/>
+        <result property="acceptedCount" column="accepted_count"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="hints" column="hints"/>
+        <result property="constraints" column="constraints"/>
+        <result property="notes" column="notes"/>
+        <result property="metadata" column="metadata"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,title,title_en,description,description_en,problem_type,
+        difficulty,time_limit,memory_limit,supported_languages,solution_templates,
+        input_description,output_description,has_input,input_format,examples,
+        status,visibility,submission_count,accepted_count,creator_id,
+        hints,constraints,notes,metadata,is_deleted,
+        created_at,updated_at
+    </sql>
+</mapper>
