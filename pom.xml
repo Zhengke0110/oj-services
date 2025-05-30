@@ -76,6 +76,7 @@
         <module>oj-gateway</module>
         <module>oj-common</module>
         <module>oj-account</module>
+        <module>oj-judge</module>
     </modules>
     <!--锁定版本-->
     <dependencyManagement>
