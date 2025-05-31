@@ -4,6 +4,7 @@ import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
+import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.service.ProblemTagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -67,15 +68,28 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     }
 
 
+    /**
+     * 更新问题标签
+     * <p>
+     * 此方法用于根据提供的问题标签更新请求来更新数据库中的标签信息
+     * 它首先检查标签是否存在，然后根据请求中的信息更新标签的属性
+     * 更新包括标签的名称、颜色、状态和类别
+     *
+     * @param request 包含要更新的标签信息的请求对象
+     * @return 如果更新成功，则返回true；否则返回false
+     */
     @Override
     @Transactional
     public boolean updateTag(ProblemTagUpdateRequest request) {
         try {
+            // 根据ID查找现有的标签
             ProblemTagDO existingTag = problemTagManager.findById(request.getId());
             if (existingTag == null || existingTag.getIsDeleted() == 1) {
+                // 如果标签不存在或已被删除，则抛出异常
                 throw new RuntimeException("标签不存在");
             }
 
+            // 创建一个用于更新的标签对象，并设置更新时间
             ProblemTagDO updateTag = new ProblemTagDO();
             BeanUtils.copyProperties(request, updateTag);
             updateTag.setUpdatedAt(new Date());
@@ -87,22 +101,80 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 设置标签的颜色，如果提供了颜色信息
             if (request.getColor() != null) updateTag.setTagColor(request.getColor());
 
+            // 设置标签的类别，如果提供了类别信息
             if (request.getCategory() != null) updateTag.setCategory(request.getCategory().toString());
 
+            // 执行更新操作
             int row = problemTagManager.updateById(updateTag);
             if (row <= 0) {
+                // 如果更新失败，则抛出异常
                 throw new RuntimeException("更新标签失败");
             }
+            // 记录日志
             log.info("成功更新标签，ID: {}", request.getId());
             return true;
         } catch (RuntimeException e) {
+            // 记录错误日志
             log.error("ProblemTagService--->更新标签失败: {}", e.getMessage(), e);
             return false;
         }
     }
 
+
+    /**
+     * 删除指定ID的标签
+     *
+     * @param id 需要删除的标签的ID
+     * @return 如果删除成功返回true，否则返回false
+     */
     @Override
+    @Transactional
     public boolean deleteTag(Long id) {
-        return false;
+        try {
+            // 尝试删除标签，如果删除失败则抛出运行时异常
+            int row = problemTagManager.deleteById(id);
+            if (row <= 0) throw new RuntimeException("删除标签失败");
+            return true;
+        } catch (RuntimeException e) {
+            // 捕获删除标签时的异常，并记录错误日志
+            log.error("ProblemTagService--->删除标签失败: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+
+    /**
+     * 根据标签ID获取标签详细信息
+     * <p>
+     * 此方法首先尝试通过problemTagManager findById方法从数据库中查找与给定ID关联的标签对象
+     * 如果找到的标签对象为空或已被标记为删除，则抛出运行时异常
+     * 否则，将找到的标签对象转换为视图对象(VO)并返回
+     *
+     * @param id 标签的唯一标识符
+     * @return 如果找到且未删除的标签存在，则返回标签的视图对象，否则返回null
+     */
+    @Override
+    public ProblemTagVO getTagById(Long id) {
+        try {
+            // 尝试通过ID查找问题标签实体
+            ProblemTagDO tagDO = problemTagManager.findById(id);
+            // 检查标签实体是否存在且未被删除
+            if (tagDO == null || tagDO.getIsDeleted() == 1) {
+                throw new RuntimeException("标签不存在或已被删除");
+            }
+            // 将找到的标签实体转换为视图对象并返回
+            return convertToVO(tagDO);
+        } catch (Exception e) {
+            // 记录获取标签失败的错误信息
+            log.error("ProblemTagService--->获取标签失败: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+
+    private ProblemTagVO convertToVO(ProblemTagDO tagDO) {
+        ProblemTagVO tagVO = new ProblemTagVO();
+        BeanUtils.copyProperties(tagDO, tagVO);
+        return tagVO;
     }
 }

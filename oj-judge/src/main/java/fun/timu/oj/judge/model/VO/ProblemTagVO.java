@@ -38,11 +38,6 @@ public class ProblemTagVO {
     private String category;
 
     /**
-     * 分类描述
-     */
-    private String categoryLabel;
-
-    /**
      * 使用次数
      */
     private Long usageCount;
@@ -52,10 +47,6 @@ public class ProblemTagVO {
      */
     private Integer status;
 
-    /**
-     * 状态描述
-     */
-    private String statusLabel;
 
     /**
      * 标签描述

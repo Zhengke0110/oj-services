@@ -3,11 +3,13 @@ package fun.timu.oj.judge.controller;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
+import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.service.ProblemTagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,6 +65,48 @@ public class ProblemTagController {
         } catch (RuntimeException e) {
             log.error("更新标签失败: {}", e.getMessage(), e);
             return JsonData.buildError("更新标签失败");
+        }
+    }
+
+
+    /**
+     * 删除标签
+     * 接收标签删除请求并返回删除结果
+     *
+     * @param id 标签ID
+     * @return JsonData 包含删除结果的响应
+     */
+    @DeleteMapping("/{id}")
+    public JsonData deleteTag(@PathVariable @Positive Long id) {
+        try {
+            log.info("删除标签请求, ID: {}", id);
+            boolean result = problemTagService.deleteTag(id);
+            if (!result) throw new RuntimeException("删除标签失败");
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("删除标签失败: {}", e.getMessage(), e);
+            return JsonData.buildError("删除标签失败");
+        }
+    }
+
+    /**
+     * 根据ID获取标签详情
+     *
+     * @param id
+     * @return
+     */
+    @GetMapping("/{id}")
+    public JsonData getTag(@PathVariable @Positive Long id) {
+        try {
+            log.info("获取标签请求, ID: {}", id);
+            ProblemTagVO tagVO = problemTagService.getTagById(id);
+            if (tagVO == null) {
+                throw new RuntimeException("标签不存在或已被删除");
+            }
+            return JsonData.buildSuccess(tagVO);
+        } catch (RuntimeException e) {
+            log.error("根据ID获取标签失败: {}", e.getMessage(), e);
+            return JsonData.buildError("根据ID获取标签失败");
         }
     }
 }
