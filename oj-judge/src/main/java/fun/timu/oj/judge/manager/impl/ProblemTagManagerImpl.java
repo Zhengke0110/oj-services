@@ -324,11 +324,18 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
      * @return 返回受影响的行数
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
-        if (tagIds == null || tagIds.isEmpty()) {
-            return 0;
+        if (tagIds == null || tagIds.isEmpty()) return 0;
+
+        // 首先使用悲观锁锁定要更新的记录
+        List<ProblemTagDO> lockedTags = problemTagMapper.lockTagsForUpdate(tagIds);
+
+        // 确认锁定成功后执行更新操作
+        if (!lockedTags.isEmpty()) {
+            return problemTagMapper.batchDecrementUsageCount(tagIds, decrement);
         }
-        return problemTagMapper.batchDecrementUsageCount(tagIds, decrement);
+        return 0;
     }
 
     /**
@@ -340,9 +347,15 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
      */
     @Override
     public int batchUpdateStatus(List<Long> tagIds, Integer status) {
-        if (tagIds == null || tagIds.isEmpty()) {
-            return 0;
+        if (tagIds == null || tagIds.isEmpty()) return 0;
+
+        // 首先使用悲观锁锁定要更新的记录
+        List<ProblemTagDO> lockedTags = problemTagMapper.lockTagsForUpdate(tagIds);
+
+        // 确认锁定成功后执行更新操作
+        if (!lockedTags.isEmpty()) {
+            return problemTagMapper.batchUpdateStatus(tagIds, status);
         }
-        return problemTagMapper.batchUpdateStatus(tagIds, status);
+        return 0;
     }
 }
