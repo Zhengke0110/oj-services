@@ -176,26 +176,26 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         }
     }
 
+
     /**
-     * 根据条件分页查询问题标签列表
+     * 根据多个条件分页查询问题标签列表
      *
      * @param current   当前页码
      * @param size      每页记录数
      * @param tagName   标签名称，用于模糊查询
-     * @param isEnabled 标签是否启用的状态，true表示启用，false表示禁用，null表示不作为筛选条件
-     * @return 返回包含问题标签信息的分页结果
+     * @param isEnabled 标签启用状态，true表示启用，false表示禁用，null表示不作为筛选条件
+     * @param tagColor  标签颜色
+     * @return 返回包含标签信息的分页结果
      */
     @Override
-    public PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled) {
+    public PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled, String tagColor) {
         try {
             // 转换状态参数：true->1, false->0, null->null
             Integer status = null;
-            if (isEnabled != null) {
-                status = isEnabled ? 1 : 0;
-            }
+            if (isEnabled != null) status = isEnabled ? 1 : 0;
 
-            // 调用manager层的分页查询方法
-            IPage<ProblemTagDO> tagPage = problemTagManager.findTagListWithPage(current, size, tagName, null, status);
+            // 调用manager层的分页查询方法，添加tagColor参数
+            IPage<ProblemTagDO> tagPage = problemTagManager.findTagListWithPage(current, size, tagName, null, status, tagColor);
 
             // 转换DO对象为VO对象
             List<ProblemTagVO> voList = tagPage.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());

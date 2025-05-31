@@ -36,7 +36,7 @@ public interface ProblemTagService {
     /**
      * 分页查询标签
      */
-    PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled);
+    PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled, String tagColor);
 
     /**
      * 获取所有启用的标签

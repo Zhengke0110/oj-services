@@ -1,9 +1,11 @@
 package fun.timu.oj.judge.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.enmus.ColorEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
+import fun.timu.oj.judge.controller.request.ProblemTagListRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.service.ProblemTagService;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,7 @@ public class ProblemTagController {
     public JsonData createTag(@Valid @RequestBody ProblemTagCreateRequest request) {
         try {
             log.info("创建标签请求: {}", request);
+            if (request.getColor() == null) throw new RuntimeException("无效的标签颜色");
             Long tagID = problemTagService.createTag(request);
             if (tagID < 0) throw new RuntimeException("创建标签失败");
             return JsonData.buildSuccess(tagID);
@@ -62,6 +66,7 @@ public class ProblemTagController {
     public JsonData updateTag(@Valid @RequestBody ProblemTagUpdateRequest request) {
         try {
             log.info("更新标签请求: {}", request);
+            if (request.getColor() == null) throw new RuntimeException("无效的标签颜色");
             boolean result = problemTagService.updateTag(request);
             if (!result) throw new RuntimeException("更新标签失败");
             return JsonData.buildSuccess();
@@ -116,16 +121,19 @@ public class ProblemTagController {
     /**
      * 获取标签列表
      *
-     * @param current
-     * @param size
-     * @param tagName
-     * @param isEnabled
-     * @return
+     * @param request 标签列表查询请求
+     * @return 标签列表结果
      */
     @GetMapping("/lists")
-    public JsonData listTags(@RequestParam(defaultValue = "1") int current, @RequestParam(defaultValue = "20") int size, @RequestParam(required = false) String tagName, @RequestParam(required = false) Boolean isEnabled) {
+    public JsonData listTags(@Valid @RequestBody ProblemTagListRequest request) {
         try {
-            PageResult<ProblemTagVO> lists = problemTagService.listTags(current, size, tagName, isEnabled);
+            log.info("查询标签列表请求: {}", request);
+            PageResult<ProblemTagVO> lists = problemTagService.listTags(
+                    request.getCurrent(),
+                    request.getSize(),
+                    request.getTagName(),
+                    request.getIsEnabled(),
+                    request.getColor());
             return JsonData.buildSuccess(lists);
         } catch (Exception e) {
             log.error("获取标签列表失败: {}", e.getMessage(), e);
@@ -146,6 +154,28 @@ public class ProblemTagController {
         } catch (Exception e) {
             log.error("获取启用的标签列表失败: {}", e.getMessage(), e);
             return JsonData.buildError("获取启用的标签列表失败");
+        }
+    }
+
+    /**
+     * 获取所有标签颜色
+     *
+     * @return
+     */
+    @GetMapping("/colors")
+    public JsonData getAllColors() {
+        try {
+            List<Map<String, String>> colorList = new ArrayList<>();
+            for (ColorEnum color : ColorEnum.values()) {
+                Map<String, String> colorMap = new HashMap<>();
+                colorMap.put("colorName", color.getColorName());
+                colorMap.put("colorValue", color.getColorCode());
+                colorList.add(colorMap);
+            }
+            return JsonData.buildSuccess(colorList);
+        } catch (Exception e) {
+            log.error("获取颜色列表失败: {}", e.getMessage(), e);
+            return JsonData.buildError("获取颜色列表失败");
         }
     }
 }

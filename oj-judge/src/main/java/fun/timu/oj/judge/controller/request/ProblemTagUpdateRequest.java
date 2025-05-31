@@ -11,8 +11,7 @@ import javax.validation.constraints.Size;
  * 问题标签更新请求
  */
 @Data
-public class ProblemTagUpdateRequest {
-
+public class ProblemTagUpdateRequest extends BaseTagRequest {
     @NotNull(message = "ID不能为空")
     @Positive(message = "标签ID必须为正数")
     private Long id;
@@ -23,13 +22,15 @@ public class ProblemTagUpdateRequest {
     @Size(max = 50, message = "英文标签名称长度不能超过50字符")
     private String tagNameEn;
 
-    @Size(max = 20, message = "标签颜色长度不能超过20字符")
-    private String color;
-
     private TagCategoryEnum category;
 
     @Size(max = 500, message = "标签描述长度不能超过500字符")
     private String description;
 
     private Boolean isEnabled;
+
+    @Override
+    protected String getDefaultColor() {
+        return null; // 更新请求不需要默认颜色，使用现有颜色即可
+    }
 }

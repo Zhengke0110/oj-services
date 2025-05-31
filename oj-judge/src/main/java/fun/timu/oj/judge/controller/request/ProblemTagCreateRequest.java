@@ -10,8 +10,7 @@ import javax.validation.constraints.Size;
  * 问题标签创建请求
  */
 @Data
-public class ProblemTagCreateRequest {
-
+public class ProblemTagCreateRequest extends BaseTagRequest {
     @NotBlank(message = "标签名称不能为空")
     @Size(max = 50, message = "标签名称长度不能超过50字符")
     private String tagName;
@@ -19,13 +18,15 @@ public class ProblemTagCreateRequest {
     @Size(max = 50, message = "英文标签名称长度不能超过50字符")
     private String tagNameEn;
 
-    @Size(max = 20, message = "标签颜色长度不能超过20字符")
-    private String color;
-
     private TagCategoryEnum category;
 
     @Size(max = 500, message = "标签描述长度不能超过500字符")
     private String description;
 
     private Boolean isEnabled = true;
+
+    @Override
+    protected String getDefaultColor() {
+        return "#007bff";
+    }
 }
