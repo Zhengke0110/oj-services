@@ -1,26 +1,14 @@
-package fun.timu.oj.judge.model.DO;
+package fun.timu.oj.judge.model.VO;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
 
-/**
- * 代码执行记录表(优化版)
- *
- * @TableName code_execution_record
- */
-@TableName(value = "code_execution_record")
 @Data
-public class CodeExecutionRecordDO implements Serializable {
+public class CodeExecutionRecordVO implements Serializable {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
@@ -39,26 +27,6 @@ public class CodeExecutionRecordDO implements Serializable {
     private String codeContent;
 
     /**
-     * 代码内容SHA256哈希值
-     */
-    private String codeHash;
-
-    /**
-     * 使用的Docker镜像
-     */
-    private String dockerImage;
-
-    /**
-     * 使用的容器ID
-     */
-    private String containerId;
-
-    /**
-     * 执行主机
-     */
-    private String executionHost;
-
-    /**
      * 执行模式(NO_INPUT/WITH_ARGS)
      */
     private String executionMode;
@@ -69,7 +37,7 @@ public class CodeExecutionRecordDO implements Serializable {
     private Object commandArgs;
 
     /**
-     * 请求执行次数
+     * 执行次数
      */
     private Integer executionCount;
 
@@ -119,7 +87,7 @@ public class CodeExecutionRecordDO implements Serializable {
     private Long maxMemoryUsed;
 
     /**
-     * 用户唯一标识
+     * 用户ID
      */
     private Long accountNo;
 
@@ -144,16 +112,6 @@ public class CodeExecutionRecordDO implements Serializable {
     private Integer outputMatched;
 
     /**
-     * 客户端IP
-     */
-    private String clientIp;
-
-    /**
-     * 用户代理
-     */
-    private String userAgent;
-
-    /**
      * 提交时间戳(毫秒)
      */
     private Long submissionTime;
@@ -168,26 +126,5 @@ public class CodeExecutionRecordDO implements Serializable {
      */
     private Long executionEndTime;
 
-    /**
-     * 创建时间
-     */
-    private Date createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Date updatedAt;
-
-    /**
-     * 附加信息(JSON格式)
-     */
-    private Object additionalInfo;
-
-    /**
-     * 是否已删除(软删除)
-     */
-    private Integer isDeleted;
-
-    @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

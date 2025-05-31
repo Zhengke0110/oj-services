@@ -1,12 +1,15 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.mapper.ProblemTagMapper;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class ProblemTagManagerImpl implements ProblemTagManager {
     private final ProblemTagMapper problemTagMapper;
 
@@ -39,8 +42,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         // 创建Lambda查询包装器实例
         LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
         // 设置查询条件：状态为激活（status=1）且未被删除（isDeleted=false）
-        queryWrapper.eq(ProblemTagDO::getStatus, 1)
-                .eq(ProblemTagDO::getIsDeleted, false)
+        queryWrapper.eq(ProblemTagDO::getStatus, 1).eq(ProblemTagDO::getIsDeleted, false)
                 // 设置查询结果的排序方式：首先按使用次数降序排序
                 .orderByDesc(ProblemTagDO::getUsageCount)
                 // 然后按标签名称升序排序
@@ -63,9 +65,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         // 创建Lambda查询包装器，用于构建查询条件和排序
         LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
         // 设置查询条件：类别等于传入的category，状态为1（例如：启用状态），未删除
-        queryWrapper.eq(ProblemTagDO::getCategory, category)
-                .eq(ProblemTagDO::getStatus, 1)
-                .eq(ProblemTagDO::getIsDeleted, false)
+        queryWrapper.eq(ProblemTagDO::getCategory, category).eq(ProblemTagDO::getStatus, 1).eq(ProblemTagDO::getIsDeleted, false)
                 // 设置按照使用次数降序排列
                 .orderByDesc(ProblemTagDO::getUsageCount);
         // 执行查询并返回结果列表
@@ -84,8 +84,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         // 创建LambdaQueryWrapper对象，用于构建查询条件
         LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
         // 设置查询条件：标签名称等于传入的tagName且未删除
-        queryWrapper.eq(ProblemTagDO::getTagName, tagName)
-                .eq(ProblemTagDO::getIsDeleted, false);
+        queryWrapper.eq(ProblemTagDO::getTagName, tagName).eq(ProblemTagDO::getIsDeleted, false);
         // 执行查询并返回结果
         return problemTagMapper.selectOne(queryWrapper);
     }
@@ -107,12 +106,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         // 创建Lambda查询包装器，用于构建查询条件
         LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
         // 构建查询条件：模糊匹配标签名或英文名，且状态为有效，未被删除，按使用次数降序排序
-        queryWrapper.like(ProblemTagDO::getTagName, keyword)
-                .or()
-                .like(ProblemTagDO::getTagNameEn, keyword)
-                .eq(ProblemTagDO::getStatus, 1)
-                .eq(ProblemTagDO::getIsDeleted, false)
-                .orderByDesc(ProblemTagDO::getUsageCount);
+        queryWrapper.like(ProblemTagDO::getTagName, keyword).or().like(ProblemTagDO::getTagNameEn, keyword).eq(ProblemTagDO::getStatus, 1).eq(ProblemTagDO::getIsDeleted, false).orderByDesc(ProblemTagDO::getUsageCount);
         // 执行查询并返回结果列表
         return problemTagMapper.selectList(queryWrapper);
     }
@@ -162,6 +156,57 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         problemTagDO.setIsDeleted(1);
         // 调用mapper的updateById方法更新数据库中的记录，实现逻辑删除
         return problemTagMapper.updateById(problemTagDO);
+    }
+
+    /**
+     * 根据指定条件分页查询问题标签列表
+     *
+     * @param page     页码，从1开始
+     * @param size     每页大小
+     * @param keyword  搜索关键词，可为空，用于模糊搜索标签名或英文名
+     * @param category 标签分类，可为空
+     * @param status   标签状态，可为空
+     * @return 返回符合条件的标签列表
+     */
+    @Override
+    public List<ProblemTagDO> findTagList(int page, int size, String keyword, String category, Integer status) {
+        // 创建查询条件包装器
+        LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 添加查询条件
+        // 1. 关键词搜索（标签名或英文名）
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.and(wrapper -> wrapper
+                    .like(ProblemTagDO::getTagName, keyword)
+                    .or()
+                    .like(ProblemTagDO::getTagNameEn, keyword));
+        }
+
+        // 2. 分类筛选
+        if (category != null && !category.trim().isEmpty()) {
+            queryWrapper.eq(ProblemTagDO::getCategory, category);
+        }
+
+        // 3. 状态筛选
+        if (status != null) {
+            queryWrapper.eq(ProblemTagDO::getStatus, status);
+        }
+
+        // 4. 默认只查询未删除的标签
+        queryWrapper.eq(ProblemTagDO::getIsDeleted, false);
+
+        // 5. 设置排序规则：先按使用次数降序，再按标签名称升序
+        queryWrapper.orderByDesc(ProblemTagDO::getUsageCount)
+                .orderByAsc(ProblemTagDO::getTagName);
+
+        // 创建分页对象
+        Page<ProblemTagDO> pageable = new Page<>(page, size);
+
+        // 执行分页查询
+        Page<ProblemTagDO> resultPage = problemTagMapper.selectPage(pageable, queryWrapper);
+
+        // 返回查询结果列表
+        return resultPage.getRecords();
     }
 
 

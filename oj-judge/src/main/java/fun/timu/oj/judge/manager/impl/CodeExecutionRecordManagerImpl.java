@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.CodeExecutionRecordManager;
 import fun.timu.oj.judge.mapper.CodeExecutionRecordMapper;
 import fun.timu.oj.judge.model.DO.CodeExecutionRecordDO;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class CodeExecutionRecordManagerImpl implements CodeExecutionRecordManager {
     private final CodeExecutionRecordMapper codeExecutionRecordMapper;
 

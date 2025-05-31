@@ -5,9 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
-
+@Component
 public class ProblemManagerImpl implements ProblemManager {
     private final ProblemMapper problemMapper;
 

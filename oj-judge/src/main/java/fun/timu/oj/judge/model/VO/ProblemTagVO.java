@@ -1,10 +1,12 @@
 package fun.timu.oj.judge.model.VO;
 
 import lombok.Data;
+
 import java.util.Date;
 
 /**
  * 题目标签视图对象
+ *
  * @author zhengke
  */
 @Data

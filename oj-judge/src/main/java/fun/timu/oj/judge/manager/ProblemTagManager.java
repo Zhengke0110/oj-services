@@ -69,6 +69,18 @@ public interface ProblemTagManager {
     public int deleteById(Long id);
 
     /**
+     * 分页查询标签列表
+     *
+     * @param page     页码
+     * @param size     每页大小
+     * @param keyword  关键词搜索（可选）
+     * @param category 标签分类（可选）
+     * @param status   状态筛选（可选）
+     * @return 标签列表
+     */
+    public List<ProblemTagDO> findTagList(int page, int size, String keyword, String category, Integer status);
+
+    /**
      * 增加标签使用次数
      *
      * @param tagId 标签id

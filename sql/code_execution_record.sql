@@ -23,7 +23,7 @@ CREATE TABLE code_execution_record (
     
     -- 执行结果
     success BOOLEAN NOT NULL COMMENT '是否成功执行',
-    execution_status VARCHAR(30) NOT NULL COMMENT '执行状态(SUCCEED/FAILED/COMPILATION_ERROR/RUNTIME_ERROR/TIMEOUT_ERROR)',
+    execution_status VARCHAR(30) NOT NULL COMMENT '执行状态(QUEUED/SUCCEED/FAILED/COMPILATION_ERROR/RUNTIME_ERROR/TIMEOUT_ERROR)',
     actual_output JSON COMMENT '实际输出(JSON数组格式，支持多次执行)',
     error_message TEXT COMMENT '错误信息',
     

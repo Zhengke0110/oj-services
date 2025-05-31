@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import fun.timu.oj.judge.manager.ProblemTagRelationManager;
 import fun.timu.oj.judge.mapper.ProblemTagRelationMapper;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Component
 public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager {
     private final ProblemTagRelationMapper problemTagRelationMapper;
 
