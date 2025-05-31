@@ -95,4 +95,49 @@ public interface ProblemTagManager {
      */
     public List<ProblemTagDO> findPopularTags(int limit, String category);
 
+    /**
+     * 增加标签使用次数
+     *
+     * @param tagId 标签id
+     * @return 增加结果
+     */
+    public int incrementUsageCount(Long tagId);
+
+    /**
+     * 减少标签使用次数
+     *
+     * @param tagId 标签id
+     * @return 减少结果
+     */
+    public int decrementUsageCount(Long tagId);
+
+    /**
+     * 批量增加标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param increment 增加的数量
+     * @return 受影响的行数
+     */
+    public int batchIncrementUsageCount(List<Long> tagIds, int increment);
+
+    /**
+     * 批量减少标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param decrement 减少的数量
+     * @return 受影响的行数
+     */
+    public int batchDecrementUsageCount(List<Long> tagIds, int decrement);
+
+
+    /**
+     * 批量更新标签状态
+     *
+     * @param tagIds 标签ID列表
+     * @param status 新状态
+     * @return 受影响的行数
+     */
+    public int batchUpdateStatus(List<Long> tagIds, Integer status);
+
+
 }

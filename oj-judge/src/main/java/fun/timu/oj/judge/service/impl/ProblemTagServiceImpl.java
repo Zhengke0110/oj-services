@@ -236,9 +236,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 查询所有启用的ProblemTagDO对象
             List<ProblemTagDO> tags = problemTagManager.findAllActive();
             // 将查询到的ProblemTagDO对象转换为ProblemTagVO对象列表
-            List<ProblemTagVO> list = tags.stream()
-                    .map(this::convertToVO)
-                    .collect(Collectors.toList());
+            List<ProblemTagVO> list = tags.stream().map(this::convertToVO).collect(Collectors.toList());
             // 记录查询成功的日志信息
             log.info("ProblemTagService--->查询启用的Tags成功，数量: {}", list.size());
             return list;
@@ -266,9 +264,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<TagUsageStatisticsDTO> statisticsDTOs = problemTagManager.getTagUsageStatistics(category.toString());
 
             // 将 DTO 转换为 VO 对象
-            return statisticsDTOs.stream()
-                    .map(this::convertStatisticsToVO)
-                    .collect(Collectors.toList());
+            return statisticsDTOs.stream().map(this::convertStatisticsToVO).collect(Collectors.toList());
         } catch (Exception e) {
             // 记录异常信息，便于问题追踪和定位
             log.error("ProblemTagService--->获取标签使用统计信息: {}", e.getMessage(), e);
@@ -292,9 +288,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<CategoryAggregateStatisticsDTO> statisticsDTOs = problemTagManager.getCategoryAggregateStatistics();
 
             // 将 DTO 转换为 VO 对象
-            return statisticsDTOs.stream()
-                    .map(this::convertToVO)
-                    .collect(Collectors.toList());
+            return statisticsDTOs.stream().map(this::convertToVO).collect(Collectors.toList());
         } catch (Exception e) {
             // 记录异常信息，便于问题追踪和定位
             log.error("ProblemTagService--->获取分类聚合统计信息失败: {}", e.getMessage(), e);
@@ -311,7 +305,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      *
      * @param minUsageCount 最小使用次数
      * @param maxUsageCount 最大使用次数
-     * @param category 标签分类（可选）
+     * @param category      标签分类（可选）
      * @return 符合条件的标签列表
      */
     @Override
@@ -324,18 +318,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<ProblemTagDO> tagDOs = problemTagManager.findByUsageCountRange(minUsageCount, maxUsageCount, categoryStr);
 
             // 将DO对象转换为VO对象
-            List<ProblemTagVO> voList = tagDOs.stream()
-                    .map(this::convertToVO)
-                    .collect(Collectors.toList());
+            List<ProblemTagVO> voList = tagDOs.stream().map(this::convertToVO).collect(Collectors.toList());
 
             // 记录日志
-            log.info("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签成功，数量: {}",
-                    minUsageCount, maxUsageCount, category, voList.size());
+            log.info("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签成功，数量: {}", minUsageCount, maxUsageCount, category, voList.size());
             return voList;
         } catch (Exception e) {
             // 记录错误日志
-            log.error("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签失败: {}",
-                    minUsageCount, maxUsageCount, category, e.getMessage(), e);
+            log.error("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签失败: {}", minUsageCount, maxUsageCount, category, e.getMessage(), e);
             return Collections.emptyList();
         }
     }
@@ -359,19 +349,237 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<ProblemTagDO> tagDOs = problemTagManager.findPopularTags(limit, categoryStr);
 
             // 将DO对象转换为VO对象
-            List<ProblemTagVO> voList = tagDOs.stream()
-                    .map(this::convertToVO)
-                    .collect(Collectors.toList());
+            List<ProblemTagVO> voList = tagDOs.stream().map(this::convertToVO).collect(Collectors.toList());
 
             // 记录日志
-            log.info("ProblemTagService--->查询热门标签成功，分类: {}, 限制数量: {}, 实际数量: {}",
-                    category, limit, voList.size());
+            log.info("ProblemTagService--->查询热门标签成功，分类: {}, 限制数量: {}, 实际数量: {}", category, limit, voList.size());
             return voList;
         } catch (Exception e) {
             // 记录错误日志
-            log.error("ProblemTagService--->查询热门标签失败，分类: {}, 限制数量: {}, 错误: {}",
-                    category, limit, e.getMessage(), e);
+            log.error("ProblemTagService--->查询热门标签失败，分类: {}, 限制数量: {}, 错误: {}", category, limit, e.getMessage(), e);
             return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 增加标签使用次数
+     * <p>
+     * 此方法通过调用manager层来增加指定标签的使用计数
+     *
+     * @param tagId 标签ID
+     * @return 操作是否成功
+     */
+    @Override
+    public boolean incrementUsageCount(Long tagId) {
+        try {
+            // 参数校验
+            if (tagId == null || tagId <= 0) {
+                throw new RuntimeException("无效的标签ID");
+            }
+
+            // 调用manager层方法增加使用次数
+            int result = problemTagManager.incrementUsageCount(tagId);
+
+            // 记录日志
+            if (result > 0) {
+                log.info("ProblemTagService--->增加标签[{}]使用次数成功", tagId);
+                return true;
+            } else {
+                log.warn("ProblemTagService--->增加标签[{}]使用次数失败，标签可能不存在", tagId);
+                return false;
+            }
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->增加标签[{}]使用次数异常: {}", tagId, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 减少标签使用次数
+     * <p>
+     * 此方法通过调用manager层来减少指定标签的使用计数
+     *
+     * @param tagId 标签ID
+     * @return 操作是否成功
+     */
+    @Override
+    public boolean decrementUsageCount(Long tagId) {
+        try {
+            // 参数校验
+            if (tagId == null || tagId <= 0) {
+                throw new RuntimeException("无效的标签ID");
+            }
+
+            // 调用manager层方法减少使用次数
+            int result = problemTagManager.decrementUsageCount(tagId);
+
+            // 记录日志
+            if (result > 0) {
+                log.info("ProblemTagService--->减少标签[{}]使用次数成功", tagId);
+                return true;
+            } else {
+                log.warn("ProblemTagService--->减少标签[{}]使用次数失败，标签可能不存在或使用次数已为0", tagId);
+                return false;
+            }
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->减少标签[{}]使用次数异常: {}", tagId, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 批量增加标签使用次数
+     * <p>
+     * 此方法通过调用manager层来批量增加多个标签的使用计数
+     *
+     * @param tagIds    标签ID列表
+     * @param increment 增加的次数
+     * @return 受影响的记录数
+     */
+    @Override
+    public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
+        try {
+            // 参数校验
+            if (tagIds == null || tagIds.isEmpty()) {
+                log.warn("ProblemTagService--->批量增加标签使用次数失败：标签ID列表为空");
+                return 0;
+            }
+            if (increment <= 0) {
+                log.warn("ProblemTagService--->批量增加标签使用次数失败：增加次数必须大于0");
+                return 0;
+            }
+
+            // 调用manager层方法批量增加使用次数
+            int affectedRows = problemTagManager.batchIncrementUsageCount(tagIds, increment);
+
+            // 记录日志
+            log.info("ProblemTagService--->批量增加标签使用次数成功，标签数量: {}, 增加次数: {}, 受影响行数: {}", tagIds.size(), increment, affectedRows);
+            return affectedRows;
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->批量增加标签使用次数异常: {}", e.getMessage(), e);
+            return 0;
+        }
+    }
+
+    /**
+     * 批量减少标签使用次数
+     * <p>
+     * 此方法通过调用manager层来批量减少多个标签的使用计数
+     *
+     * @param tagIds    标签ID列表
+     * @param decrement 减少的次数
+     * @return 受影响的记录数
+     */
+    @Override
+    public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
+        try {
+            // 参数校验
+            if (tagIds == null || tagIds.isEmpty()) {
+                log.warn("ProblemTagService--->批量减少标签使用次数失败：标签ID列表为空");
+                return 0;
+            }
+            if (decrement <= 0) {
+                log.warn("ProblemTagService--->批量减少标签使用次数失败：减少次数必须大于0");
+                return 0;
+            }
+
+            // 调用manager层方法批量减少使用次数
+            int affectedRows = problemTagManager.batchDecrementUsageCount(tagIds, decrement);
+
+            // 记录日志
+            log.info("ProblemTagService--->批量减少标签使用次数成功，标签数量: {}, 减少次数: {}, 受影响行数: {}", tagIds.size(), decrement, affectedRows);
+            return affectedRows;
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->批量减少标签使用次数异常: {}", e.getMessage(), e);
+            return 0;
+        }
+    }
+
+    /**
+     * 批量更新标签状态
+     * <p>
+     * 此方法通过调用manager层来批量更新多个标签的状态
+     *
+     * @param tagIds 标签ID列表
+     * @param status 新的状态值（1-启用，0-禁用）
+     * @return 受影响的记录数
+     */
+    @Override
+    public int batchUpdateStatus(List<Long> tagIds, Integer status) {
+        try {
+            // 参数校验
+            if (tagIds == null || tagIds.isEmpty()) {
+                log.warn("ProblemTagService--->批量更新标签状态失败：标签ID列表为空");
+                return 0;
+            }
+            // 严格校验状态值，必须是1或0
+            if (status == null || (status != 0 && status != 1)) {
+                log.warn("ProblemTagService--->批量更新标签状态失败：状态值无效，必须为0或1，当前值: {}", status);
+                return 0;
+            }
+
+            // 调用manager层方法批量更新标签状态
+            int affectedRows = problemTagManager.batchUpdateStatus(tagIds, status);
+
+            // 记录日志
+            log.info("ProblemTagService--->批量更新标签状态成功，标签数量: {}, 新状态: {}, 受影响行数: {}", tagIds.size(), status, affectedRows);
+            return affectedRows;
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->批量更新标签状态异常: {}", e.getMessage(), e);
+            return 0;
+        }
+    }
+
+    /**
+     * 批量更新标签使用次数
+     * <p>
+     * 此方法根据操作类型，统一处理标签使用次数的增加或减少
+     *
+     * @param tagIds 标签ID列表
+     * @param value  更新值（必须为正数）
+     * @param type   操作类型（"increment"或"decrement"）
+     * @return 受影响的记录数
+     */
+    @Override
+    public int batchUpdateUsageCount(List<Long> tagIds, int value, String type) {
+        try {
+            // 参数校验
+            if (tagIds == null || tagIds.isEmpty()) {
+                log.warn("ProblemTagService--->批量更新标签使用次数失败：标签ID列表为空");
+                return 0;
+            }
+
+            if (value <= 0) {
+                log.warn("ProblemTagService--->批量更新标签使用次数失败：更新值必须大于0，当前值: {}", value);
+                return 0;
+            }
+
+            // 验证操作类型
+            if (!"increment".equals(type) && !"decrement".equals(type)) {
+                log.warn("ProblemTagService--->批量更新标签使用次数失败：无效的操作类型，当前类型: {}", type);
+                return 0;
+            }
+
+            int affectedRows;
+            // 根据操作类型调用不同的manager方法
+            if ("increment".equals(type)) {
+                affectedRows = problemTagManager.batchIncrementUsageCount(tagIds, value);
+                log.info("ProblemTagService--->批量增加标签使用次数成功，标签数量: {}, 增加次数: {}, 受影响行数: {}", tagIds.size(), value, affectedRows);
+            } else {
+                affectedRows = problemTagManager.batchDecrementUsageCount(tagIds, value);
+                log.info("ProblemTagService--->批量减少标签使用次数成功，标签数量: {}, 减少次数: {}, 受影响行数: {}", tagIds.size(), value, affectedRows);
+            }
+
+            return affectedRows;
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->批量更新标签使用次数异常: {}", e.getMessage(), e);
+            return 0;
         }
     }
 
@@ -443,5 +651,6 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         // 返回填充好的视图对象
         return tagVO;
     }
+
 
 }

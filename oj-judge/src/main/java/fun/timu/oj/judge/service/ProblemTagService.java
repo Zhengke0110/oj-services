@@ -76,4 +76,57 @@ public interface ProblemTagService {
      * @return 热门标签列表
      */
     List<ProblemTagVO> findPopularTags(int limit, TagCategoryEnum category);
+
+    /**
+     * 增加标签使用次数
+     *
+     * @param tagId 标签ID
+     * @return 操作是否成功
+     */
+    boolean incrementUsageCount(Long tagId);
+
+    /**
+     * 减少标签使用次数
+     *
+     * @param tagId 标签ID
+     * @return 操作是否成功
+     */
+    boolean decrementUsageCount(Long tagId);
+
+    /**
+     * 批量增加标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param increment 增加的次数
+     * @return 受影响的记录数
+     */
+    int batchIncrementUsageCount(List<Long> tagIds, int increment);
+
+    /**
+     * 批量减少标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param decrement 减少的次数
+     * @return 受影响的记录数
+     */
+    int batchDecrementUsageCount(List<Long> tagIds, int decrement);
+
+    /**
+     * 批量更新标签状态
+     *
+     * @param tagIds 标签ID列表
+     * @param status 新的状态值
+     * @return 受影响的记录数
+     */
+    int batchUpdateStatus(List<Long> tagIds, Integer status);
+
+    /**
+     * 批量更新标签使用次数
+     *
+     * @param tagIds 标签ID列表
+     * @param value  更新值（正数为增加，负数为减少）
+     * @param type   操作类型（"increment"或"decrement"）
+     * @return 受影响的记录数
+     */
+    int batchUpdateUsageCount(List<Long> tagIds, int value, String type);
 }

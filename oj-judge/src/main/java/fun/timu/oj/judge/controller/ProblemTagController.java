@@ -5,6 +5,7 @@ import fun.timu.oj.common.enmus.ColorEnum;
 import fun.timu.oj.common.enmus.TagCategoryEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
+import fun.timu.oj.judge.controller.request.ProblemTagBatchRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagListRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
@@ -227,10 +228,7 @@ public class ProblemTagController {
      * @return 符合条件的标签列表
      */
     @GetMapping("/usage-range")
-    public JsonData findByUsageCountRange(
-            @RequestParam(required = false, defaultValue = "0") Long minUsageCount,
-            @RequestParam(required = false, defaultValue = "100") Long maxUsageCount,
-            @RequestParam(required = false) String category) {
+    public JsonData findByUsageCountRange(@RequestParam(required = false, defaultValue = "0") Long minUsageCount, @RequestParam(required = false, defaultValue = "100") Long maxUsageCount, @RequestParam(required = false) String category) {
         try {
             // 解析分类参数
             TagCategoryEnum categoryEnum = null;
@@ -242,8 +240,7 @@ public class ProblemTagController {
                 }
             }
 
-            log.info("根据使用次数范围查询标签请求: 最小次数={}, 最大次数={}, 分类={}",
-                    minUsageCount, maxUsageCount, categoryEnum);
+            log.info("根据使用次数范围查询标签请求: 最小次数={}, 最大次数={}, 分类={}", minUsageCount, maxUsageCount, categoryEnum);
             List<ProblemTagVO> tags = problemTagService.findByUsageCountRange(minUsageCount, maxUsageCount, categoryEnum);
             return JsonData.buildSuccess(tags);
         } catch (Exception e) {
@@ -260,9 +257,7 @@ public class ProblemTagController {
      * @return 热门标签列表
      */
     @GetMapping("/popular")
-    public JsonData findPopularTags(
-            @RequestParam(defaultValue = "10") @Positive(message = "标签数量必须为正数") int limit,
-            @RequestParam(required = false) String category) {
+    public JsonData findPopularTags(@RequestParam(defaultValue = "10") @Positive(message = "标签数量必须为正数") int limit, @RequestParam(required = false) String category) {
         try {
             TagCategoryEnum categoryEnum = null;
             if (category != null && !category.isEmpty()) {
@@ -279,6 +274,179 @@ public class ProblemTagController {
         } catch (Exception e) {
             log.error("查询热门标签失败: {}", e.getMessage(), e);
             return JsonData.buildError("查询热门标签失败");
+        }
+    }
+
+    /**
+     * 增加标签使用次数
+     *
+     * @param tagId 标签ID
+     * @return 操作结果
+     */
+    @PutMapping("/{tagId}/increment-usage")
+    public JsonData incrementUsageCount(@PathVariable Long tagId) {
+        try {
+            log.info("增加标签使用次数请求，tagId: {}", tagId);
+            boolean result = problemTagService.incrementUsageCount(tagId);
+            if (result) {
+                return JsonData.buildSuccess("增加标签使用次数成功");
+            } else {
+                return JsonData.buildError("增加标签使用次数失败，标签可能不存在");
+            }
+        } catch (Exception e) {
+            log.error("增加标签使用次数失败: {}", e.getMessage(), e);
+            return JsonData.buildError("增加标签使用次数失败");
+        }
+    }
+
+    /**
+     * 减少标签使用次数
+     *
+     * @param tagId 标签ID
+     * @return 操作结果
+     */
+    @PutMapping("/{tagId}/decrement-usage")
+    public JsonData decrementUsageCount(@PathVariable Long tagId) {
+        try {
+            log.info("减少标签使用次数请求，tagId: {}", tagId);
+            boolean result = problemTagService.decrementUsageCount(tagId);
+            if (result) {
+                return JsonData.buildSuccess("减少标签使用次数成功");
+            } else {
+                return JsonData.buildError("减少标签使用次数失败，标签可能不存在或使用次数已为0");
+            }
+        } catch (Exception e) {
+            log.error("减少标签使用次数失败: {}", e.getMessage(), e);
+            return JsonData.buildError("减少标签使用次数失败");
+        }
+    }
+
+
+    /**
+     * 批量增加标签使用次数
+     *
+     * @param request 包含tagIds和value的请求
+     * @return 操作结果
+     */
+    @PutMapping("/batch/increment-usage")
+    public JsonData batchIncrementUsageCount(@RequestBody ProblemTagBatchRequest request) {
+        try {
+            List<Long> tagIds = request.getTagIds();
+            Integer increment = (request.getValue() != null && request.getValue() > 0) ? request.getValue() : 1;
+
+            log.info("批量增加标签使用次数请求，标签数量: {}, 增加次数: {}", tagIds != null ? tagIds.size() : 0, increment);
+
+            if (tagIds == null || tagIds.isEmpty()) {
+                return JsonData.buildError("标签ID列表不能为空");
+            }
+
+            if (increment <= 0) {
+                return JsonData.buildError("增加次数必须大于0");
+            }
+
+            int affectedRows = problemTagService.batchIncrementUsageCount(tagIds, increment);
+            return JsonData.buildSuccess("批量增加标签使用次数成功:" + affectedRows);
+        } catch (Exception e) {
+            log.error("批量增加标签使用次数失败: {}", e.getMessage(), e);
+            return JsonData.buildError("批量增加标签使用次数失败");
+        }
+    }
+
+    /**
+     * 批量减少标签使用次数
+     *
+     * @param request 包含tagIds和value的请求
+     * @return 操作结果
+     */
+    @PutMapping("/batch/decrement-usage")
+    public JsonData batchDecrementUsageCount(@RequestBody ProblemTagBatchRequest request) {
+        try {
+            List<Long> tagIds = request.getTagIds();
+
+            Integer decrement = (request.getValue() != null && request.getValue() > 0) ? request.getValue() : 1;
+
+
+            log.info("批量减少标签使用次数请求，标签数量: {}, 减少次数: {}", tagIds != null ? tagIds.size() : 0, decrement);
+
+            if (tagIds == null || tagIds.isEmpty()) {
+                return JsonData.buildError("标签ID列表不能为空");
+            }
+
+            if (decrement <= 0) {
+                return JsonData.buildError("减少次数必须大于0");
+            }
+
+            int affectedRows = problemTagService.batchDecrementUsageCount(tagIds, decrement);
+            return JsonData.buildSuccess("批量减少标签使用次数成功" + affectedRows);
+        } catch (Exception e) {
+            log.error("批量减少标签使用次数失败: {}", e.getMessage(), e);
+            return JsonData.buildError("批量减少标签使用次数失败");
+        }
+    }
+
+    /**
+     * 批量更新标签状态
+     *
+     * @param request 包含tagIds和status的请求
+     * @param request 请求体
+     * @return 响应体
+     */
+    @PutMapping("/batch/update-status")
+    public JsonData batchUpdateStatus(@RequestBody ProblemTagBatchRequest request) {
+        try {
+
+            List<Long> tagIds = request.getTagIds();
+            Integer status = request.getStatus() != null ? request.getStatus().getCode() : 0;
+            log.info("批量更新标签状态请求，标签数量: {}, 新状态: {}", tagIds != null ? tagIds.size() : 0, status);
+
+            if (tagIds == null || tagIds.isEmpty()) {
+                return JsonData.buildError("标签ID列表不能为空");
+            }
+
+            if (status == null || (status != 0 && status != 1)) {
+                return JsonData.buildError("状态值无效，必须为0或1");
+            }
+
+            int affectedRows = problemTagService.batchUpdateStatus(tagIds, status);
+            return JsonData.buildSuccess(affectedRows);
+        } catch (Exception e) {
+            log.error("批量更新标签状态失败: {}", e.getMessage(), e);
+            return JsonData.buildError("批量更新标签状态失败");
+        }
+    }
+
+    /**
+     * 批量更新标签使用次数
+     *
+     * @param request
+     * @return
+     */
+    @PutMapping("/batch/usage")
+    public JsonData batchUpdateUsageCount(@RequestBody ProblemTagBatchRequest request) {
+        try {
+            List<Long> tagIds = request.getTagIds();
+            String type = request.getType() != null ? request.getType().getValue() : "increment";
+            Integer value = request.getValue() != null ? request.getValue() : 1;
+
+            log.info("批量{}标签使用次数请求，标签数量: {}, 变更次数: {}", type.equals("increment") ? "增加" : "减少", tagIds != null ? tagIds.size() : 0, value);
+
+            if (tagIds == null || tagIds.isEmpty()) {
+                return JsonData.buildError("标签ID列表不能为空");
+            }
+
+            if (value <= 0) {
+                return JsonData.buildError("更新次数必须大于0");
+            }
+
+            if (!type.equals("increment") && !type.equals("decrement")) {
+                return JsonData.buildError("无效的操作类型，必须是increment或decrement");
+            }
+
+            int affectedRows = problemTagService.batchUpdateUsageCount(tagIds, value, type);
+            return JsonData.buildSuccess(affectedRows);
+        } catch (Exception e) {
+            log.error("批量{}标签使用次数失败: {}", request.getType().equals("increment") ? "增加" : "减少", e.getMessage(), e);
+            return JsonData.buildError("批量更新标签使用次数失败");
         }
     }
 }

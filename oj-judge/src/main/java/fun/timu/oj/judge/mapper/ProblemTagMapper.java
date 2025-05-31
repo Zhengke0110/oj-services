@@ -40,28 +40,20 @@ public interface ProblemTagMapper extends BaseMapper<ProblemTagDO> {
     int batchDecrementUsageCount(@Param("tagIds") List<Long> tagIds, @Param("decrement") int decrement);
 
     /**
-     * TODO 根据使用次数范围查询标签
-     *
      * @param minUsageCount 最小使用次数
      * @param maxUsageCount 最大使用次数
      * @param category      标签分类（可选）
      * @return 标签列表
      */
-    List<ProblemTagDO> findByUsageCountRange(@Param("minUsageCount") Long minUsageCount,
-                                             @Param("maxUsageCount") Long maxUsageCount,
-                                             @Param("category") String category);
+    List<ProblemTagDO> findByUsageCountRange(@Param("minUsageCount") Long minUsageCount, @Param("maxUsageCount") Long maxUsageCount, @Param("category") String category);
 
     /**
-     * TODO 获取标签使用统计信息，可按分类筛选
-     *
      * @param category 标签分类（可选）
      * @return 标签使用统计信息列表
      */
     List<TagUsageStatisticsDTO> getTagUsageStatistics(@Param("category") String category);
 
     /**
-     * TODO 获取所有分类的标签使用聚合统计信息
-     *
      * @return 每个分类的标签总数和使用情况统计
      */
     List<CategoryAggregateStatisticsDTO> getCategoryAggregateStatistics();
@@ -76,21 +68,12 @@ public interface ProblemTagMapper extends BaseMapper<ProblemTagDO> {
     int batchUpdateStatus(@Param("tagIds") List<Long> tagIds, @Param("status") Integer status);
 
     /**
-     * TODO 查询热门标签（根据使用次数排序）
-     *
      * @param limit    限制数量
      * @param category 标签分类（可选）
      * @return 热门标签列表
      */
     List<ProblemTagDO> findPopularTags(@Param("limit") int limit, @Param("category") String category);
 
-    /**
-     * 根据颜色查询标签
-     *
-     * @param tagColor 标签颜色
-     * @return 标签列表
-     */
-    List<ProblemTagDO> findByTagColor(@Param("tagColor") String tagColor);
 
     /**
      * 检查标签名是否存在（排除指定ID）

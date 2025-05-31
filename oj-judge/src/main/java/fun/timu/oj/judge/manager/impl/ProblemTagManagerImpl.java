@@ -11,6 +11,7 @@ import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -235,6 +236,106 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
     @Override
     public List<ProblemTagDO> findPopularTags(int limit, String category) {
         return problemTagMapper.findPopularTags(limit, category);
+    }
+
+    /**
+     * 增加标签使用次数
+     *
+     * @param tagId 标签id
+     * @return 增加结果
+     */
+    @Override
+    public int incrementUsageCount(Long tagId) {
+        // 根据标签ID查询数据库中的标签对象
+        ProblemTagDO problemTagDO = problemTagMapper.selectById(tagId);
+
+        // 检查标签是否存在且未被删除，以及标签状态是否为启用
+        if (problemTagDO == null || problemTagDO.getIsDeleted() == 1 || problemTagDO.getStatus() == 0) {
+            return 0; // 标签不存在、已被删除或状态为禁用，返回0表示没有记录受影响
+        }
+
+        // 创建更新对象
+        ProblemTagDO updateObj = new ProblemTagDO();
+        updateObj.setId(tagId);
+        updateObj.setUsageCount(problemTagDO.getUsageCount() + 1);
+        updateObj.setUpdatedAt(new Date());
+
+        // 执行更新操作
+        return problemTagMapper.updateById(updateObj);
+    }
+
+    /**
+     * 减少标签使用次数
+     *
+     * @param tagId 标签id
+     * @return 减少结果
+     */
+    @Override
+    public int decrementUsageCount(Long tagId) {
+        // 根据标签ID查询数据库中的标签对象
+        ProblemTagDO problemTagDO = problemTagMapper.selectById(tagId);
+
+        // 检查标签是否存在且未被删除，以及标签状态是否为启用
+        if (problemTagDO == null || problemTagDO.getIsDeleted() == 1 || problemTagDO.getStatus() == 0) {
+            return 0; // 标签不存在、已被删除或状态为禁用，返回0表示没有记录受影响
+        }
+
+        // 确保使用次数不会变成负数
+        long newCount = Math.max(0, problemTagDO.getUsageCount() - 1);
+
+        // 创建更新对象
+        ProblemTagDO updateObj = new ProblemTagDO();
+        updateObj.setId(tagId);
+        updateObj.setUsageCount(newCount);
+        updateObj.setUpdatedAt(new Date());
+
+        // 执行更新操作
+        return problemTagMapper.updateById(updateObj);
+    }
+
+    /**
+     * 批量增加标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param increment 增加的次数
+     * @return 返回受影响的行数
+     */
+    @Override
+    public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return 0;
+        }
+        return problemTagMapper.batchIncrementUsageCount(tagIds, increment);
+    }
+
+    /**
+     * 批量减少标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param decrement 减少的次数
+     * @return 返回受影响的行数
+     */
+    @Override
+    public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return 0;
+        }
+        return problemTagMapper.batchDecrementUsageCount(tagIds, decrement);
+    }
+
+    /**
+     * 批量更新标签状态
+     *
+     * @param tagIds 标签ID列表
+     * @param status 新的状态值
+     * @return 返回受影响的行数
+     */
+    @Override
+    public int batchUpdateStatus(List<Long> tagIds, Integer status) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return 0;
+        }
+        return problemTagMapper.batchUpdateStatus(tagIds, status);
     }
 
 }
