@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import fun.timu.oj.judge.manager.TestCaseManager;
 import fun.timu.oj.judge.mapper.TestCaseMapper;
 import fun.timu.oj.judge.model.DO.TestCaseDO;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class TestCaseManagerImpl implements TestCaseManager {
     private final TestCaseMapper testCaseMapper;
 

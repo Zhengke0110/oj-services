@@ -257,4 +257,107 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         return 0;
     }
 
+    /**
+     * 批量增加标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param increment 增加的数量
+     * @return 受影响的行数
+     */
+    @Override
+    public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return 0;
+        }
+        return problemTagMapper.batchIncrementUsageCount(tagIds, increment);
+    }
+
+    /**
+     * 批量减少标签使用次数
+     *
+     * @param tagIds    标签ID列表
+     * @param decrement 减少的数量
+     * @return 受影响的行数
+     */
+    @Override
+    public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return 0;
+        }
+        return problemTagMapper.batchDecrementUsageCount(tagIds, decrement);
+    }
+
+    /**
+     * 根据使用次数范围查询标签
+     *
+     * @param minUsageCount 最小使用次数
+     * @param maxUsageCount 最大使用次数
+     * @return 标签列表
+     */
+    @Override
+    public List<ProblemTagDO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount) {
+        return problemTagMapper.findByUsageCountRange(minUsageCount, maxUsageCount);
+    }
+
+    /**
+     * 获取标签使用统计信息
+     *
+     * @param category 标签分类（可选）
+     * @return 统计信息
+     */
+    @Override
+    public List<ProblemTagDO> getTagUsageStatistics(String category) {
+        return problemTagMapper.getTagUsageStatistics(category);
+    }
+
+    /**
+     * 批量更新标签状态
+     *
+     * @param tagIds 标签ID列表
+     * @param status 新状态
+     * @return 受影响的行数
+     */
+    @Override
+    public int batchUpdateStatus(List<Long> tagIds, Integer status) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return 0;
+        }
+        return problemTagMapper.batchUpdateStatus(tagIds, status);
+    }
+
+    /**
+     * 查询热门标签
+     *
+     * @param limit    限制数量
+     * @param category 标签分类（可选）
+     * @return 热门标签列表
+     */
+    @Override
+    public List<ProblemTagDO> findPopularTags(int limit, String category) {
+        return problemTagMapper.findPopularTags(limit, category);
+    }
+
+    /**
+     * 根据颜色查询标签
+     *
+     * @param tagColor 标签颜色
+     * @return 标签列表
+     */
+    @Override
+    public List<ProblemTagDO> findByTagColor(String tagColor) {
+        return problemTagMapper.findByTagColor(tagColor);
+    }
+
+    /**
+     * 检查标签名是否存在（排除指定ID）
+     *
+     * @param tagName   标签名
+     * @param excludeId 排除的ID
+     * @return 是否存在
+     */
+    @Override
+    public boolean existsByTagNameExcludeId(String tagName, Long excludeId) {
+        return problemTagMapper.existsByTagNameExcludeId(tagName, excludeId);
+    }
+
 }

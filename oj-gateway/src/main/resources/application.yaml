@@ -6,7 +6,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.0.130:8848
+        server-addr: 192.168.0.162:8848
         namespace: bdd24507-ab90-4409-941a-5d6eb60739cf
     # 配置LoadBalancer使用Caffeine缓存
     loadbalancer:
@@ -16,9 +16,23 @@ spring:
         capacity: 256  # 缓存容量
     gateway:
       routes: #数组形式
+        - id: oj-account  #数据服务 路由唯一标识
+          uri: lb://oj-account  #从nacos进行转发
+          order: 1 #优先级，数字越小优先级越高
+          predicates: #断言 配置哪个路径才转发，前端访问路径统一加上XXX-server，网关判断转发对应的服务，如果是回调业务记得修改
+            - Path=/oj-account/**
+          filters: #过滤器，请求在传递过程中通过过滤器修改
+            - StripPrefix=1  #去掉第一层前缀，转发给后续的路径
+        - id: oj-judge  #数据服务 路由唯一标识
+          uri: lb://oj-judge  #从nacos进行转发
+          order: 2 #优先级，数字越小优先级越高
+          predicates: #断言 配置哪个路径才转发，前端访问路径统一加上XXX-server，网关判断转发对应的服务，如果是回调业务记得修改
+            - Path=/oj-judge/**
+          filters: #过滤器，请求在传递过程中通过过滤器修改
+            - StripPrefix=1  #去掉第一层前缀，转发给后续的路径
         - id: oj-sandbox  #数据服务 路由唯一标识
           uri: lb://oj-sandbox  #从nacos进行转发
-          order: 1 #优先级，数字越小优先级越高
+          order: 2 #优先级，数字越小优先级越高
           predicates: #断言 配置哪个路径才转发，前端访问路径统一加上XXX-server，网关判断转发对应的服务，如果是回调业务记得修改
             - Path=/oj-sandbox/**
           filters: #过滤器，请求在传递过程中通过过滤器修改
@@ -28,8 +42,6 @@ spring:
       discovery:
         locator:
           enabled: true
-
-
 logging:
   level:
     root: INFO
