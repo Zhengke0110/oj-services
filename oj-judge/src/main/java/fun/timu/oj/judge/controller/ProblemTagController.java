@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -122,17 +123,29 @@ public class ProblemTagController {
      * @return
      */
     @GetMapping("/lists")
-    public JsonData listTags(
-            @RequestParam(defaultValue = "1") int current,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String tagName,
-            @RequestParam(required = false) Boolean isEnabled) {
+    public JsonData listTags(@RequestParam(defaultValue = "1") int current, @RequestParam(defaultValue = "20") int size, @RequestParam(required = false) String tagName, @RequestParam(required = false) Boolean isEnabled) {
         try {
             PageResult<ProblemTagVO> lists = problemTagService.listTags(current, size, tagName, isEnabled);
             return JsonData.buildSuccess(lists);
         } catch (Exception e) {
             log.error("获取标签列表失败: {}", e.getMessage(), e);
             return JsonData.buildError("获取标签列表失败");
+        }
+    }
+
+    /**
+     * 获取所有启用的标签
+     *
+     * @return
+     */
+    @GetMapping("/enabled")
+    public JsonData getAllEnabledTags() {
+        try {
+            List<ProblemTagVO> list = problemTagService.getAllEnabledTags();
+            return JsonData.buildSuccess(list);
+        } catch (Exception e) {
+            log.error("获取启用的标签列表失败: {}", e.getMessage(), e);
+            return JsonData.buildError("获取启用的标签列表失败");
         }
     }
 }

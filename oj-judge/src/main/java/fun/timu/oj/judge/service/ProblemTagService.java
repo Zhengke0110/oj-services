@@ -6,6 +6,8 @@ import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
 
+import java.util.List;
+
 
 /**
  * 问题标签服务接口
@@ -35,4 +37,10 @@ public interface ProblemTagService {
      * 分页查询标签
      */
     PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled);
+
+    /**
+     * 获取所有启用的标签
+     */
+    List<ProblemTagVO> getAllEnabledTags();
+
 }

@@ -176,6 +176,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         }
     }
 
+    /**
+     * 根据条件分页查询问题标签列表
+     *
+     * @param current   当前页码
+     * @param size      每页记录数
+     * @param tagName   标签名称，用于模糊查询
+     * @param isEnabled 标签是否启用的状态，true表示启用，false表示禁用，null表示不作为筛选条件
+     * @return 返回包含问题标签信息的分页结果
+     */
     @Override
     public PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled) {
         try {
@@ -194,10 +203,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 创建自定义分页结果
             PageResult<ProblemTagVO> result = new PageResult<>(voList, tagPage.getTotal(), tagPage.getSize(), tagPage.getCurrent(), tagPage.getPages());
 
+            // 记录日志信息
             log.info("成功查询标签列表，当前页: {}, 每页大小: {}, 总数: {}", current, size, tagPage.getTotal());
             return result;
-
         } catch (Exception e) {
+            // 记录异常信息
             log.error("ProblemTagService--->查询标签列表失败: {}", e.getMessage(), e);
             // 返回空的分页结果
             return new PageResult<>(List.of(), 0, size, current, 0);
@@ -205,9 +215,48 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     }
 
 
+    /**
+     * 获取所有启用的问题标签
+     * <p>
+     * 此方法通过调用问题标签管理器的findAllActive方法来获取所有启用的ProblemTagDO对象，
+     * 然后将这些对象转换为ProblemTagVO对象，以便于在更高层次的业务逻辑中使用
+     * 如果在查询过程中发生异常，将记录错误日志并返回null
+     *
+     * @return 包含所有启用问题标签的ProblemTagVO对象列表，如果查询失败则返回null
+     */
+    @Override
+    public List<ProblemTagVO> getAllEnabledTags() {
+        try {
+            // 查询所有启用的ProblemTagDO对象
+            List<ProblemTagDO> tags = problemTagManager.findAllActive();
+            // 将查询到的ProblemTagDO对象转换为ProblemTagVO对象列表
+            List<ProblemTagVO> list = tags.stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+            // 记录查询成功的日志信息
+            log.info("查询启用的Tags成功，数量: {}", list.size());
+            return list;
+        } catch (Exception e) {
+            // 记录查询失败的错误日志
+            log.error("ProblemTagService--->查询启用的Tags失败: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+
+    /**
+     * 将问题标签数据对象转换为视图对象
+     *
+     * @param tagDO 问题标签数据对象，包含标签的相关数据
+     * @return 返回一个视图对象，包含与数据对象相同的信息
+     */
     private ProblemTagVO convertToVO(ProblemTagDO tagDO) {
+        // 创建一个视图对象实例
         ProblemTagVO tagVO = new ProblemTagVO();
+        // 将数据对象的属性值复制到视图对象中
         BeanUtils.copyProperties(tagDO, tagVO);
+        // 返回填充好的视图对象
         return tagVO;
     }
+
 }
