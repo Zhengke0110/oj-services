@@ -10,6 +10,7 @@ import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -301,11 +302,18 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
      * @return 返回受影响的行数
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
-        if (tagIds == null || tagIds.isEmpty()) {
-            return 0;
+        if (tagIds == null || tagIds.isEmpty()) return 0;
+
+        // 首先使用悲观锁锁定要更新的记录
+        List<ProblemTagDO> lockedTags = problemTagMapper.lockTagsForUpdate(tagIds);
+
+        // 确认锁定成功后执行更新操作
+        if (!lockedTags.isEmpty()) {
+            return problemTagMapper.batchIncrementUsageCount(tagIds, increment);
         }
-        return problemTagMapper.batchIncrementUsageCount(tagIds, increment);
+        return 0;
     }
 
     /**
@@ -337,5 +345,4 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         }
         return problemTagMapper.batchUpdateStatus(tagIds, status);
     }
-
 }

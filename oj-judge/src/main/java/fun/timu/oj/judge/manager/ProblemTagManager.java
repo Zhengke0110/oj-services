@@ -138,6 +138,4 @@ public interface ProblemTagManager {
      * @return 受影响的行数
      */
     public int batchUpdateStatus(List<Long> tagIds, Integer status);
-
-
 }

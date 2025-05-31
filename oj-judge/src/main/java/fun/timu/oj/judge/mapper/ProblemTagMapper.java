@@ -75,15 +75,14 @@ public interface ProblemTagMapper extends BaseMapper<ProblemTagDO> {
     List<ProblemTagDO> findPopularTags(@Param("limit") int limit, @Param("category") String category);
 
 
-    /**
-     * 检查标签名是否存在（排除指定ID）
-     *
-     * @param tagName   标签名
-     * @param excludeId 排除的ID
-     * @return 是否存在
-     */
-    boolean existsByTagNameExcludeId(@Param("tagName") String tagName, @Param("excludeId") Long excludeId);
 
+    /**
+     * 使用悲观锁锁定指定标签记录
+     *
+     * @param tagIds 标签ID列表
+     * @return 锁定的标签记录列表
+     */
+    List<ProblemTagDO> lockTagsForUpdate(List<Long> tagIds);
 }
 
 

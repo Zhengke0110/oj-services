@@ -439,6 +439,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 受影响的记录数
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
         try {
             // 参数校验
@@ -451,7 +452,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
                 return 0;
             }
 
-            // 调用manager层方法批量增加使用次数
+            // 调用manager层方法批量增加使用次数（内部使用悲观锁）
             int affectedRows = problemTagManager.batchIncrementUsageCount(tagIds, increment);
 
             // 记录日志
@@ -460,7 +461,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量增加标签使用次数异常: {}", e.getMessage(), e);
-            return 0;
+            throw new RuntimeException("批量增加标签使用次数失败", e);
         }
     }
 
@@ -474,6 +475,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 受影响的记录数
      */
     @Override
+    @Transactional
     public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
         try {
             // 参数校验
@@ -495,7 +497,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量减少标签使用次数异常: {}", e.getMessage(), e);
-            return 0;
+            throw new RuntimeException("批量减少标签使用次数失败", e); // 抛出异常以触发事务回滚
         }
     }
 
@@ -509,6 +511,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 受影响的记录数
      */
     @Override
+    @Transactional
     public int batchUpdateStatus(List<Long> tagIds, Integer status) {
         try {
             // 参数校验
@@ -531,7 +534,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量更新标签状态异常: {}", e.getMessage(), e);
-            return 0;
+            throw new RuntimeException("批量更新标签状态失败", e); // 抛出异常以触发事务回滚
         }
     }
 
@@ -546,6 +549,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 受影响的记录数
      */
     @Override
+    @Transactional
     public int batchUpdateUsageCount(List<Long> tagIds, int value, String type) {
         try {
             // 参数校验
@@ -579,7 +583,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量更新标签使用次数异常: {}", e.getMessage(), e);
-            return 0;
+            throw new RuntimeException("批量增加标签使用次数失败", e); // 抛出异常以触发事务回滚
         }
     }
 
