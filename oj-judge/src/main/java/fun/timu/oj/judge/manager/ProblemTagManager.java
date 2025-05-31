@@ -1,7 +1,10 @@
 package fun.timu.oj.judge.manager;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.enmus.TagCategoryEnum;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
+import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
+import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
 
 import java.util.List;
 
@@ -57,4 +60,19 @@ public interface ProblemTagManager {
      * @return 返回分页结果
      */
     public IPage<ProblemTagDO> findTagListWithPage(int page, int size, String keyword, String category, Integer status, String tagColor);
+
+    /**
+     * 获取标签使用统计信息
+     *
+     * @param category 标签分类（可选）
+     * @return 统计信息
+     */
+    List<TagUsageStatisticsDTO> getTagUsageStatistics(String category);
+
+    /**
+     * 获取所有分类的标签使用聚合统计信息
+     *
+     * @return 每个分类的标签总数和使用情况统计
+     */
+    List<CategoryAggregateStatisticsDTO> getCategoryAggregateStatistics();
 }

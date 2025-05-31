@@ -2,12 +2,17 @@ package fun.timu.oj.judge.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.common.enmus.TagCategoryEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
+import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
+import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
+import fun.timu.oj.judge.model.VO.CategoryAggregateStatisticsVO;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
+import fun.timu.oj.judge.model.VO.TagUsageStatisticsVO;
 import fun.timu.oj.judge.service.ProblemTagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -15,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -204,7 +210,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             PageResult<ProblemTagVO> result = new PageResult<>(voList, tagPage.getTotal(), tagPage.getSize(), tagPage.getCurrent(), tagPage.getPages());
 
             // 记录日志信息
-            log.info("成功查询标签列表，当前页: {}, 每页大小: {}, 总数: {}", current, size, tagPage.getTotal());
+            log.info("ProblemTagService--->成功查询标签列表，当前页: {}, 每页大小: {}, 总数: {}", current, size, tagPage.getTotal());
             return result;
         } catch (Exception e) {
             // 记录异常信息
@@ -234,12 +240,119 @@ public class ProblemTagServiceImpl implements ProblemTagService {
                     .map(this::convertToVO)
                     .collect(Collectors.toList());
             // 记录查询成功的日志信息
-            log.info("查询启用的Tags成功，数量: {}", list.size());
+            log.info("ProblemTagService--->查询启用的Tags成功，数量: {}", list.size());
             return list;
         } catch (Exception e) {
             // 记录查询失败的错误日志
             log.error("ProblemTagService--->查询启用的Tags失败: {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 获取指定标签类别的使用统计信息
+     *
+     * @param category 标签类别枚举，用于指定要统计的标签类别
+     * @return 返回一个包含标签使用统计信息的列表，如果发生异常则返回null
+     * <p>
+     * 此方法首先调用 manager 层的相应方法获取标签使用统计的原始数据（DTO 类型），
+     * 然后将这些数据转换为适合前端展示的 VO 类型列表
+     * 如果在处理过程中遇到任何异常，都会记录错误日志并返回 null
+     */
+    @Override
+    public List<TagUsageStatisticsVO> getTagUsageStatistics(TagCategoryEnum category) {
+        try {
+            // 调用 manager 层获取统计数据，注意这里返回的是 TagUsageStatisticsDTO 类型
+            List<TagUsageStatisticsDTO> statisticsDTOs = problemTagManager.getTagUsageStatistics(category.toString());
+
+            // 将 DTO 转换为 VO 对象
+            return statisticsDTOs.stream()
+                    .map(this::convertStatisticsToVO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            // 记录异常信息，便于问题追踪和定位
+            log.error("ProblemTagService--->获取标签使用统计信息: {}", e.getMessage(), e);
+            // 异常情况下返回 null，上层调用者需要处理可能的 null 值
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 获取所有分类的标签使用聚合统计信息
+     * <p>
+     * 此方法通过调用 manager 层获取各分类标签的聚合统计数据，然后转换为前端可用的 VO 对象
+     * 统计信息包括每个分类的标签总数、使用次数、活跃标签数等指标
+     *
+     * @return 分类聚合统计信息的 VO 对象列表
+     */
+    @Override
+    public List<CategoryAggregateStatisticsVO> getCategoryAggregateStatistics() {
+        try {
+            // 调用 manager 层获取原始聚合统计数据
+            List<CategoryAggregateStatisticsDTO> statisticsDTOs = problemTagManager.getCategoryAggregateStatistics();
+
+            // 将 DTO 转换为 VO 对象
+            return statisticsDTOs.stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            // 记录异常信息，便于问题追踪和定位
+            log.error("ProblemTagService--->获取分类聚合统计信息失败: {}", e.getMessage(), e);
+            // 异常情况下返回空列表，避免空指针异常
+            return Collections.emptyList();
+        }
+    }
+
+
+    /**
+     * 将标签使用统计DTO转换为VO
+     *
+     * @param dto 标签使用统计DTO
+     * @return 标签使用统计VO
+     */
+    private TagUsageStatisticsVO convertStatisticsToVO(TagUsageStatisticsDTO dto) {
+        TagUsageStatisticsVO vo = new TagUsageStatisticsVO();
+        BeanUtils.copyProperties(dto, vo);
+        return vo;
+    }
+
+    /**
+     * 将 CategoryAggregateStatisticsDTO 转换为 CategoryAggregateStatisticsVO
+     *
+     * @param dto CategoryAggregateStatisticsDTO 对象
+     * @return 转换后的 CategoryAggregateStatisticsVO 对象
+     */
+    private CategoryAggregateStatisticsVO convertToVO(CategoryAggregateStatisticsDTO dto) {
+        if (dto == null) {
             return null;
+        }
+        // 使用 BeanUtils 进行属性拷贝
+        CategoryAggregateStatisticsVO vo = new CategoryAggregateStatisticsVO();
+        BeanUtils.copyProperties(dto, vo);
+
+        // 设置额外的字段
+        vo.setCategoryDisplayName(getCategoryDisplayName(dto.getCategory()));
+        if (dto.getTotalTags() != null && dto.getTotalTags() > 0) {
+            vo.setActiveRate(dto.getActiveTags() * 1.0 / dto.getTotalTags());
+            vo.setAverageUsage(dto.getStoredUsageCount() * 1.0 / dto.getTotalTags());
+        } else {
+            vo.setActiveRate(0.0);
+            vo.setAverageUsage(0.0);
+        }
+        return vo;
+    }
+
+    /**
+     * 根据分类枚举值获取分类显示名称
+     *
+     * @param category 分类枚举值
+     * @return 分类显示名称
+     */
+    private String getCategoryDisplayName(String category) {
+        try {
+            return TagCategoryEnum.valueOf(category).name();
+        } catch (IllegalArgumentException e) {
+            return "ALGORITHM";
         }
     }
 

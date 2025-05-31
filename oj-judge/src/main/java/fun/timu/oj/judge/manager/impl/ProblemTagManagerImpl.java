@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.mapper.ProblemTagMapper;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
+import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
+import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -179,6 +181,35 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
 
         // 执行分页查询并返回结果
         return problemTagMapper.selectPage(pageable, queryWrapper);
+    }
+
+    /**
+     * 获取指定类别下的标签使用统计信息
+     * <p>
+     * 此方法通过调用问题标签映射器的相应方法来获取标签使用统计信息
+     * 它主要用于了解在特定类别下，各个标签被问题使用的频率
+     *
+     * @param category 标签类别，用于筛选特定类别的标签统计信息
+     * @return 返回一个列表，列表中每个元素都是一个TagUsageStatisticsDTO对象，
+     * 代表一个标签及其在指定类别下的使用统计信息
+     */
+    @Override
+    public List<TagUsageStatisticsDTO> getTagUsageStatistics(String category) {
+        return problemTagMapper.getTagUsageStatistics(category);
+    }
+
+    /**
+     * 获取所有分类的标签使用聚合统计信息
+     * <p>
+     * 此方法通过调用问题标签映射器的相应方法来获取所有分类的标签使用聚合统计信息
+     * 主要用于数据可视化，展示各分类的标签总数、使用次数及活跃情况
+     *
+     * @return 返回一个列表，每个元素都是一个CategoryAggregateStatisticsDTO对象，
+     * 代表一个分类及其标签的聚合统计信息
+     */
+    @Override
+    public List<CategoryAggregateStatisticsDTO> getCategoryAggregateStatistics() {
+        return problemTagMapper.getCategoryAggregateStatistics();
     }
 
 }

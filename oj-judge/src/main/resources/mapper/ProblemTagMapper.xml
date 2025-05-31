@@ -19,15 +19,16 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,tag_name,tag_name_en,tag_color,category,usage_count,
+        id
+        ,tag_name,tag_name_en,tag_color,category,usage_count,
         STATUS,description,is_deleted,created_at,updated_at
     </sql>
 
     <!-- 批量增加标签使用次数 -->
     <update id="batchIncrementUsageCount">
-        UPDATE problem_tag 
+        UPDATE problem_tag
         SET usage_count = usage_count + #{increment},
-            updated_at = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
         WHERE id IN
         <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
             #{tagId}
@@ -37,9 +38,9 @@
 
     <!-- 批量减少标签使用次数 -->
     <update id="batchDecrementUsageCount">
-        UPDATE problem_tag 
+        UPDATE problem_tag
         SET usage_count = GREATEST(usage_count - #{decrement}, 0),
-            updated_at = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
         WHERE id IN
         <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
             #{tagId}
@@ -50,37 +51,75 @@
 
     <!-- 根据使用次数范围查询标签 -->
     <select id="findByUsageCountRange" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
+        SELECT
+        <include refid="Base_Column_List"/>
         FROM problem_tag
         WHERE is_deleted = 0
         AND status = 1
         <if test="minUsageCount != null">
             AND usage_count >= #{minUsageCount}
-        </if>        <if test="maxUsageCount != null">
+        </if>
+        <if test="maxUsageCount != null">
             AND usage_count &lt;= #{maxUsageCount}
         </if>
         ORDER BY usage_count DESC, tag_name ASC
     </select>
-
     <!-- 获取标签使用统计信息 -->
-    <select id="getTagUsageStatistics" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
-        FROM problem_tag
-        WHERE is_deleted = 0
+    <select id="getTagUsageStatistics" resultType="fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO">
+        SELECT
+        t.id,
+        t.tag_name AS tagName,
+        t.tag_name_en AS tagNameEn,
+        t.tag_color AS tagColor,
+        t.category,
+        t.usage_count AS storedUsageCount,
+        COUNT(DISTINCT ptr.problem_id) AS actualUsageCount,
+        t.status,
+        t.description
+        FROM
+        problem_tag t
+        LEFT JOIN
+        problem_tag_relation ptr ON t.id = ptr.tag_id
+        WHERE
+        t.is_deleted = 0
         <if test="category != null and category != ''">
-            AND category = #{category}
+            AND t.category = #{category}
         </if>
-        ORDER BY 
-            category ASC,
-            usage_count DESC,
-            tag_name ASC
+        GROUP BY
+        t.id
+        ORDER BY
+        actualUsageCount DESC,
+        t.tag_name ASC
+    </select>
+
+    <!-- 获取标签分类的聚合统计信息 -->
+    <select id="getCategoryAggregateStatistics" resultType="fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO">
+        SELECT t.category,
+               COUNT(DISTINCT t.id)          AS total_tags,
+               SUM(t.usage_count)            AS stored_usage_count,
+               COUNT(DISTINCT pt.problem_id) AS actual_usage_count,
+               (SELECT COUNT(1)
+                FROM problem_tag
+                WHERE category = t.category
+                  AND status = 1
+                  AND is_deleted = 0)        AS active_tags
+        FROM problem_tag t
+                 LEFT JOIN problem_tag_relation pt ON t.id = pt.tag_id
+        WHERE t.is_deleted = 0
+        GROUP BY t.category
+        ORDER BY FIELD(
+                         t.category,
+                         'ALGORITHM',
+                         'DATA_STRUCTURE',
+                         'TOPIC',
+                         'DIFFICULTY')
     </select>
 
     <!-- 批量更新标签状态 -->
     <update id="batchUpdateStatus">
-        UPDATE problem_tag 
+        UPDATE problem_tag
         SET status = #{status},
-            updated_at = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
         WHERE id IN
         <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
             #{tagId}
@@ -90,9 +129,10 @@
 
     <!-- 查询热门标签 -->
     <select id="findPopularTags" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
+        SELECT
+        <include refid="Base_Column_List"/>
         FROM problem_tag
-        WHERE is_deleted = 0 
+        WHERE is_deleted = 0
         AND status = 1
         <if test="category != null and category != ''">
             AND category = #{category}
@@ -103,7 +143,8 @@
 
     <!-- 根据颜色查询标签 -->
     <select id="findByTagColor" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
+        SELECT
+        <include refid="Base_Column_List"/>
         FROM problem_tag
         WHERE is_deleted = 0
         AND tag_color = #{tagColor}

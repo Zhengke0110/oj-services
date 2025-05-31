@@ -2,12 +2,15 @@ package fun.timu.oj.judge.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.enmus.ColorEnum;
+import fun.timu.oj.common.enmus.TagCategoryEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagListRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
+import fun.timu.oj.judge.model.VO.CategoryAggregateStatisticsVO;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
+import fun.timu.oj.judge.model.VO.TagUsageStatisticsVO;
 import fun.timu.oj.judge.service.ProblemTagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -128,12 +131,7 @@ public class ProblemTagController {
     public JsonData listTags(@Valid @RequestBody ProblemTagListRequest request) {
         try {
             log.info("查询标签列表请求: {}", request);
-            PageResult<ProblemTagVO> lists = problemTagService.listTags(
-                    request.getCurrent(),
-                    request.getSize(),
-                    request.getTagName(),
-                    request.getIsEnabled(),
-                    request.getColor());
+            PageResult<ProblemTagVO> lists = problemTagService.listTags(request.getCurrent(), request.getSize(), request.getTagName(), request.getIsEnabled(), request.getColor());
             return JsonData.buildSuccess(lists);
         } catch (Exception e) {
             log.error("获取标签列表失败: {}", e.getMessage(), e);
@@ -176,6 +174,47 @@ public class ProblemTagController {
         } catch (Exception e) {
             log.error("获取颜色列表失败: {}", e.getMessage(), e);
             return JsonData.buildError("获取颜色列表失败");
+        }
+    }
+
+    /**
+     * 获取指定分类的标签使用统计
+     *
+     * @param category 标签分类
+     * @return 标签使用统计信息
+     */
+    @GetMapping("/statistics/{category}")
+    public JsonData getTagUsageStatistics(@PathVariable String category) {
+        try {
+            log.info("获取标签使用统计请求, 分类: {}", category);
+            TagCategoryEnum categoryEnum;
+            try {
+                categoryEnum = TagCategoryEnum.valueOf(category.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("无效的标签分类");
+            }
+            List<TagUsageStatisticsVO> statistics = problemTagService.getTagUsageStatistics(categoryEnum);
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("获取标签使用统计失败: {}", e.getMessage(), e);
+            return JsonData.buildError("获取标签使用统计失败");
+        }
+    }
+
+    /**
+     * 获取所有分类的标签使用聚合统计信息
+     *
+     * @return 分类聚合统计信息
+     */
+    @GetMapping("/statistics/category/aggregate")
+    public JsonData getCategoryAggregateStatistics() {
+        try {
+            log.info("获取分类聚合统计请求");
+            List<CategoryAggregateStatisticsVO> statistics = problemTagService.getCategoryAggregateStatistics();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("获取分类聚合统计失败: {}", e.getMessage(), e);
+            return JsonData.buildError("获取分类聚合统计失败");
         }
     }
 }
