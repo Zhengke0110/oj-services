@@ -2,6 +2,7 @@ package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.mapper.ProblemTagMapper;
@@ -207,10 +208,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         // 添加查询条件
         // 1. 关键词搜索（标签名或英文名）
         if (keyword != null && !keyword.trim().isEmpty()) {
-            queryWrapper.and(wrapper -> wrapper
-                    .like(ProblemTagDO::getTagName, keyword)
-                    .or()
-                    .like(ProblemTagDO::getTagNameEn, keyword));
+            queryWrapper.and(wrapper -> wrapper.like(ProblemTagDO::getTagName, keyword).or().like(ProblemTagDO::getTagNameEn, keyword));
         }
 
         // 2. 分类筛选
@@ -227,8 +225,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         queryWrapper.eq(ProblemTagDO::getIsDeleted, false);
 
         // 5. 设置排序规则：先按使用次数降序，再按标签名称升序
-        queryWrapper.orderByDesc(ProblemTagDO::getUsageCount)
-                .orderByAsc(ProblemTagDO::getTagName);
+        queryWrapper.orderByDesc(ProblemTagDO::getUsageCount).orderByAsc(ProblemTagDO::getTagName);
 
         // 创建分页对象
         Page<ProblemTagDO> pageable = new Page<>(page, size);
@@ -388,6 +385,51 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
     @Override
     public boolean existsByTagNameExcludeId(String tagName, Long excludeId) {
         return problemTagMapper.existsByTagNameExcludeId(tagName, excludeId);
+    }
+
+
+    /**
+     * 分页查询问题标签列表（返回分页对象）
+     *
+     * @param page     页码，从1开始
+     * @param size     每页大小
+     * @param keyword  搜索关键词，可为空，用于模糊搜索标签名或英文名
+     * @param category 标签分类，可为空
+     * @param status   标签状态，可为空
+     * @return 返回分页结果
+     */
+    @Override
+    public IPage<ProblemTagDO> findTagListWithPage(int page, int size, String keyword, String category, Integer status) {
+        // 创建查询条件包装器
+        LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 添加查询条件
+        // 1. 关键词搜索（标签名或英文名）
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.and(wrapper -> wrapper.like(ProblemTagDO::getTagName, keyword).or().like(ProblemTagDO::getTagNameEn, keyword));
+        }
+
+        // 2. 分类筛选
+        if (category != null && !category.trim().isEmpty()) {
+            queryWrapper.eq(ProblemTagDO::getCategory, category);
+        }
+
+        // 3. 状态筛选
+        if (status != null) {
+            queryWrapper.eq(ProblemTagDO::getStatus, status);
+        }
+
+        // 4. 默认只查询未删除的标签
+        queryWrapper.eq(ProblemTagDO::getIsDeleted, false);
+
+        // 5. 设置排序规则：先按使用次数降序，再按标签名称升序
+        queryWrapper.orderByDesc(ProblemTagDO::getUsageCount).orderByAsc(ProblemTagDO::getTagName);
+
+        // 创建分页对象
+        Page<ProblemTagDO> pageable = new Page<>(page, size);
+
+        // 执行分页查询并返回结果
+        return problemTagMapper.selectPage(pageable, queryWrapper);
     }
 
 }

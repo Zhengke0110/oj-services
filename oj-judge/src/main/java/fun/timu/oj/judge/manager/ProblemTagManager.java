@@ -1,5 +1,6 @@
 package fun.timu.oj.judge.manager;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
 
 import java.util.List;
@@ -165,4 +166,17 @@ public interface ProblemTagManager {
      * @return 是否存在
      */
     public boolean existsByTagNameExcludeId(String tagName, Long excludeId);
+
+    /**
+     * 分页查询问题标签列表
+     *
+     * @param page     页码，从1开始
+     * @param size     每页大小
+     * @param keyword  搜索关键词，可为空，用于模糊搜索标签名或英文名
+     * @param category 标签分类，可为空
+     * @param status   标签状态，可为空
+     * @return 返回分页结果
+     */
+    public IPage<ProblemTagDO> findTagListWithPage(int page, int size, String keyword, String category, Integer status);
+
 }

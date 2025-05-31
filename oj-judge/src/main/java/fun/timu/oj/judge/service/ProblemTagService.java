@@ -1,5 +1,7 @@
 package fun.timu.oj.judge.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
@@ -28,4 +30,9 @@ public interface ProblemTagService {
      * 根据ID获取标签
      */
     ProblemTagVO getTagById(Long id);
+
+    /**
+     * 分页查询标签
+     */
+    PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled);
 }

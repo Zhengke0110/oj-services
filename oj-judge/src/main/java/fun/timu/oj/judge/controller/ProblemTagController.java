@@ -1,5 +1,7 @@
 package fun.timu.oj.judge.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
@@ -107,6 +109,30 @@ public class ProblemTagController {
         } catch (RuntimeException e) {
             log.error("根据ID获取标签失败: {}", e.getMessage(), e);
             return JsonData.buildError("根据ID获取标签失败");
+        }
+    }
+
+    /**
+     * 获取标签列表
+     *
+     * @param current
+     * @param size
+     * @param tagName
+     * @param isEnabled
+     * @return
+     */
+    @GetMapping("/lists")
+    public JsonData listTags(
+            @RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String tagName,
+            @RequestParam(required = false) Boolean isEnabled) {
+        try {
+            PageResult<ProblemTagVO> lists = problemTagService.listTags(current, size, tagName, isEnabled);
+            return JsonData.buildSuccess(lists);
+        } catch (Exception e) {
+            log.error("获取标签列表失败: {}", e.getMessage(), e);
+            return JsonData.buildError("获取标签列表失败");
         }
     }
 }

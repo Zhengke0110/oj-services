@@ -1,5 +1,8 @@
 package fun.timu.oj.judge.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemTagManager;
@@ -13,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -168,6 +173,34 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 记录获取标签失败的错误信息
             log.error("ProblemTagService--->获取标签失败: {}", e.getMessage(), e);
             return null;
+        }
+    }
+
+    @Override
+    public PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled) {
+        try {
+            // 转换状态参数：true->1, false->0, null->null
+            Integer status = null;
+            if (isEnabled != null) {
+                status = isEnabled ? 1 : 0;
+            }
+
+            // 调用manager层的分页查询方法
+            IPage<ProblemTagDO> tagPage = problemTagManager.findTagListWithPage(current, size, tagName, null, status);
+
+            // 转换DO对象为VO对象
+            List<ProblemTagVO> voList = tagPage.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
+
+            // 创建自定义分页结果
+            PageResult<ProblemTagVO> result = new PageResult<>(voList, tagPage.getTotal(), tagPage.getSize(), tagPage.getCurrent(), tagPage.getPages());
+
+            log.info("成功查询标签列表，当前页: {}, 每页大小: {}, 总数: {}", current, size, tagPage.getTotal());
+            return result;
+
+        } catch (Exception e) {
+            log.error("ProblemTagService--->查询标签列表失败: {}", e.getMessage(), e);
+            // 返回空的分页结果
+            return new PageResult<>(List.of(), 0, size, current, 0);
         }
     }
 
