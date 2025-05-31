@@ -18,4 +18,8 @@ public interface ProblemTagService {
      */
     boolean updateTag(ProblemTagUpdateRequest request);
 
+    /**
+     * 删除标签
+     */
+    boolean deleteTag(Long id);
 }

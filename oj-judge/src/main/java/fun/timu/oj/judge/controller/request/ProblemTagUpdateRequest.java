@@ -26,7 +26,6 @@ public class ProblemTagUpdateRequest {
     @Size(max = 20, message = "标签颜色长度不能超过20字符")
     private String color;
 
-    @NotNull(message = "标签类别不能为空")
     private TagCategoryEnum category;
 
     @Size(max = 500, message = "标签描述长度不能超过500字符")

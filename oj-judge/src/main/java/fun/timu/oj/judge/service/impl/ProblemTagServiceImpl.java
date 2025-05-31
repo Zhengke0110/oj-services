@@ -80,6 +80,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             BeanUtils.copyProperties(request, updateTag);
             updateTag.setUpdatedAt(new Date());
 
+            // 设置标签的状态
+            if (request.getIsEnabled()) updateTag.setStatus(1);
+            else updateTag.setStatus(0);
+
+            // 设置标签的颜色，如果提供了颜色信息
+            if (request.getColor() != null) updateTag.setTagColor(request.getColor());
+
+            if (request.getCategory() != null) updateTag.setCategory(request.getCategory().toString());
+
             int row = problemTagManager.updateById(updateTag);
             if (row <= 0) {
                 throw new RuntimeException("更新标签失败");
@@ -90,5 +99,10 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             log.error("ProblemTagService--->更新标签失败: {}", e.getMessage(), e);
             return false;
         }
+    }
+
+    @Override
+    public boolean deleteTag(Long id) {
+        return false;
     }
 }

@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.mapper.ProblemTagMapper;
@@ -32,7 +33,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
     /**
      * 查询所有活跃的问题标签
      * <p>
-     * 本方法通过构造一个Lambda查询包装器来查询数据库中所有状态为激活且未被删除的问题标签
+     * 本方法通过构造一个Lambda查询包装器来查询数据库中所有状态为激活且未被删除的��题标签
      * 查询结果会根据标签的使用次数降序排序，然后根据标签名称升序排序
      *
      * @return 返回一个包含所有符合条件的问题标签的列表
@@ -128,15 +129,45 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
 
 
     /**
-     * 根据ID更新问题标签信息
+     * 根据ID更新问题标签信息，只有当字段有值时才进行更新
      *
      * @param problemTagDO 问题标签的数据对象，包含需要更新的字段
      * @return 返回更新操作影响的行数，通常为1，如果未找到对应ID的数据则为0
      */
     @Override
     public int updateById(ProblemTagDO problemTagDO) {
-        // 调用Mapper接口的updateById方法，传入问题标签数据对象，执行更新操作
-        return problemTagMapper.updateById(problemTagDO);
+        // 创建UpdateWrapper对象，用于构建更新条件
+        UpdateWrapper<ProblemTagDO> updateWrapper = new UpdateWrapper<>();
+        // 指定更新的记录ID
+        updateWrapper.eq("id", problemTagDO.getId());
+
+        // 只有当字段不为null时，才将其添加到更新条件中
+        if (problemTagDO.getStatus() != null) {
+            updateWrapper.set("status", problemTagDO.getStatus());
+        }
+        if (problemTagDO.getTagName() != null) {
+            updateWrapper.set("tag_name", problemTagDO.getTagName());
+        }
+        if (problemTagDO.getTagNameEn() != null) {
+            updateWrapper.set("tag_name_en", problemTagDO.getTagNameEn());
+        }
+        if (problemTagDO.getTagColor() != null) {
+            updateWrapper.set("tag_color", problemTagDO.getTagColor());
+        }
+        if (problemTagDO.getCategory() != null) {
+            updateWrapper.set("category", problemTagDO.getCategory());
+        }
+        if (problemTagDO.getDescription() != null) {
+            updateWrapper.set("description", problemTagDO.getDescription());
+        }
+
+        // 如果没有字段需要更新，则直接返回0
+        if (updateWrapper.getSqlSet() == null || updateWrapper.getSqlSet().isEmpty()) {
+            return 0;
+        }
+
+        // 执行更新操作，传入一个空的实体对象，因为所有更新的字段都已经在updateWrapper中设置了
+        return problemTagMapper.update(new ProblemTagDO(), updateWrapper);
     }
 
 
@@ -213,7 +244,6 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
     /**
      * 增加标签的使用次数
      * <p>
-     * 本方法通过接收一个标签ID来定位数据库中的标签对象，并将其使用次数增加1如果标签不存在，则方法返回0
      * 此方法主要用于跟踪标签的使用频率，以便于后续的分析和统计
      *
      * @param tagId 标签的唯一标识符如果为null或数据库中不存在此ID，则不进行增加操作
@@ -250,7 +280,7 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         if (problemTagDO != null && problemTagDO.getUsageCount() > 0) {
             // 减少标签的使用计数
             problemTagDO.setUsageCount(problemTagDO.getUsageCount() - 1);
-            // 更新数据库中的标签信息
+            // 更��数据库中的标签信息
             return problemTagMapper.updateById(problemTagDO);
         }
         // 如果标签不存在或使用计数为0，则不进行更新，返回0
