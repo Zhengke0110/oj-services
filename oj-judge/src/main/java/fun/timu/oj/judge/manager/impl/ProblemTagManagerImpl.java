@@ -212,4 +212,29 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         return problemTagMapper.getCategoryAggregateStatistics();
     }
 
+    /**
+     * 根据使用次数范围查询标签
+     *
+     * @param minUsageCount 最小使用次数
+     * @param maxUsageCount 最大使用次数
+     * @param category      标签分类（可选）
+     * @return 标签列表
+     */
+    @Override
+    public List<ProblemTagDO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount, String category) {
+        return problemTagMapper.findByUsageCountRange(minUsageCount, maxUsageCount, category);
+    }
+
+    /**
+     * 查询热门标签
+     *
+     * @param limit    限制数量
+     * @param category 标签分类（可选）
+     * @return 热门标签列表
+     */
+    @Override
+    public List<ProblemTagDO> findPopularTags(int limit, String category) {
+        return problemTagMapper.findPopularTags(limit, category);
+    }
+
 }

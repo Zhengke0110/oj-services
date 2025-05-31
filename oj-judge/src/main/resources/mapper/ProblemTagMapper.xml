@@ -49,21 +49,24 @@
         AND usage_count > 0
     </update>
 
-    <!-- 根据使用次数范围查询标签 -->
-    <select id="findByUsageCountRange" resultMap="BaseResultMap">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM problem_tag
-        WHERE is_deleted = 0
-        AND status = 1
-        <if test="minUsageCount != null">
-            AND usage_count >= #{minUsageCount}
-        </if>
-        <if test="maxUsageCount != null">
-            AND usage_count &lt;= #{maxUsageCount}
-        </if>
-        ORDER BY usage_count DESC, tag_name ASC
-    </select>
+<!-- 根据使用次数范围查询标签 -->
+<select id="findByUsageCountRange" resultMap="BaseResultMap">
+    SELECT
+    <include refid="Base_Column_List"/>
+    FROM problem_tag
+    WHERE is_deleted = 0
+    AND status = 1
+    <if test="minUsageCount != null">
+        AND usage_count >= #{minUsageCount}
+    </if>
+    <if test="maxUsageCount != null">
+        AND usage_count &lt;= #{maxUsageCount}
+    </if>
+    <if test="category != null and category != ''">
+        AND category = #{category}
+    </if>
+    ORDER BY usage_count DESC, tag_name ASC
+</select>
     <!-- 获取标签使用统计信息 -->
     <select id="getTagUsageStatistics" resultType="fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO">
         SELECT

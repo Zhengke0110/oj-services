@@ -305,6 +305,78 @@ public class ProblemTagServiceImpl implements ProblemTagService {
 
 
     /**
+     * 根据使用次数范围查询标签
+     * <p>
+     * 此方法查询使用次数在指定范围内的问题标签
+     *
+     * @param minUsageCount 最小使用次数
+     * @param maxUsageCount 最大使用次数
+     * @param category 标签分类（可选）
+     * @return 符合条件的标签列表
+     */
+    @Override
+    public List<ProblemTagVO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount, TagCategoryEnum category) {
+        try {
+            // 转换分类参数
+            String categoryStr = category != null ? category.toString() : null;
+
+            // 调用manager层方法获取标签DO对象
+            List<ProblemTagDO> tagDOs = problemTagManager.findByUsageCountRange(minUsageCount, maxUsageCount, categoryStr);
+
+            // 将DO对象转换为VO对象
+            List<ProblemTagVO> voList = tagDOs.stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+
+            // 记录日志
+            log.info("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签成功，数量: {}",
+                    minUsageCount, maxUsageCount, category, voList.size());
+            return voList;
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签失败: {}",
+                    minUsageCount, maxUsageCount, category, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 查询热门标签
+     * <p>
+     * 此方法根据标签使用次数查询指定分类的热门标签
+     *
+     * @param limit    限制返回的标签数量
+     * @param category 标签分类
+     * @return 热门标签列表
+     */
+    @Override
+    public List<ProblemTagVO> findPopularTags(int limit, TagCategoryEnum category) {
+        try {
+            // 转换分类参数
+            String categoryStr = category != null ? category.toString() : null;
+
+            // 调用manager层方法获取热门标签
+            List<ProblemTagDO> tagDOs = problemTagManager.findPopularTags(limit, categoryStr);
+
+            // 将DO对象转换为VO对象
+            List<ProblemTagVO> voList = tagDOs.stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+
+            // 记录日志
+            log.info("ProblemTagService--->查询热门标签成功，分类: {}, 限制数量: {}, 实际数量: {}",
+                    category, limit, voList.size());
+            return voList;
+        } catch (Exception e) {
+            // 记录错误日志
+            log.error("ProblemTagService--->查询热门标签失败，分类: {}, 限制数量: {}, 错误: {}",
+                    category, limit, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+
+    /**
      * 将标签使用统计DTO转换为VO
      *
      * @param dto 标签使用统计DTO

@@ -217,4 +217,68 @@ public class ProblemTagController {
             return JsonData.buildError("获取分类聚合统计失败");
         }
     }
+
+    /**
+     * 根据使用次数范围查询标签
+     *
+     * @param minUsageCount 最小使用次数
+     * @param maxUsageCount 最大使用次数
+     * @param category      标签分类（可选）
+     * @return 符合条件的标签列表
+     */
+    @GetMapping("/usage-range")
+    public JsonData findByUsageCountRange(
+            @RequestParam(required = false, defaultValue = "0") Long minUsageCount,
+            @RequestParam(required = false, defaultValue = "100") Long maxUsageCount,
+            @RequestParam(required = false) String category) {
+        try {
+            // 解析分类参数
+            TagCategoryEnum categoryEnum = null;
+            if (category != null && !category.isEmpty()) {
+                try {
+                    categoryEnum = TagCategoryEnum.valueOf(category.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeException("无效的标签分类");
+                }
+            }
+
+            log.info("根据使用次数范围查询标签请求: 最小次数={}, 最大次数={}, 分类={}",
+                    minUsageCount, maxUsageCount, categoryEnum);
+            List<ProblemTagVO> tags = problemTagService.findByUsageCountRange(minUsageCount, maxUsageCount, categoryEnum);
+            return JsonData.buildSuccess(tags);
+        } catch (Exception e) {
+            log.error("根据使用次数范围查询标签失败: {}", e.getMessage(), e);
+            return JsonData.buildError("根据使用次数范围查询标签失败");
+        }
+    }
+
+    /**
+     * 查询热门标签
+     *
+     * @param limit    限制返回的标签数量，默认10个
+     * @param category 标签分类
+     * @return 热门标签列表
+     */
+    @GetMapping("/popular")
+    public JsonData findPopularTags(
+            @RequestParam(defaultValue = "10") @Positive(message = "标签数量必须为正数") int limit,
+            @RequestParam(required = false) String category) {
+        try {
+            TagCategoryEnum categoryEnum = null;
+            if (category != null && !category.isEmpty()) {
+                try {
+                    categoryEnum = TagCategoryEnum.valueOf(category.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeException("无效的标签分类");
+                }
+            }
+
+            log.info("查询热门标签请求: 限制数量={}, 分类={}", limit, categoryEnum);
+            List<ProblemTagVO> tags = problemTagService.findPopularTags(limit, categoryEnum);
+            return JsonData.buildSuccess(tags);
+        } catch (Exception e) {
+            log.error("查询热门标签失败: {}", e.getMessage(), e);
+            return JsonData.buildError("查询热门标签失败");
+        }
+    }
 }
