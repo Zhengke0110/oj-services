@@ -2,9 +2,12 @@ package fun.timu.oj.judge.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.enmus.DifficultyEnum;
 import fun.timu.oj.common.enmus.ProblemStatusEnum;
 import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
+import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
@@ -15,10 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 题目服务实现类
@@ -56,6 +57,50 @@ public class ProblemServiceImpl implements ProblemService {
             // 记录获取题目时发生的错误
             log.error("ProblemService--->获取题目失败: {}", e.getMessage(), e);
             return null;
+        }
+    }
+
+    /**
+     * 根据条件获取问题列表
+     *
+     * @param request 包含查询条件的请求对象
+     * @return 包含问题列表的分页结果
+     */
+    @Override
+    public PageResult<ProblemVO> getProblemsWithConditions(ProblemQueryRequest request) {
+        try {
+            // 1. 从请求中提取查询参数
+            int current = Optional.ofNullable(request.getCurrent()).orElse(1);
+            int size = Optional.ofNullable(request.getSize()).orElse(20);
+
+            // 2. 调用Manager层方法获取分页结果
+            IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(
+                    current,
+                    size,
+                    request.getProblemType(),
+                    request.getDifficulty(),
+                    request.getStatus(),
+                    request.getSupportedLanguages(),
+                    request.getHasInput(),
+                    request.getMinAcceptanceRate(),
+                    request.getMaxAcceptanceRate()
+            );
+
+            // 3. 将DO转换为VO
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
+                    .map(this::convertToVO)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            // 4. 构建并返回分页结果
+            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
+            log.info("ProblemService--->按条件查询题目列表成功: 当前页 {}, 每页大小 {}, 总记录数 {}", current, size, problemPage.getTotal());
+            return pageResult;
+        } catch (Exception e) {
+            // 记录异常日志
+            log.error("ProblemService--->按条件查询题目列表失败: {}", e.getMessage(), e);
+            // 返回空结果
+            return new PageResult<>();
         }
     }
 

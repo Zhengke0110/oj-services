@@ -33,3 +33,16 @@ spring:
     url: jdbc:mysql://localhost:3306/oj
     username: root
     password: 123456
+
+# MyBatis配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开启SQL日志
+    map-underscore-to-camel-case: true  # 开启驼峰命名转换
+  mapper-locations: classpath*:mapper/*.xml
+
+# 日志配置
+logging:
+  level:
+    fun.timu.oj.judge.mapper: DEBUG  # 开启mapper包的DEBUG日志
+    com.baomidou.mybatisplus: DEBUG  # 开启MyBatis-Plus的DEBUG日志

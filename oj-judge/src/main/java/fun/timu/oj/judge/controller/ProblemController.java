@@ -2,16 +2,16 @@ package fun.timu.oj.judge.controller;
 
 import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.exception.BizException;
+import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
+import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 
 /**
@@ -43,6 +43,25 @@ public class ProblemController {
         } catch (Exception e) {
             log.error("ProblemController--->获取题目详情异常, id: {}, error: {}", id, e.getMessage(), e);
             throw new BizException(BizCodeEnum.PROBLEM_NOT_EXIST);
+        }
+    }
+
+    /**
+     * 分页查询题目列表
+     *
+     * @param request 查询请求对象，包含分页和筛选条件
+     * @return 分页题目列表
+     */
+    @GetMapping("/list")
+    public JsonData listProblems(@Valid @RequestBody ProblemQueryRequest request) {
+        log.info("ProblemController--->分页查询题目列表请求: {}", request);
+        try {
+            PageResult<ProblemVO> result = problemService.getProblemsWithConditions(request);
+            if (result == null) throw new RuntimeException("查询失败");
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->分页查询题目列表异常: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }
 
