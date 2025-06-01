@@ -3,7 +3,7 @@ package fun.timu.oj.judge.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import fun.timu.oj.common.enmus.DifficultyEnum;
+import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
 import fun.timu.oj.common.enmus.ProblemStatusEnum;
 import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
 import fun.timu.oj.common.interceptor.LoginInterceptor;
@@ -91,10 +91,6 @@ public class ProblemServiceImpl implements ProblemService {
     @Override
     public PageResult<ProblemVO> getProblemsWithConditions(ProblemQueryRequest request) {
         try {
-            //  获取当前登录用户信息
-            LoginUser loginUser = LoginInterceptor.threadLocal.get();
-            if (loginUser == null) throw new RuntimeException("用户未登录");
-
             // 1. 从请求中提取查询参数
             int current = Optional.ofNullable(request.getCurrent()).orElse(1);
             int size = Optional.ofNullable(request.getSize()).orElse(20);
@@ -396,6 +392,31 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 获取热门题目列表
+     *
+     * @param problemType 题目类型
+     * @param difficulty  题目难度
+     * @param limit       返回数量限制，默认为10
+     * @return 热门题目列表
+     */
+    @Override
+    public List<ProblemVO> selectHotProblems(String problemType, Integer difficulty, Integer limit) {
+        try {
+            // 调用manager层获取热门题目数据
+            List<ProblemDO> problemDOList = problemManager.selectHotProblems(problemType, difficulty, limit);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemDOList.stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            log.info("获取热门题目列表成功，类型: {}, 难度: {}, 数量: {}", problemType, difficulty, problemVOList.size());
+            return problemVOList;
+        } catch (Exception e) {
+            log.error("获取热门题目列表失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
 
     /**
      * 将ProblemDO对象转换为ProblemVO对象
@@ -412,7 +433,7 @@ public class ProblemServiceImpl implements ProblemService {
         BeanUtils.copyProperties(problemDO, problemVO);
 
         // 设置难度级别描述
-        problemVO.setDifficultyLabel(DifficultyEnum.getDescriptionByCode(problemDO.getDifficulty()));
+        problemVO.setDifficultyLabel(ProblemDifficultyEnum.getDescriptionByCode(problemDO.getDifficulty()));
 
         // 设置语言支持列表
         problemVO.setSupportedLanguages(parseJsonToList(problemDO.getSupportedLanguages(), "supportedLanguages", String.class));

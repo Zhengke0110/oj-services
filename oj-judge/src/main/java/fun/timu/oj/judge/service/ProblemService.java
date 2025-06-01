@@ -66,4 +66,14 @@ public interface ProblemService {
      * @return 更新是否成功
      */
     boolean updateSubmissionStats(Long problemId, boolean isAccepted);
+
+    /**
+     * 获取热门题目列表
+     *
+     * @param problemType 题目类型
+     * @param difficulty  题目难度
+     * @param limit       返回数量限制，默认为10
+     * @return 热门题目列表
+     */
+    List<ProblemVO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
 }

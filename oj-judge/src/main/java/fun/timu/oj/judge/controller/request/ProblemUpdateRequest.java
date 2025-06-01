@@ -1,6 +1,6 @@
 package fun.timu.oj.judge.controller.request;
 
-import fun.timu.oj.common.enmus.DifficultyEnum;
+import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
 import fun.timu.oj.common.enmus.ProblemStatusEnum;
 import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
 import fun.timu.oj.judge.model.VO.ExampleVO;
@@ -56,7 +56,7 @@ public class ProblemUpdateRequest {
     /**
      * 难度级别
      */
-    private DifficultyEnum difficulty;
+    private ProblemDifficultyEnum difficulty;
 
     /**
      * 时间限制(ms)

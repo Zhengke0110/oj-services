@@ -43,4 +43,28 @@
         hints,constraints,notes,metadata,is_deleted,
         created_at,updated_at
     </sql>
+    <!-- 基础查询条件片段 -->
+    <sql id="Base_Where_Clause">
+        WHERE is_deleted = 0
+    </sql>
+
+    <!-- 查询热门题目（按提交次数排序） -->
+    <select id="selectHotProblems" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem
+        <include refid="Base_Where_Clause"/>
+        AND status = 1
+        AND submission_count > 0
+        <if test="problemType != null and problemType != ''">
+            AND problem_type = #{problemType}
+        </if>
+        <if test="difficulty != null">
+            AND difficulty = #{difficulty}
+        </if>
+        ORDER BY submission_count DESC, accepted_count DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
 </mapper>

@@ -22,10 +22,10 @@ public class ProblemManagerImpl implements ProblemManager {
     private final ProblemMapper problemMapper;
 
     /**
-     * 根据id查询问题
+     * 根据id查询题目
      *
-     * @param id 问题id
-     * @return 问题
+     * @param id 题目id
+     * @return 题目
      */
     @Override
     public ProblemDO getById(Long id) {
@@ -34,18 +34,18 @@ public class ProblemManagerImpl implements ProblemManager {
 
 
     /**
-     * 根据多个筛选条件分页查询问题列表
+     * 根据多个筛选条件分页查询题目列表
      *
      * @param current            当前页码
      * @param size               每页大小
-     * @param problemType        问题类型
+     * @param problemType        题目类型
      * @param difficulty         难度
      * @param status             状态
      * @param supportedLanguages 支持的编程语言列表
      * @param hasInput           是否有输入
      * @param MinAcceptanceRate  最小通过率
      * @param MaxAcceptanceRate  最大通过率
-     * @return 分页的问题列表
+     * @return 分页的题目列表
      */
     @Override
     public IPage<ProblemDO> findTagListWithPage(int current, int size, String problemType, Integer difficulty, Integer status, Integer visibility, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate) {
@@ -135,13 +135,13 @@ public class ProblemManagerImpl implements ProblemManager {
 
 
     /**
-     * 根据创建者ID查询问题列表
+     * 根据创建者ID查询题目列表
      * <p>
-     * 此方法旨在通过创建者ID筛选出未删除的问题，并按照创建时间降序排列
+     * 此方法旨在通过创建者ID筛选出未删除的题目，并按照创建时间降序排列
      * 选择使用LambdaQueryWrapper是为了提高查询条件编写的可读性和维护性
      *
-     * @param creatorId 创建者ID，用于筛选问题的创建者
-     * @return 返回由创建者创建的、未删除的问题列表如果creatorId为null，则返回空列表
+     * @param creatorId 创建者ID，用于筛选题目的创建者
+     * @return 返回由创建者创建的、未删除的题目列表如果creatorId为null，则返回空列表
      */
     @Override
     public List<ProblemDO> findByCreatorId(Long creatorId) {
@@ -157,12 +157,12 @@ public class ProblemManagerImpl implements ProblemManager {
     }
 
     /**
-     * 保存问题信息到数据库中
+     * 保存题目信息到数据库中
      * <p>
-     * 此方法负责将一个问题数据对象（ProblemDO）插入到数据库中它主要用于问题的创建或更新操作
+     * 此方法负责将一个题目数据对象（ProblemDO）插入到数据库中它主要用于题目的创建或更新操作
      * 通过调用problemMapper的insert方法来实现数据的插入功能
      *
-     * @param problemDO 问题数据对象，包含需要保存的问题信息
+     * @param problemDO 题目数据对象，包含需要保存的题目信息
      * @return 插入操作的结果，通常是一个表示受影响行数的整数
      */
     @Override
@@ -171,9 +171,9 @@ public class ProblemManagerImpl implements ProblemManager {
     }
 
     /**
-     * 根据ID更新问题信息
+     * 根据ID更新题目信息
      *
-     * @param problemDO 包含要更新的问题信息的对象
+     * @param problemDO 包含要更新的题目信息的对象
      * @return 更新操作的结果，返回影响的行数
      */
     @Override
@@ -256,12 +256,12 @@ public class ProblemManagerImpl implements ProblemManager {
     }
 
     /**
-     * 根据ID删除问题
-     * 实际上，这个方法通过将问题标记为已删除来实现软删除它并不真正从数据库中删除记录
+     * 根据ID删除题目
+     * 实际上，这个方法通过将题目标记为已删除来实现软删除它并不真正从数据库中删除记录
      * 软删除是一种常见的做法，可以保持数据的完整性，避免真正删除后无法恢复
      *
-     * @param id 问题的唯一标识符
-     *           这个参数用于标识数据库中的特定问题记录
+     * @param id 题目的唯一标识符
+     *           这个参数用于标识数据库中的特定题目记录
      * @return 影响的行数
      * 这个返回值表示更新操作影响的数据库行数如果更新成功，返回1；否则，返回0
      */
@@ -334,5 +334,26 @@ public class ProblemManagerImpl implements ProblemManager {
             throw new RuntimeException(e);
         }
     }
+
+
+    /**
+     * 选择热门题目
+     * <p>
+     * 根据题目类型、难度和限制数量选择热门题目如果没有指定限制或限制无效，则使用默认限制
+     *
+     * @param problemType 题目类型，用于过滤特定类型的题目
+     * @param difficulty  题目难度，用于过滤特定难度的题目
+     * @param limit       返回的题目数量限制如果为null或小于等于0，则使用默认值10
+     * @return 包含热门题目的列表
+     */
+    @Override
+    public List<ProblemDO> selectHotProblems(String problemType, Integer difficulty, Integer limit) {
+        // 如果limit为null或小于等于0，设置默认值为10
+        if (limit == null || limit <= 0) limit = 10;
+
+        // 调用mapper的对应方法获取热门题目列表
+        return problemMapper.selectHotProblems(problemType, difficulty, limit);
+    }
+
 
 }

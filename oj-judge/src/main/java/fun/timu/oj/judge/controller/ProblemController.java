@@ -4,6 +4,7 @@ import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
+import fun.timu.oj.judge.controller.request.HotProblemRequest;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
@@ -159,6 +160,7 @@ public class ProblemController {
 
     /**
      * 更新题目提交统计
+     * TODO: 此接口后续需要弃用, 集成到判题逻辑中处理
      *
      * @param id         题目ID
      * @param isAccepted 是否通过
@@ -176,6 +178,30 @@ public class ProblemController {
         } catch (Exception e) {
             log.error("ProblemController--->更新题目提交统计失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
+
+    /**
+     * 获取热门题目列表
+     *
+     * @param request 包含查询参数的请求对象
+     * @return 热门题目列表
+     */
+    @PostMapping("/hot")
+    public JsonData getHotProblems(@RequestBody HotProblemRequest request) {
+        try {
+            log.info("ProblemController--->获取热门题目列表请求, 类型: {}, 难度: {}, 数量限制: {}",
+                    request.getProblemType(), request.getDifficulty(), request.getLimit());
+
+            List<ProblemVO> problemList = problemService.selectHotProblems(
+                    request.getProblemType(),
+                    request.getDifficulty(),
+                    request.getLimit());
+
+            return JsonData.buildSuccess(problemList);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取热门题目列表异常: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }
 }

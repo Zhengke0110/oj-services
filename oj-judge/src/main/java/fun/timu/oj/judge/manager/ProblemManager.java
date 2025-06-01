@@ -77,4 +77,14 @@ public interface ProblemManager {
      * @return 更新的记录数
      */
     public int updateSubmissionStats(Long problemId, LoginUser loginUser, boolean isAccepted);
+
+    /**
+     * TODO 查询热门题目（按提交次数排序）
+     *
+     * @param problemType 题目类型
+     * @param difficulty  题目难度分级
+     * @param limit       限制返回的题目数量，默认10个
+     * @return 分页结果
+     */
+    List<ProblemDO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
 }

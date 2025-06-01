@@ -1,6 +1,6 @@
 package fun.timu.oj.judge.controller.request;
 
-import fun.timu.oj.common.enmus.DifficultyEnum;
+import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
 import fun.timu.oj.common.enmus.ProblemStatusEnum;
 import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
 import lombok.Data;
@@ -29,7 +29,7 @@ public class ProblemCreateRequest {
     private String problemType;
 
     @NotNull(message = "难度级别不能为空")
-    private DifficultyEnum difficulty;
+    private ProblemDifficultyEnum difficulty;
 
     @NotNull(message = "时间限制不能为空")
     @Min(value = 100, message = "时间限制最小为100ms")
