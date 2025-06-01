@@ -4,10 +4,7 @@ import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
-import fun.timu.oj.judge.controller.request.HotProblemRequest;
-import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
-import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
-import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
+import fun.timu.oj.judge.controller.request.*;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
@@ -188,7 +185,7 @@ public class ProblemController {
      * @return 热门题目列表
      */
     @PostMapping("/hot")
-    public JsonData getHotProblems(@RequestBody HotProblemRequest request) {
+    public JsonData getHotProblems(@Valid @RequestBody HotProblemRequest request) {
         try {
             log.info("ProblemController--->获取热门题目列表请求, 类型: {}, 难度: {}, 数量限制: {}",
                     request.getProblemType(), request.getDifficulty(), request.getLimit());
@@ -201,6 +198,32 @@ public class ProblemController {
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
             log.error("ProblemController--->获取热门题目列表异常: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+
+    /**
+     * 获取推荐题目列表
+     *
+     * @param request 包含查询参数的请求对象
+     * @return 推荐题目列表
+     */
+    @GetMapping("/recommended")
+    public JsonData getRecommendedProblems(@Valid @RequestBody RecommendedProblemRequest request) {
+        try {
+            log.info("ProblemController--->获取推荐题目列表请求, minAcceptanceRate: {}, maxAcceptanceRate: {}, difficulty: {}, limit: {}",
+                    request.getMinAcceptanceRate(), request.getMaxAcceptanceRate(), request.getDifficulty(), request.getLimit());
+
+            List<ProblemVO> problemList = problemService.selectRecommendedProblems(
+                    request.getMinAcceptanceRate(),
+                    request.getMaxAcceptanceRate(),
+                    request.getDifficulty(),
+                    request.getLimit());
+
+            return JsonData.buildSuccess(problemList);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取推荐题目列表异常: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

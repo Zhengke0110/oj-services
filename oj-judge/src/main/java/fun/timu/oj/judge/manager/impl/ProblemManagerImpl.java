@@ -355,5 +355,32 @@ public class ProblemManagerImpl implements ProblemManager {
         return problemMapper.selectHotProblems(problemType, difficulty, limit);
     }
 
+    /**
+     * 查询推荐题目（通过率适中的题目）
+     * 此方法覆盖了默认的行为，以提供更具体的实现
+     *
+     * @param minAcceptanceRate 最小接受率，用于过滤问题
+     * @param maxAcceptanceRate 最大接受率，用于过滤问题
+     * @param difficulty        问题的难度级别
+     * @param limit             返回问题的数量限制
+     * @return 返回一个包含推荐问题的列表
+     */
+    @Override
+    public List<ProblemDO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit) {
+        // 如果limit为null或小于等于0，设置默认值为10
+        if (limit == null || limit <= 0) {
+            limit = 10;
+        }
+        // 如果minAcceptanceRate为null，设置默认值为0.0
+        if (minAcceptanceRate == null) {
+            minAcceptanceRate = 0.0;
+        }
+        // 如果maxAcceptanceRate为null，设置默认值为1.0
+        if (maxAcceptanceRate == null) {
+            maxAcceptanceRate = 1.0;
+        }
+        // 调用problemMapper的方法来选择推荐的问题
+        return problemMapper.selectRecommendedProblems(minAcceptanceRate, maxAcceptanceRate, difficulty, limit);
+    }
 
 }

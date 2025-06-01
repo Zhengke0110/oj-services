@@ -76,4 +76,15 @@ public interface ProblemService {
      * @return 热门题目列表
      */
     List<ProblemVO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
+
+    /**
+     * 查询推荐题目
+     *
+     * @param minAcceptanceRate 最小通过率
+     * @param maxAcceptanceRate 最大通过率
+     * @param difficulty        难度
+     * @param limit             数量限制
+     * @return 推荐题目列表
+     */
+    List<ProblemVO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
 }

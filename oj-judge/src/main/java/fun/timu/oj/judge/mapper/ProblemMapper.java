@@ -15,8 +15,6 @@ import java.util.List;
  */
 @Mapper
 public interface ProblemMapper extends BaseMapper<ProblemDO> {
-
-
     /**
      * 选择热门题目
      * 该方法用于根据题目类型、难度和限制数量来选择热门题目
@@ -32,6 +30,22 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
                                       @Param("limit") Integer limit
     );
 
+
+    /**
+     * 查询推荐题目（通过率适中的题目）
+     *
+     * @param minAcceptanceRate 最小通过率
+     * @param maxAcceptanceRate 最大通过率
+     * @param difficulty        难度限制
+     * @param limit             限制数量
+     * @return 分页结果
+     */
+    List<ProblemDO> selectRecommendedProblems(
+            @Param("minAcceptanceRate") Double minAcceptanceRate,
+            @Param("maxAcceptanceRate") Double maxAcceptanceRate,
+            @Param("difficulty") Integer difficulty,
+            @Param("limit") Integer limit
+    );
 
 }
 

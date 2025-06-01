@@ -79,7 +79,7 @@ public interface ProblemManager {
     public int updateSubmissionStats(Long problemId, LoginUser loginUser, boolean isAccepted);
 
     /**
-     * TODO 查询热门题目（按提交次数排序）
+     * 查询热门题目（按提交次数排序）
      *
      * @param problemType 题目类型
      * @param difficulty  题目难度分级
@@ -87,4 +87,16 @@ public interface ProblemManager {
      * @return 分页结果
      */
     List<ProblemDO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
+
+    /**
+     * 查询推荐题目（通过率适中的题目）
+     *
+     * @param minAcceptanceRate 最小通过率
+     * @param maxAcceptanceRate 最大通过率
+     * @param difficulty        难度限制
+     * @param limit             限制数量
+     * @return 分页结果
+     */
+    List<ProblemDO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
+
 }

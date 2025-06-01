@@ -409,11 +409,41 @@ public class ProblemServiceImpl implements ProblemService {
             // 将DO列表转换为VO列表
             List<ProblemVO> problemVOList = problemDOList.stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
-            log.info("获取热门题目列表成功，类型: {}, 难度: {}, 数量: {}", problemType, difficulty, problemVOList.size());
+            log.info("ProblemService--->获取热门题目列表成功，类型: {}, 难度: {}, 数量: {}", problemType, difficulty, problemVOList.size());
             return problemVOList;
         } catch (Exception e) {
-            log.error("获取热门题目列表失败: {}", e.getMessage(), e);
+            log.error("ProblemService--->获取热门题目列表失败: {}", e.getMessage(), e);
             return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 根据指定条件选择推荐的问题
+     *
+     * @param minAcceptanceRate 最小接受率，用于筛选问题
+     * @param maxAcceptanceRate 最大接受率，用于筛选问题
+     * @param difficulty        难度级别，用于筛选问题
+     * @param limit             最多返回的问题数量
+     * @return 返回一个ProblemVO对象列表，包含根据条件筛选出的问题
+     * <p>
+     * 该方法首先调用problemManager的selectRecommendedProblems方法来获取符合条件的问题列表，
+     * 然后将这些问题从ProblemDO对象转换为ProblemVO对象，以便于后续处理或传输
+     * 如果在处理过程中遇到异常，将记录错误日志并抛出运行时异常
+     */
+    @Override
+    public List<ProblemVO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit) {
+        try {
+            List<ProblemDO> problemDOList = problemManager.selectRecommendedProblems(minAcceptanceRate, maxAcceptanceRate, difficulty, limit);
+            List<ProblemVO> collects = problemDOList.stream().map(problemDO -> {
+                ProblemVO problemVO = new ProblemVO();
+                BeanUtils.copyProperties(problemDO, problemVO);
+                return problemVO;
+            }).collect(Collectors.toList());
+            log.info("ProblemService--->获取查询推荐题目成功, 难度:{},数量:{}", difficulty, collects.size());
+            return collects;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取题目列表失败: {}", e.getMessage(), e);
+            throw new RuntimeException(e);
         }
     }
 

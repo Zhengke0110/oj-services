@@ -67,4 +67,30 @@
             LIMIT #{limit}
         </if>
     </select>
+
+
+    <!-- 查询推荐题目（通过率适中的题目） -->
+    <select id="selectRecommendedProblems" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem
+        <include refid="Base_Where_Clause"/>
+        AND status = 1
+        AND submission_count > 0
+        <if test="difficulty != null">
+            AND difficulty = #{difficulty}
+        </if>
+        <if test="minAcceptanceRate != null">
+            AND (accepted_count * 1.0 / submission_count) >= #{minAcceptanceRate}
+        </if>
+        <if test="maxAcceptanceRate != null">
+            AND (accepted_count * 1.0 / submission_count) &lt;= #{maxAcceptanceRate}
+        </if>
+        ORDER BY
+        RAND() * (accepted_count / submission_count + 0.1) DESC,
+        submission_count DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
 </mapper>
