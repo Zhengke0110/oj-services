@@ -236,4 +236,29 @@ public class ProblemController {
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }
+
+    /**
+     * 批量更新题目状态
+     *
+     * @param request 包含题目ID列表和目标状态的请求对象
+     * @return 更新结果
+     */
+    @PutMapping("/batch-status")
+    public JsonData batchUpdateStatus(@Valid @RequestBody BatchUpdateStatusRequest request) {
+        try {
+            log.info("ProblemController--->批量更新题目状态请求, 题目数量: {}, 目标状态: {}",
+                    request.getProblemIds().size(), request.getStatus());
+
+            boolean result = problemService.batchUpdateStatus(request.getProblemIds(), request.getStatus());
+
+            if (!result) {
+                throw new RuntimeException("批量更新题目状态失败");
+            }
+
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("ProblemController--->批量更新题目状态失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
 }

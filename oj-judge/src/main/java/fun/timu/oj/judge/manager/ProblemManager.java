@@ -107,4 +107,13 @@ public interface ProblemManager {
      * @return 统计信息列表（包含各难度级别的题目数量等）
      */
     List<ProblemStatisticsDTO> getProblemStatistics();
+
+    /**
+     * 批量更新题目状态
+     *
+     * @param problemIds 题目ID列表
+     * @param status 要更新的状态值
+     * @return 更新的记录数
+     */
+    int batchUpdateStatus(List<Long> problemIds, Integer status);
 }

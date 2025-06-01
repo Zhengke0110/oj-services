@@ -401,36 +401,54 @@ public class ProblemManagerImpl implements ProblemManager {
                 return Collections.emptyList();
             }
 
-            return rawStatistics.stream()
-                    .filter(Objects::nonNull)
-                    .map(item -> {
-                        // 假设 item 是 Map<String, Object> 类型
-                        if (!(item instanceof Map)) {
-                            log.warn("发现非 Map 类型的元素：{}", item.getClass());
-                            throw new RuntimeException("非 Map 类型的元素");
-                        }
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> data = (Map<String, Object>) item;
+            return rawStatistics.stream().filter(Objects::nonNull).map(item -> {
+                // 假设 item 是 Map<String, Object> 类型
+                if (!(item instanceof Map)) {
+                    log.warn("发现非 Map 类型的元素：{}", item.getClass());
+                    throw new RuntimeException("非 Map 类型的元素");
+                }
+                @SuppressWarnings("unchecked") Map<String, Object> data = (Map<String, Object>) item;
 
-                        ProblemStatisticsDTO dto = new ProblemStatisticsDTO();
+                ProblemStatisticsDTO dto = new ProblemStatisticsDTO();
 
-                        // 根据SQL查询结果字段映射到DTO属性
-                        dto.setProblemType((String) data.get("problem_type"));
-                        dto.setDifficulty((Integer) data.get("difficulty"));
-                        dto.setTotalCount(((Number) data.get("total_count")).intValue());
-                        dto.setActiveCount(((Number) data.get("active_count")).intValue());
-                        dto.setTotalSubmissions(((Number) data.get("total_submissions")).intValue());
-                        dto.setTotalAccepted(((Number) data.get("total_accepted")).intValue());
-                        dto.setAvgAcceptanceRate(((Number) data.get("avg_acceptance_rate")).doubleValue());
+                // 根据SQL查询结果字段映射到DTO属性
+                dto.setProblemType((String) data.get("problem_type"));
+                dto.setDifficulty((Integer) data.get("difficulty"));
+                dto.setTotalCount(((Number) data.get("total_count")).intValue());
+                dto.setActiveCount(((Number) data.get("active_count")).intValue());
+                dto.setTotalSubmissions(((Number) data.get("total_submissions")).intValue());
+                dto.setTotalAccepted(((Number) data.get("total_accepted")).intValue());
+                dto.setAvgAcceptanceRate(((Number) data.get("avg_acceptance_rate")).doubleValue());
 
-                        return dto;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                return dto;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
         } catch (Exception e) {
             log.error("获取题目统计信息失败: {}", e.getMessage(), e);
             throw new RuntimeException("获取题目统计信息失败", e);
         }
+    }
+
+    /**
+     * 批量更新题目状态
+     * <p>
+     * 此方法用于一次性更新多个题目的状态，提高操作效率
+     *
+     * @param problemIds 题目ID列表
+     * @param status     要更新的状态值
+     * @return 更新的记录数
+     */
+    @Override
+    public int batchUpdateStatus(List<Long> problemIds, Integer status) {
+        // 参数校验
+        if (problemIds == null || problemIds.isEmpty() || status == null) {
+            throw new RuntimeException("批量更新题目状态失败:参数无效，题目ID列表为空或状态值为null");
+        }
+
+        // 调用Mapper层执行批量更新
+        int updatedCount = problemMapper.batchUpdateStatus(problemIds, status);
+        log.info("批量更新题目状态成功，题目数量: {}，更新状态: {}, 实际更新记录数: {}", problemIds.size(), status, updatedCount);
+
+        return updatedCount;
     }
 
 }

@@ -95,4 +95,13 @@ public interface ProblemService {
      * @return 统计信息列表（包含各难度级别的题目数量等）
      */
     List<ProblemStatisticsDTO> getProblemStatistics();
+
+    /**
+     * 批量更新题目状态
+     *
+     * @param problemIds 题目ID列表
+     * @param status     状态值
+     * @return 是否更新成功
+     */
+    boolean batchUpdateStatus(List<Long> problemIds, Integer status);
 }

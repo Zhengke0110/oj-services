@@ -110,4 +110,14 @@
         GROUP BY problem_type, difficulty
         ORDER BY problem_type, difficulty
     </select>
+
+    <!-- 批量更新题目状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE problem SET status = #{status}, updated_at = NOW()
+        WHERE id IN
+        <foreach collection="problemIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
 </mapper>

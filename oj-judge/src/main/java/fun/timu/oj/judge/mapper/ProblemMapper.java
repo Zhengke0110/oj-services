@@ -53,6 +53,16 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @return 统计信息列表（包含各难度级别的题目数量等）
      */
     List<Object> getProblemStatistics();
+
+    /**
+     * 批量更新题目状态
+     *
+     * @param problemIds 题目ID列表
+     * @param status     新状态
+     * @return 更新的记录数
+     */
+    int batchUpdateStatus(@Param("problemIds") List<Long> problemIds, @Param("status") Integer status);
+
 }
 
 

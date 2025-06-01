@@ -449,6 +449,44 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     /**
+     * 批量更新题目状态
+     *
+     * @param problemIds 题目ID列表
+     * @param status     状态值
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional
+    public boolean batchUpdateStatus(List<Long> problemIds, Integer status) {
+        try {
+            // 获取当前登录用户，验证权限
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量更新题目状态的权限");
+            }
+
+            log.info("开始批量更新题目状态，题目ID列表大小: {}, 目标状态: {}", problemIds.size(), status);
+
+            // 调用manager层执行批量更新
+            int updatedCount = problemManager.batchUpdateStatus(problemIds, status);
+
+            if (updatedCount > 0) {
+                log.info("批量更新题目状态成功，更新记录数: {}", updatedCount);
+                return true;
+            } else {
+                log.warn("批量更新题目状态未生效，可能题目ID不存在");
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("批量更新题目状态失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量更新题目状态失败");
+        }
+    }
+
+    /**
      * 获取题目统计信息
      * 该方法返回按题目类型和难度分组的统计数据，包括总题目数量、活跃题目数量、
      * 总提交次数、总通过次数以及平均通过率等信息
