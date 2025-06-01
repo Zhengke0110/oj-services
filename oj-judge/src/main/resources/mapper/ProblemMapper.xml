@@ -34,7 +34,6 @@
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
-
     <sql id="Base_Column_List">
         id
         ,title,title_en,description,description_en,problem_type,

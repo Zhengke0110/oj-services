@@ -3,6 +3,7 @@ package fun.timu.oj.judge.model.VO;
 import lombok.Data;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 题目视图对象
@@ -69,7 +70,7 @@ public class ProblemVO {
     /**
      * 解题代码模板(多语言)
      */
-    private Object solutionTemplates;
+    private Map<String, String> solutionTemplates;
 
     /**
      * 输入格式说明
@@ -94,7 +95,7 @@ public class ProblemVO {
     /**
      * 示例输入输出
      */
-    private List<Object> examples;
+    private List<ExampleVO> examples;
 
     /**
      * 状态：0-禁用，1-启用，2-草稿
