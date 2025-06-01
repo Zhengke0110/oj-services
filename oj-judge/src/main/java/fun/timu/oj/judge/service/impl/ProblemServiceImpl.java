@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -125,7 +126,16 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 创建题目
+     * <p>
+     * 该方法用于处理题目的创建请求，包括验证请求参数、设置题目属性、保存题目以及处理相关标签关联
+     *
+     * @param request 题目创建请求对象，包含题目所需的各种信息
+     * @return 创建成功的题目ID，若创建失败则返回-1
+     */
     @Override
+    @Transactional
     public Long createProblem(ProblemCreateRequest request) {
         try {
 
@@ -211,11 +221,63 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     @Override
+    @Transactional
     public boolean updateProblem(ProblemUpdateRequest request) {
         try {
-            return true;
+            // 参数校验
+            if (request == null || request.getId() == null) {
+                throw new RuntimeException("请求参数或ID为空");
+            }
+
+            // 获取当前题目信息，检查是否存在
+            ProblemDO existingProblem = problemManager.getById(request.getId());
+            if (existingProblem == null || existingProblem.getIsDeleted() == 1) {
+                throw new RuntimeException("题目不存在或已被删除");
+            }
+
+            // 检查标题重复（如果请求中包含标题且与原标题不同）
+            if (request.getTitle() != null && !request.getTitle().equals(existingProblem.getTitle())) {
+                if (problemManager.existsByTitle(request.getTitle())) {
+                    throw new RuntimeException("标题已存在: " + request.getTitle());
+                }
+            }
+
+            // 创建ProblemDO对象并设置ID
+            ProblemDO problemDO = new ProblemDO();
+            problemDO.setId(request.getId());
+            BeanUtils.copyProperties(request, problemDO);
+
+            // 处理JSON字段
+            if (request.getSupportedLanguages() != null) {
+                problemDO.setSupportedLanguages(JSON.toJSONString(request.getSupportedLanguages()));
+            }
+            if (request.getSolutionTemplates() != null) {
+                problemDO.setSolutionTemplates(JSON.toJSONString(request.getSolutionTemplates()));
+            }
+            if (request.getExamples() != null) {
+                problemDO.setExamples(JSON.toJSONString(request.getExamples()));
+            }
+            if (request.getHints() != null) {
+                problemDO.setHints(JSON.toJSONString(request.getHints()));
+            }
+            if (request.getMetadata() != null) {
+                problemDO.setMetadata(JSON.toJSONString(request.getMetadata()));
+            }
+
+            // 更新题目
+            int row = problemManager.updateById(problemDO);
+
+            // 更新标签关联（如果有）
+            if (row > 0 && request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                // TODO: 更新题目和标签的关联
+                // 这里需要调用ProblemTagService的方法来更新关联
+                // problemTagService.updateProblemTags(request.getId(), request.getTagIds());
+            }
+
+            log.info("ProblemService--->更新题目成功，题目ID: {}", request.getId());
+            return row > 0;
         } catch (Exception e) {
-            log.error("ProblemTagService--->更新题目失败: {}", e.getMessage(), e);
+            log.error("ProblemService--->更新题目失败: {}", e.getMessage(), e);
             return false;
         }
     }
@@ -231,6 +293,14 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
 
+    /**
+     * 将ProblemDO对象转换为ProblemVO对象
+     * 此方法主要用于数据传输对象（DO）到视图对象（VO）的属性复制和处理，以用于展示层
+     * 它不仅复制基本属性，还处理一些属性的特殊逻辑，如难度标签、语言列表、示例代码等
+     *
+     * @param problemDO ProblemDO对象，包含问题的基本信息和配置如果为null，则返回null
+     * @return ProblemVO对象，包含转换后的数据以及一些额外处理过的属性如果输入为null，则返回null
+     */
     private ProblemVO convertToVO(ProblemDO problemDO) {
         if (problemDO == null) return null;
 
@@ -268,27 +338,56 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
 
+    /**
+     * 将给定的JSON字符串解析为指定类型的列表
+     * 如果输入无效或解析失败，则返回一个空列表
+     *
+     * @param jsonField 待解析的JSON字符串，可以是任何类型，但函数会检查它是否是字符串
+     * @param fieldName 字段名称，用于日志中标识是哪个字段解析失败
+     * @param clazz     列表中元素的目标类型
+     * @param <T>       泛型方法参数，表示列表中元素的类型
+     * @return 解析后的列表，如果输入无效或解析失败，则返回一个空列表
+     */
     private <T> List<T> parseJsonToList(Object jsonField, String fieldName, Class<T> clazz) {
+        // 检查输入是否为非空字符串，这是进行JSON解析的前提条件
         if (jsonField != null && jsonField instanceof String && !((String) jsonField).trim().isEmpty()) {
             String str = (String) jsonField;
             try {
+                // 尝试将JSON字符串解析为指定类型的列表
                 return JSON.parseObject(str, new TypeReference<List<T>>(clazz) {
                 });
             } catch (Exception e) {
+                // 捕获解析异常，并记录警告日志
                 log.warn("Failed to parse {} JSON: {}", fieldName, str, e);
             }
         }
+        // 如果输入无效或解析失败，返回一个空列表
         return Collections.emptyList();
     }
 
 
+    /**
+     * 计算通过率
+     * <p>
+     * 此方法用于计算给定提交次数和通过次数下的通过率
+     * 它首先检查提交次数和通过次数是否为有效值，然后计算通过率，
+     * 并将结果四舍五入到两位小数
+     *
+     * @param submissionCount 提交的总数，应为非负数
+     * @param acceptedCount   通过的总数，应为非负数
+     * @return 通过率，如果输入无效则返回0.0
+     */
     private double calculateAcceptanceRate(Long submissionCount, Long acceptedCount) {
+        // 检查输入值的有效性，如果无效则返回0.0
         if (submissionCount == null || acceptedCount == null || submissionCount <= 0) {
             return 0.0;
         }
+        // 计算原始通过率
         double rate = ((double) acceptedCount) / submissionCount;
-        return Math.round(rate * 100) / 100.0; // 保留两位小数
+        // 将通过率四舍五入到两位小数并返回
+        return Math.round(rate * 100) / 100.0;
     }
+
 
     /**
      * 将 Object 类型的 JSON 字符串字段解析为 Map<String, String>
@@ -312,8 +411,15 @@ public class ProblemServiceImpl implements ProblemService {
         return Collections.emptyMap();
     }
 
+    /**
+     * 检查给定标题是否为重复标题
+     *
+     * @param title 待检查的标题字符串
+     * @return 返回一个布尔值，如果标题重复则为true，否则为false
+     */
     private boolean isDuplicateTitle(String title) {
         // 实现查询逻辑，检查标题是否已存在
         return problemManager.existsByTitle(title);
     }
+
 }

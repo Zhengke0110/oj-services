@@ -103,7 +103,6 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 创建一个用于更新的标签对象，并设置更新时间
             ProblemTagDO updateTag = new ProblemTagDO();
             BeanUtils.copyProperties(request, updateTag);
-            updateTag.setUpdatedAt(new Date());
 
             // 设置标签的状态
             if (request.getIsEnabled()) updateTag.setStatus(1);

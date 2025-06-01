@@ -6,6 +6,7 @@ import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
+import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
@@ -106,6 +107,33 @@ public class ProblemController {
         } catch (Exception e) {
             log.error("ProblemController--->创建问题失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.PROBLEM_CREATE_FAILED);
+        }
+    }
+
+    /**
+     * 更新题目
+     * 接收题目更新请求并返回更新结果
+     *
+     * @param request 题目更新请求对象
+     * @return JsonData 包含更新结果的响应
+     */
+    @PutMapping
+    public JsonData updateProblem(@Valid @RequestBody ProblemUpdateRequest request) {
+        try {
+            log.info("更新题目请求: {}", request);
+            // 参数校验
+            if (request.getId() == null) {
+                throw new RuntimeException("题目ID不能为空");
+            }
+
+            boolean result = problemService.updateProblem(request);
+            if (!result) {
+                throw new RuntimeException("更新题目失败");
+            }
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("ProblemController--->更新题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
         }
     }
 }
