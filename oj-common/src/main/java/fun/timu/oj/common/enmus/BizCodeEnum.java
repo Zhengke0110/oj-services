@@ -61,18 +61,56 @@ public enum BizCodeEnum {
     JUDGE_UNKNOWN_ERROR(50019, "未知判题错误"),
 
     /**
-     * 标签相关错误码：60000开头
+     * 题目相关错误码：60000开头
      */
-    TAG_NAME_EXIST(60001, "标签名称已存在"),
-    TAG_NOT_EXIST(60002, "标签不存在"),
-    TAG_NAME_INVALID(60003, "标签名称格式不正确"),
-    TAG_DESCRIPTION_TOO_LONG(60004, "标签描述过长"),
-    TAG_CATEGORY_INVALID(60005, "标签分类不正确"),
-    TAG_IN_USE(60006, "标签正在使用中，无法删除"),
-    TAG_RELATION_EXIST(60007, "问题标签关联已存在"),
-    TAG_RELATION_NOT_EXIST(60008, "问题标签关联不存在"),
-    TAG_UPDATE_FAILED(60009, "标签更新失败"),
-    TAG_DELETE_FAILED(60010, "标签删除失败");
+    PROBLEM_NOT_EXIST(60001, "题目不存在"),
+    PROBLEM_TITLE_EMPTY(60002, "题目标题不能为空"),
+    PROBLEM_TITLE_TOO_LONG(60003, "题目标题过长"),
+    PROBLEM_DESCRIPTION_EMPTY(60004, "题目描述不能为空"),
+    PROBLEM_DESCRIPTION_TOO_LONG(60005, "题目描述过长"),
+    PROBLEM_TYPE_INVALID(60006, "题目类型不正确"),
+    PROBLEM_DIFFICULTY_INVALID(60007, "题目难度级别不正确"),
+    PROBLEM_TIME_LIMIT_INVALID(60008, "时间限制不正确"),
+    PROBLEM_MEMORY_LIMIT_INVALID(60009, "内存限制不正确"),
+    PROBLEM_LANGUAGE_NOT_SUPPORTED(60010, "不支持的编程语言"),
+    PROBLEM_TEMPLATE_INVALID(60011, "代码模板格式不正确"),
+    PROBLEM_INPUT_FORMAT_INVALID(60012, "输入格式不正确"),
+    PROBLEM_EXAMPLES_INVALID(60013, "示例格式不正确"),
+    PROBLEM_STATUS_INVALID(60014, "题目状态不正确"),
+    PROBLEM_VISIBILITY_INVALID(60015, "题目可见性设置不正确"),
+    PROBLEM_CREATE_FAILED(60016, "题目创建失败"),
+    PROBLEM_UPDATE_FAILED(60017, "题目更新失败"),
+    PROBLEM_DELETE_FAILED(60018, "题目删除失败"),
+    PROBLEM_PERMISSION_DENIED(60019, "无权限操作该题目"),
+    PROBLEM_ALREADY_DELETED(60020, "题目已被删除"),
+    PROBLEM_TITLE_EXIST(60021, "题目标题已存在"),
+    PROBLEM_CONSTRAINTS_TOO_LONG(60022, "约束条件描述过长"),
+    PROBLEM_HINTS_INVALID(60023, "提示信息格式不正确"),
+    PROBLEM_METADATA_INVALID(60024, "元数据格式不正确"),
+    PROBLEM_SUPPORTED_LANGUAGES_EMPTY(60025, "支持的编程语言不能为空"),
+    PROBLEM_INPUT_DESCRIPTION_TOO_LONG(60026, "输入描述过长"),
+    PROBLEM_OUTPUT_DESCRIPTION_TOO_LONG(60027, "输出描述过长"),
+    PROBLEM_NOTES_TOO_LONG(60028, "备注信息过长"),
+    PROBLEM_IN_USE(60029, "题目正在使用中，无法删除"),
+    PROBLEM_BATCH_OPERATION_FAILED(60030, "题目批量操作失败"),
+
+    /**
+     * 标签相关错误码：70000开头
+     */
+    TAG_NAME_EXIST(70001, "标签名称已存在"),
+    TAG_NOT_EXIST(70002, "标签不存在"),
+    TAG_NAME_INVALID(70003, "标签名称格式不正确"),
+    TAG_DESCRIPTION_TOO_LONG(70004, "标签描述过长"),
+    TAG_CATEGORY_INVALID(70005, "标签分类不正确"),
+    TAG_IN_USE(70006, "标签正在使用中，无法删除"),
+    TAG_RELATION_EXIST(70007, "问题标签关联已存在"),
+    TAG_RELATION_NOT_EXIST(70008, "问题标签关联不存在"),
+    TAG_UPDATE_FAILED(70009, "标签更新失败"),
+    TAG_DELETE_FAILED(70010, "标签删除失败"),
+    TAG_CREATE_FAILED(70011, "标签创建失败"),
+    TAG_COLORS_FAILED(70012, "颜色列表获取失败"),
+    TAG_GAT_FAILED(70013, "标签获取失败"),
+    ;
 
     private String message;
     private int code;

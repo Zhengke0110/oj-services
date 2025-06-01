@@ -9,6 +9,7 @@ import fun.timu.oj.judge.mapper.ProblemTagMapper;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,12 +17,9 @@ import java.util.Date;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class ProblemTagManagerImpl implements ProblemTagManager {
     private final ProblemTagMapper problemTagMapper;
-
-    public ProblemTagManagerImpl(ProblemTagMapper problemTagMapper) {
-        this.problemTagMapper = problemTagMapper;
-    }
 
     /**
      * 根据问题标签的ID查找问题标签实体

@@ -1,8 +1,9 @@
 package fun.timu.oj.judge.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.enmus.ColorEnum;
 import fun.timu.oj.common.enmus.TagCategoryEnum;
+import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemTagBatchRequest;
@@ -13,6 +14,7 @@ import fun.timu.oj.judge.model.VO.CategoryAggregateStatisticsVO;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.model.VO.TagUsageStatisticsVO;
 import fun.timu.oj.judge.service.ProblemTagService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,13 +32,9 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/judge/tag")
+@RequiredArgsConstructor
 public class ProblemTagController {
     private final ProblemTagService problemTagService;
-
-    public ProblemTagController(ProblemTagService problemTagService) {
-        this.problemTagService = problemTagService;
-    }
-
 
     /**
      * 创建标签
@@ -54,8 +52,8 @@ public class ProblemTagController {
             if (tagID < 0) throw new RuntimeException("创建标签失败");
             return JsonData.buildSuccess(tagID);
         } catch (Exception e) {
-            log.error("创建标签失败: {}", e.getMessage(), e);
-            return JsonData.buildError("创建标签失败");
+            log.error("ProblemTagController--->创建标签失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_CREATE_FAILED);
         }
     }
 
@@ -75,8 +73,8 @@ public class ProblemTagController {
             if (!result) throw new RuntimeException("更新标签失败");
             return JsonData.buildSuccess();
         } catch (RuntimeException e) {
-            log.error("更新标签失败: {}", e.getMessage(), e);
-            return JsonData.buildError("更新标签失败");
+            log.error("ProblemTagController--->更新标签失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 
@@ -96,8 +94,8 @@ public class ProblemTagController {
             if (!result) throw new RuntimeException("删除标签失败");
             return JsonData.buildSuccess();
         } catch (Exception e) {
-            log.error("删除标签失败: {}", e.getMessage(), e);
-            return JsonData.buildError("删除标签失败");
+            log.error("ProblemTagController--->删除标签失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_DELETE_FAILED);
         }
     }
 
@@ -117,8 +115,8 @@ public class ProblemTagController {
             }
             return JsonData.buildSuccess(tagVO);
         } catch (RuntimeException e) {
-            log.error("根据ID获取标签失败: {}", e.getMessage(), e);
-            return JsonData.buildError("根据ID获取标签失败");
+            log.error("ProblemTagController--->根据ID获取标签失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_NOT_EXIST);
         }
     }
 
@@ -135,8 +133,8 @@ public class ProblemTagController {
             PageResult<ProblemTagVO> lists = problemTagService.listTags(request.getCurrent(), request.getSize(), request.getTagName(), request.getIsEnabled(), request.getColor());
             return JsonData.buildSuccess(lists);
         } catch (Exception e) {
-            log.error("获取标签列表失败: {}", e.getMessage(), e);
-            return JsonData.buildError("获取标签列表失败");
+            log.error("ProblemTagController--->获取标签列表失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_NOT_EXIST);
         }
     }
 
@@ -151,8 +149,8 @@ public class ProblemTagController {
             List<ProblemTagVO> list = problemTagService.getAllEnabledTags();
             return JsonData.buildSuccess(list);
         } catch (Exception e) {
-            log.error("获取启用的标签列表失败: {}", e.getMessage(), e);
-            return JsonData.buildError("获取启用的标签列表失败");
+            log.error("ProblemTagController--->获取启用的标签列表失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_NOT_EXIST);
         }
     }
 
@@ -173,8 +171,8 @@ public class ProblemTagController {
             }
             return JsonData.buildSuccess(colorList);
         } catch (Exception e) {
-            log.error("获取颜色列表失败: {}", e.getMessage(), e);
-            return JsonData.buildError("获取颜色列表失败");
+            log.error("ProblemTagController--->获取颜色列表失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_COLORS_FAILED);
         }
     }
 
@@ -197,8 +195,8 @@ public class ProblemTagController {
             List<TagUsageStatisticsVO> statistics = problemTagService.getTagUsageStatistics(categoryEnum);
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
-            log.error("获取标签使用统计失败: {}", e.getMessage(), e);
-            return JsonData.buildError("获取标签使用统计失败");
+            log.error("ProblemTagController--->获取标签使用统计失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
         }
     }
 
@@ -214,8 +212,8 @@ public class ProblemTagController {
             List<CategoryAggregateStatisticsVO> statistics = problemTagService.getCategoryAggregateStatistics();
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
-            log.error("获取分类聚合统计失败: {}", e.getMessage(), e);
-            return JsonData.buildError("获取分类聚合统计失败");
+            log.error("ProblemTagController--->获取分类聚合统计失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
         }
     }
 
@@ -244,8 +242,8 @@ public class ProblemTagController {
             List<ProblemTagVO> tags = problemTagService.findByUsageCountRange(minUsageCount, maxUsageCount, categoryEnum);
             return JsonData.buildSuccess(tags);
         } catch (Exception e) {
-            log.error("根据使用次数范围查询标签失败: {}", e.getMessage(), e);
-            return JsonData.buildError("根据使用次数范围查询标签失败");
+            log.error("ProblemTagController--->根据使用次数范围查询标签失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
         }
     }
 
@@ -272,8 +270,8 @@ public class ProblemTagController {
             List<ProblemTagVO> tags = problemTagService.findPopularTags(limit, categoryEnum);
             return JsonData.buildSuccess(tags);
         } catch (Exception e) {
-            log.error("查询热门标签失败: {}", e.getMessage(), e);
-            return JsonData.buildError("查询热门标签失败");
+            log.error("ProblemTagController--->查询热门标签失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
         }
     }
 
@@ -294,8 +292,8 @@ public class ProblemTagController {
                 return JsonData.buildError("增加标签使用次数失败，标签可能不存在");
             }
         } catch (Exception e) {
-            log.error("增加标签使用次数失败: {}", e.getMessage(), e);
-            return JsonData.buildError("增加标签使用次数失败");
+            log.error("ProblemTagController--->增加标签使用次数失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 
@@ -316,8 +314,8 @@ public class ProblemTagController {
                 return JsonData.buildError("减少标签使用次数失败，标签可能不存在或使用次数已为0");
             }
         } catch (Exception e) {
-            log.error("减少标签使用次数失败: {}", e.getMessage(), e);
-            return JsonData.buildError("减少标签使用次数失败");
+            log.error("ProblemTagController--->减少标签使用次数失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 
@@ -347,8 +345,8 @@ public class ProblemTagController {
             int affectedRows = problemTagService.batchIncrementUsageCount(tagIds, increment);
             return JsonData.buildSuccess("批量增加标签使用次数成功:" + affectedRows);
         } catch (Exception e) {
-            log.error("批量增加标签使用次数失败: {}", e.getMessage(), e);
-            return JsonData.buildError("批量增加标签使用次数失败");
+            log.error("ProblemTagController--->批量增加标签使用次数失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 
@@ -379,8 +377,8 @@ public class ProblemTagController {
             int affectedRows = problemTagService.batchDecrementUsageCount(tagIds, decrement);
             return JsonData.buildSuccess("批量减少标签使用次数成功" + affectedRows);
         } catch (Exception e) {
-            log.error("批量减少标签使用次数失败: {}", e.getMessage(), e);
-            return JsonData.buildError("批量减少标签使用次数失败");
+            log.error("ProblemTagController--->批量减少标签使用次数失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 
@@ -410,8 +408,8 @@ public class ProblemTagController {
             int affectedRows = problemTagService.batchUpdateStatus(tagIds, status);
             return JsonData.buildSuccess(affectedRows);
         } catch (Exception e) {
-            log.error("批量更新标签状态失败: {}", e.getMessage(), e);
-            return JsonData.buildError("批量更新标签状态失败");
+            log.error("ProblemTagController--->批量更新标签状态失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 
@@ -445,8 +443,8 @@ public class ProblemTagController {
             int affectedRows = problemTagService.batchUpdateUsageCount(tagIds, value, type);
             return JsonData.buildSuccess(affectedRows);
         } catch (Exception e) {
-            log.error("批量{}标签使用次数失败: {}", request.getType().equals("increment") ? "增加" : "减少", e.getMessage(), e);
-            return JsonData.buildError("批量更新标签使用次数失败");
+            log.error("ProblemTagController--->批量{}标签使用次数失败: {}", request.getType().equals("increment") ? "增加" : "减少", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
         }
     }
 }
