@@ -7,12 +7,7 @@ public enum AuthTypeEnum {
     DEFAULT,
 
     /**
-     * 实名制
+     * 管理员
      */
-    REALNAME,
-
-    /**
-     * 企业
-     */
-    ENTERPRISE;
+    ADMIN;
 }

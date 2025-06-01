@@ -138,7 +138,7 @@ public class ProblemServiceImpl implements ProblemService {
     @Transactional
     public Long createProblem(ProblemCreateRequest request) {
         try {
-
+            // TODO 这里需要优化，不是所有人都能创建题目，可能需要权限校验
             // 参数校验
             if (request == null) {
                 throw new RuntimeException("请求参数为空");

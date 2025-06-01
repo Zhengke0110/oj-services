@@ -33,7 +33,7 @@ public class LoginUser {
     private String phone;
 
     /**
-     * 认证级别：DEFAULT，REALNAME，ENTERPRISE
+     * 用户权限：DEFAULT-默认用户，ADMIN-管理员
      */
     private String auth;
 

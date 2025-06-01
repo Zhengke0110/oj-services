@@ -17,14 +17,14 @@ CREATE TABLE `account` (
     `secret`       varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin  DEFAULT NULL COMMENT '盐，用于个人敏感信息处理',
 
     -- 权限和状态
-    `auth`   VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'DEFAULT' COMMENT '认证级别：DEFAULT，REALNAME，ENTERPRISE',
+    `auth`   VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'DEFAULT' COMMENT '用户权限：DEFAULT-默认用户，ADMIN-管理员',
     `status`       TINYINT NOT NULL DEFAULT 1 COMMENT '账户状态：0-禁用，1-启用，2-锁定',
     
     -- 统计信息(用于沙箱访问控制)
     `total_execution_count` BIGINT NOT NULL DEFAULT 0 COMMENT '总代码执行次数',
     `last_execution_time`   BIGINT DEFAULT NULL COMMENT '最后执行时间戳(毫秒)',
     
-    -- 配额限制(基于认证级别)
+    -- 配额限制(基于用户权限)
     `execution_timeout`     INT NOT NULL DEFAULT 5000 COMMENT '单次执行超时时间(毫秒)',
     `memory_limit`          BIGINT NOT NULL DEFAULT 268435456 COMMENT '内存限制(字节,默认256MB)',
 
@@ -54,11 +54,11 @@ CREATE TABLE `account` (
     INDEX `idx_account_status_auth` (`account_no`, `status`, `auth`),
     INDEX `idx_status_deleted` (`status`, `is_deleted`)
     
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户账户表(优化版，兼容沙箱执行记录)';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户账户表(优化版，支持DEFAULT用户和ADMIN管理员权限)';
 
--- 创建认证级别检查约束
+-- 创建用户权限检查约束
 ALTER TABLE `account` ADD CONSTRAINT `chk_account_auth` 
-CHECK (`auth` IN ('DEFAULT', 'REALNAME', 'ENTERPRISE'));
+CHECK (`auth` IN ('DEFAULT', 'ADMIN'));
 
 -- 创建状态检查约束  
 ALTER TABLE `account` ADD CONSTRAINT `chk_account_status` 
