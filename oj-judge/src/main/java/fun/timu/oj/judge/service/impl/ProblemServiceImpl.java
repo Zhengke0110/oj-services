@@ -138,7 +138,15 @@ public class ProblemServiceImpl implements ProblemService {
     @Transactional
     public Long createProblem(ProblemCreateRequest request) {
         try {
-            // TODO 这里需要优化，不是所有人都能创建题目，可能需要权限校验
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有创建题目的权限");
+            }
+
             // 参数校验
             if (request == null) {
                 throw new RuntimeException("请求参数为空");
@@ -148,11 +156,6 @@ public class ProblemServiceImpl implements ProblemService {
                 throw new RuntimeException("标题已存在" + request.getTitle());
             }
 
-            // 获取当前登录用户信息
-            LoginUser loginUser = LoginInterceptor.threadLocal.get();
-            if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
-            }
 
             // 创建ProblemDO对象并设置基本属性
             ProblemDO problemDO = new ProblemDO();
@@ -235,6 +238,15 @@ public class ProblemServiceImpl implements ProblemService {
                 throw new RuntimeException("请求参数或ID为空");
             }
 
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有更新题目的权限");
+            }
+
             // 获取当前题目信息，检查是否存在
             ProblemDO existingProblem = problemManager.getById(request.getId());
             if (existingProblem == null || existingProblem.getIsDeleted() == 1) {
@@ -301,6 +313,15 @@ public class ProblemServiceImpl implements ProblemService {
     @Transactional
     public boolean deleteProblem(Long id) {
         try {
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有删除题目的权限");
+            }
+
             // 尝试删除题目，实际上是将题目标记为已删除状态
             int row = problemManager.deleteById(id);
             if (row <= 0) throw new RuntimeException("删除题目失败");
@@ -329,6 +350,10 @@ public class ProblemServiceImpl implements ProblemService {
         try {
             // 获取当前登录用户信息
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
+
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
             log.info("更新题目[{}]提交统计，提交结果: {}", problemId, isAccepted ? "通过" : "未通过");
 
             // 调用manager层方法更新统计数据

@@ -1,8 +1,9 @@
 package fun.timu.oj.judge.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.common.enmus.TagCategoryEnum;
+import fun.timu.oj.common.interceptor.LoginInterceptor;
+import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
@@ -19,7 +20,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -49,13 +49,17 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public Long createTag(ProblemTagCreateRequest request) {
         try {
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有创建标签的权限");
+            }
             // 创建一个新的问题标签数据对象，并从请求对象中复制属性
             ProblemTagDO tagDO = new ProblemTagDO();
             BeanUtils.copyProperties(request, tagDO);
-
-            // 设置标签的创建时间和更新时间为当前日期
-            tagDO.setCreatedAt(new Date());
-            tagDO.setUpdatedAt(new Date());
 
             // 设置标签为未删除状态，并初始化使用计数为0
             tagDO.setIsDeleted(0);
@@ -93,6 +97,16 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public boolean updateTag(ProblemTagUpdateRequest request) {
         try {
+
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有更新标签的权限");
+            }
+
             // 根据ID查找现有的标签
             ProblemTagDO existingTag = problemTagManager.findById(request.getId());
             if (existingTag == null || existingTag.getIsDeleted() == 1) {
@@ -141,6 +155,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public boolean deleteTag(Long id) {
         try {
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有删除标签的权限");
+            }
             // 尝试删除标签，如果删除失败则抛出运行时异常
             int row = problemTagManager.deleteById(id);
             if (row <= 0) throw new RuntimeException("删除标签失败");
@@ -375,6 +397,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             if (tagId == null || tagId <= 0) {
                 throw new RuntimeException("无效的标签ID");
             }
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
 
             // 调用manager层方法增加使用次数
             int result = problemTagManager.incrementUsageCount(tagId);
@@ -409,6 +436,12 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             if (tagId == null || tagId <= 0) {
                 throw new RuntimeException("无效的标签ID");
             }
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+
 
             // 调用manager层方法减少使用次数
             int result = problemTagManager.decrementUsageCount(tagId);
@@ -450,7 +483,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
                 log.warn("ProblemTagService--->批量增加标签使用次数失败：增加次数必须大于0");
                 return 0;
             }
-
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量修改标签的权限");
+            }
             // 调用manager层方法批量增加使用次数（内部使用悲观锁）
             int affectedRows = problemTagManager.batchIncrementUsageCount(tagIds, increment);
 
@@ -485,6 +525,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             if (decrement <= 0) {
                 log.warn("ProblemTagService--->批量减少标签使用次数失败：减少次数必须大于0");
                 return 0;
+            }
+
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量修改标签的权限");
             }
 
             // 调用manager层方法批量减少使用次数
@@ -524,6 +573,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
                 return 0;
             }
 
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量修改标签的权限");
+            }
             // 调用manager层方法批量更新标签状态
             int affectedRows = problemTagManager.batchUpdateStatus(tagIds, status);
 
@@ -566,6 +623,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             if (!"increment".equals(type) && !"decrement".equals(type)) {
                 log.warn("ProblemTagService--->批量更新标签使用次数失败：无效的操作类型，当前类型: {}", type);
                 return 0;
+            }
+
+            //  获取当前登录用户
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量修改标签的权限");
             }
 
             int affectedRows;
