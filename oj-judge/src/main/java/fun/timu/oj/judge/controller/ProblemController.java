@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
+import java.util.List;
 
 /**
  * 题目控制器
@@ -62,6 +63,24 @@ public class ProblemController {
         } catch (Exception e) {
             log.error("ProblemController--->分页查询题目列表异常: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取当前登录用户创建的题目列表
+     *
+     * @return 当前用户创建的题目列表
+     */
+    @GetMapping("/my")
+    public JsonData getMyProblems() {
+        try {
+            log.info("ProblemController--->获取当前用户创建的题目列表");
+            // 调用服务层方法获取当前用户创建的题目列表
+            List<ProblemVO> problemList = problemService.getProblemsWithCurrentUser();
+            return JsonData.buildSuccess(problemList);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取当前用户创建的题目列表失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_NOT_EXIST);
         }
     }
 

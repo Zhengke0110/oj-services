@@ -56,6 +56,8 @@ public class ProblemManagerImpl implements ProblemManager {
         // 未删除的记录
         queryWrapper.eq(ProblemDO::getIsDeleted, false);
 
+        // 按创建时间降序排序，最新创建的题目排在前面
+        queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
         // 按题目类型筛选
         if (problemType != null && !problemType.isEmpty()) {
             queryWrapper.eq(ProblemDO::getProblemType, problemType);
@@ -122,6 +124,31 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 执行查询
         return problemMapper.selectPage(page, queryWrapper);
+    }
+
+
+    /**
+     * 根据创建者ID查询问题列表
+     * <p>
+     * 此方法旨在通过创建者ID筛选出未删除的问题，并按照创建时间降序排列
+     * 选择使用LambdaQueryWrapper是为了提高查询条件编写的可读性和维护性
+     *
+     * @param creatorId 创建者ID，用于筛选问题的创建者
+     * @return 返回由创建者创建的、未删除的问题列表如果creatorId为null，则返回空列表
+     */
+    @Override
+    public List<ProblemDO> findByCreatorId(Long creatorId) {
+        if (creatorId == null) return List.of();
+
+        // 使用MyBatis-Plus的LambdaQueryWrapper构建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProblemDO::getCreatorId, creatorId);
+        // 只查询未删除的题目
+        queryWrapper.eq(ProblemDO::getIsDeleted, false);
+        // 按创建时间降序排序
+        queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
+
+        return problemMapper.selectList(queryWrapper);
     }
 
 }

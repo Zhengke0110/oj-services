@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.enmus.DifficultyEnum;
 import fun.timu.oj.common.enmus.ProblemStatusEnum;
 import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
+import fun.timu.oj.common.interceptor.LoginInterceptor;
+import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
@@ -101,6 +103,36 @@ public class ProblemServiceImpl implements ProblemService {
             log.error("ProblemService--->按条件查询题目列表失败: {}", e.getMessage(), e);
             // 返回空结果
             return new PageResult<>();
+        }
+    }
+
+    /**
+     * 获取当前登录用户创建的问题列表
+     * <p>
+     * 此方法首先从线程局部变量中获取当前登录用户的信息，
+     * 如果用户未登录，则抛出运行时异常
+     * 接着，通过问题管理器根据用户账号查询问题，并将查询结果转换为问题视图对象（ProblemVO）列表，
+     * 过滤掉可能的空对象，并记录日志信息
+     * 如果在执行过程中遇到异常，则记录错误日志并返回空列表
+     *
+     * @return 当前用户创建的问题列表，如果出现异常则返回空列表
+     */
+    @Override
+    public List<ProblemVO> getProblemsWithCurrentUser() {
+        try {
+            // 从线程局部变量中获取当前登录用户信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) throw new RuntimeException("用户未登录");
+            // 查询并转换问题数据为视图对象列表
+            List<ProblemVO> voList = problemManager.findByCreatorId(loginUser.getAccountNo()).stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+            // 记录获取问题列表成功的日志信息
+            log.info("获取当前用户创建的题目列表成功，用户ID：{}，题目数量：{}", loginUser.getAccountNo(), voList.size());
+            return voList;
+        } catch (Exception e) {
+            // 记录获取问题列表时出现的异常信息
+            log.error("获取当前用户创建的题目列表异常：{}", e.getMessage());
+            // 返回空列表作为异常情况下的响应
+            return new ArrayList<>();
         }
     }
 

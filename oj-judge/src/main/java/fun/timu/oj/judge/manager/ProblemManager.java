@@ -28,4 +28,11 @@ public interface ProblemManager {
      */
     public IPage<ProblemDO> findTagListWithPage(int current, int size, String problemType, Integer difficulty, Integer status, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate);
 
+    /**
+     * 根据创建者id查询题目列表
+     *
+     * @param creatorId 创建者id
+     * @return 题目列表
+     */
+    public List<ProblemDO> findByCreatorId(Long creatorId);
 }
