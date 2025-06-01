@@ -47,6 +47,12 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
             @Param("limit") Integer limit
     );
 
+    /**
+     * 获取题目统计信息
+     *
+     * @return 统计信息列表（包含各难度级别的题目数量等）
+     */
+    List<Object> getProblemStatistics();
 }
 
 

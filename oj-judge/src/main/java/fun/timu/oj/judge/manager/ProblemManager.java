@@ -3,6 +3,7 @@ package fun.timu.oj.judge.manager;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 
 import java.util.List;
 
@@ -99,4 +100,11 @@ public interface ProblemManager {
      */
     List<ProblemDO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
 
+
+    /**
+     * 获取题目统计信息
+     *
+     * @return 统计信息列表（包含各难度级别的题目数量等）
+     */
+    List<ProblemStatisticsDTO> getProblemStatistics();
 }

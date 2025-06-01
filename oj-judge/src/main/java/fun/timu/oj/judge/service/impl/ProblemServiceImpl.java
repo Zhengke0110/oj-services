@@ -14,6 +14,7 @@ import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
@@ -444,6 +445,24 @@ public class ProblemServiceImpl implements ProblemService {
         } catch (Exception e) {
             log.error("ProblemService--->获取题目列表失败: {}", e.getMessage(), e);
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 获取题目统计信息
+     * 该方法返回按题目类型和难度分组的统计数据，包括总题目数量、活跃题目数量、
+     * 总提交次数、总通过次数以及平均通过率等信息
+     *
+     * @return 统计信息列表
+     */
+    @Override
+    public List<ProblemStatisticsDTO> getProblemStatistics() {
+        try {
+            log.info("ProblemServiceImpl--->获取题目统计信息");
+            return problemManager.getProblemStatistics();
+        } catch (Exception e) {
+            log.error("ProblemServiceImpl--->获取题目统计信息异常: {}", e.getMessage(), e);
+            throw new RuntimeException("获取题目统计信息失败", e);
         }
     }
 

@@ -5,6 +5,7 @@ import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.*;
+import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
@@ -187,13 +188,9 @@ public class ProblemController {
     @PostMapping("/hot")
     public JsonData getHotProblems(@Valid @RequestBody HotProblemRequest request) {
         try {
-            log.info("ProblemController--->获取热门题目列表请求, 类型: {}, 难度: {}, 数量限制: {}",
-                    request.getProblemType(), request.getDifficulty(), request.getLimit());
+            log.info("ProblemController--->获取热门题目列表请求, 类型: {}, 难度: {}, 数量限制: {}", request.getProblemType(), request.getDifficulty(), request.getLimit());
 
-            List<ProblemVO> problemList = problemService.selectHotProblems(
-                    request.getProblemType(),
-                    request.getDifficulty(),
-                    request.getLimit());
+            List<ProblemVO> problemList = problemService.selectHotProblems(request.getProblemType(), request.getDifficulty(), request.getLimit());
 
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
@@ -212,18 +209,30 @@ public class ProblemController {
     @GetMapping("/recommended")
     public JsonData getRecommendedProblems(@Valid @RequestBody RecommendedProblemRequest request) {
         try {
-            log.info("ProblemController--->获取推荐题目列表请求, minAcceptanceRate: {}, maxAcceptanceRate: {}, difficulty: {}, limit: {}",
-                    request.getMinAcceptanceRate(), request.getMaxAcceptanceRate(), request.getDifficulty(), request.getLimit());
+            log.info("ProblemController--->获取推荐题目列表请求, minAcceptanceRate: {}, maxAcceptanceRate: {}, difficulty: {}, limit: {}", request.getMinAcceptanceRate(), request.getMaxAcceptanceRate(), request.getDifficulty(), request.getLimit());
 
-            List<ProblemVO> problemList = problemService.selectRecommendedProblems(
-                    request.getMinAcceptanceRate(),
-                    request.getMaxAcceptanceRate(),
-                    request.getDifficulty(),
-                    request.getLimit());
+            List<ProblemVO> problemList = problemService.selectRecommendedProblems(request.getMinAcceptanceRate(), request.getMaxAcceptanceRate(), request.getDifficulty(), request.getLimit());
 
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
             log.error("ProblemController--->获取推荐题目列表异常: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取题目统计信息
+     *
+     * @return 按题目类型和难度分组的统计数据，包括总题目数量、活跃题目数量、提交数和通过率等信息
+     */
+    @GetMapping("/statistics")
+    public JsonData getProblemStatistics() {
+        try {
+            log.info("ProblemController--->获取题目统计信息");
+            List<ProblemStatisticsDTO> statistics = problemService.getProblemStatistics();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取题目统计信息异常: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

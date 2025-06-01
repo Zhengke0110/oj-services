@@ -8,12 +8,13 @@ import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -381,6 +382,55 @@ public class ProblemManagerImpl implements ProblemManager {
         }
         // 调用problemMapper的方法来选择推荐的问题
         return problemMapper.selectRecommendedProblems(minAcceptanceRate, maxAcceptanceRate, difficulty, limit);
+    }
+
+    /**
+     * 获取题目统计信息
+     * 该方法返回按题目类型和难度分组的统计数据，包括总题目数量、活跃题目数量、
+     * 总提交次数、总通过次数以及平均通过率等信息
+     *
+     * @return 统计信息列表
+     */
+    @Override
+    public List<ProblemStatisticsDTO> getProblemStatistics() {
+        try {
+            log.info("开始获取题目统计信息");
+            List<Object> rawStatistics = problemMapper.getProblemStatistics();
+
+            if (rawStatistics == null) {
+                return Collections.emptyList();
+            }
+
+            return rawStatistics.stream()
+                    .filter(Objects::nonNull)
+                    .map(item -> {
+                        // 假设 item 是 Map<String, Object> 类型
+                        if (!(item instanceof Map)) {
+                            log.warn("发现非 Map 类型的元素：{}", item.getClass());
+                            throw new RuntimeException("非 Map 类型的元素");
+                        }
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> data = (Map<String, Object>) item;
+
+                        ProblemStatisticsDTO dto = new ProblemStatisticsDTO();
+
+                        // 根据SQL查询结果字段映射到DTO属性
+                        dto.setProblemType((String) data.get("problem_type"));
+                        dto.setDifficulty((Integer) data.get("difficulty"));
+                        dto.setTotalCount(((Number) data.get("total_count")).intValue());
+                        dto.setActiveCount(((Number) data.get("active_count")).intValue());
+                        dto.setTotalSubmissions(((Number) data.get("total_submissions")).intValue());
+                        dto.setTotalAccepted(((Number) data.get("total_accepted")).intValue());
+                        dto.setAvgAcceptanceRate(((Number) data.get("avg_acceptance_rate")).doubleValue());
+
+                        return dto;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取题目统计信息失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取题目统计信息失败", e);
+        }
     }
 
 }

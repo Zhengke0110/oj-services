@@ -4,6 +4,7 @@ import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
+import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 
 import java.util.List;
@@ -87,4 +88,11 @@ public interface ProblemService {
      * @return 推荐题目列表
      */
     List<ProblemVO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
+
+    /**
+     * 获取题目统计信息
+     *
+     * @return 统计信息列表（包含各难度级别的题目数量等）
+     */
+    List<ProblemStatisticsDTO> getProblemStatistics();
 }
