@@ -24,6 +24,9 @@ public class ProblemQueryRequest {
     // 状态：0-禁用，1-启用，2-草稿
     private Integer status;
 
+    // 题目可见性枚举：0-私有，1-公开，2-仅注册用户
+    private Integer visibility;
+
     // 支持的编程语言列表
     private List<String> supportedLanguages;
 

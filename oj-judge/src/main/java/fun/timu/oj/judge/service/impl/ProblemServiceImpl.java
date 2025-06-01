@@ -50,10 +50,27 @@ public class ProblemServiceImpl implements ProblemService {
     @Override
     public ProblemVO getById(Long id) {
         try {
+            //  获取当前登录用户信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) throw new RuntimeException("用户未登录");
+
             // 通过problemManager获取题目数据对象
             ProblemDO problemDO = problemManager.getById(id);
+
             // 检查题目是否存在且未被删除
             if (problemDO == null || problemDO.getIsDeleted() == 1) throw new RuntimeException("题目不存在或已被删除");
+
+            //  检查题目状态， 如果是隐藏的或者禁用的，则需要检查用户权限，如果不是，则直接返回题目数据
+            if ((problemDO.getStatus() == 0 || problemDO.getStatus() == 2) && !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("题目未发布，无法查看");
+            }
+
+            // 如果题目是公开的，则直接返回题目数据
+            if (problemDO.getVisibility() == 0 && !loginUser.getAccountNo().equals(problemDO.getCreatorId())) {
+                // 如果题目是公开的，且当前用户不是题目的创建者，则抛出异常
+                throw new RuntimeException("题目不可见");
+            }
+
             // 将题目数据对象转换为视图对象
             ProblemVO problemVO = convertToVO(problemDO);
             // TODO 调用ProblemTagService获取题目标签
@@ -74,12 +91,16 @@ public class ProblemServiceImpl implements ProblemService {
     @Override
     public PageResult<ProblemVO> getProblemsWithConditions(ProblemQueryRequest request) {
         try {
+            //  获取当前登录用户信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) throw new RuntimeException("用户未登录");
+
             // 1. 从请求中提取查询参数
             int current = Optional.ofNullable(request.getCurrent()).orElse(1);
             int size = Optional.ofNullable(request.getSize()).orElse(20);
 
             // 2. 调用Manager层方法获取分页结果
-            IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(current, size, request.getProblemType(), request.getDifficulty(), request.getStatus(), request.getSupportedLanguages(), request.getHasInput(), request.getMinAcceptanceRate(), request.getMaxAcceptanceRate());
+            IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(current, size, request.getProblemType(), request.getDifficulty(), request.getStatus(), request.getVisibility(), request.getSupportedLanguages(), request.getHasInput(), request.getMinAcceptanceRate(), request.getMaxAcceptanceRate());
 
             // 3. 将DO转换为VO
             List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());

@@ -48,7 +48,7 @@ public class ProblemManagerImpl implements ProblemManager {
      * @return 分页的问题列表
      */
     @Override
-    public IPage<ProblemDO> findTagListWithPage(int current, int size, String problemType, Integer difficulty, Integer status, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate) {
+    public IPage<ProblemDO> findTagListWithPage(int current, int size, String problemType, Integer difficulty, Integer status, Integer visibility, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate) {
         // 创建分页对象
         Page<ProblemDO> page = new Page<>(current, size);
 
@@ -73,6 +73,11 @@ public class ProblemManagerImpl implements ProblemManager {
         // 按状态筛选
         if (status != null) {
             queryWrapper.eq(ProblemDO::getStatus, status);
+        }
+
+        // 按可见性筛选
+        if (visibility != null) {
+            queryWrapper.eq(ProblemDO::getVisibility, visibility);
         }
 
         // 按是否需要输入筛选
