@@ -220,6 +220,12 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 更新题目
+     *
+     * @param request 更新题目请求
+     * @return
+     */
     @Override
     @Transactional
     public boolean updateProblem(ProblemUpdateRequest request) {
@@ -282,12 +288,64 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 删除题目
+     * <p>
+     * 此方法执行题目的软删除操作，将题目标记为已删除状态
+     * 软删除可以保持数据完整性，避免真正删除后无法恢复
+     *
+     * @param id 题目的唯一标识符
+     * @return 如果删除成功返回true，否则返回false
+     */
     @Override
+    @Transactional
     public boolean deleteProblem(Long id) {
         try {
+            // 尝试删除题目，实际上是将题目标记为已删除状态
+            int row = problemManager.deleteById(id);
+            if (row <= 0) throw new RuntimeException("删除题目失败");
+            log.info("成功删除题目，ID: {}", id);
             return true;
         } catch (Exception e) {
-            log.error("ProblemTagService--->删除题目失败: {}", e.getMessage(), e);
+            // 捕获删除题目时的异常，并记录错误日志
+            log.error("ProblemService--->删除题目失败: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 更新题目提交统计
+     * <p>
+     * 此方法用于更新题目的提交统计信息，包括总提交次数和通过次数
+     * 当用户提交一个题目的解答时，无论解答是否正确，总提交次数都会增加
+     * 只有当解答被接受（即正确）时，通过次数才会增加
+     *
+     * @param problemId  题目ID
+     * @param isAccepted 提交是否被接受
+     * @return 更新是否成功
+     */
+    @Override
+    public boolean updateSubmissionStats(Long problemId, boolean isAccepted) {
+        try {
+            // 获取当前登录用户信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            log.info("更新题目[{}]提交统计，提交结果: {}", problemId, isAccepted ? "通过" : "未通过");
+
+            // 调用manager层方法更新统计数据
+            int result = problemManager.updateSubmissionStats(problemId, loginUser, isAccepted);
+
+            if (result > 0) {
+                // 更新成功
+                return true;
+            } else if (result == 0) {
+                log.warn("更新题目[{}]提交统计失败，可能无记录被更新", problemId);
+                return false;
+            } else {
+                log.warn("更新题目[{}]提交统计失败，题目可能不存在", problemId);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("ProblemService--->更新题目提交统计失败: {}", e.getMessage(), e);
             return false;
         }
     }
@@ -421,5 +479,6 @@ public class ProblemServiceImpl implements ProblemService {
         // 实现查询逻辑，检查标题是否已存在
         return problemManager.existsByTitle(title);
     }
+
 
 }

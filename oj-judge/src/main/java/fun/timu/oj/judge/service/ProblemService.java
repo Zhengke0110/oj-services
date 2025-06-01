@@ -57,4 +57,13 @@ public interface ProblemService {
      * @return 是否删除成功
      */
     boolean deleteProblem(Long id);
+
+    /**
+     * 更新题目提交统计
+     *
+     * @param problemId  题目ID
+     * @param isAccepted 提交是否被接受
+     * @return 更新是否成功
+     */
+    boolean updateSubmissionStats(Long problemId, boolean isAccepted);
 }

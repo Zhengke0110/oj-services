@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.manager;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 
 import java.util.List;
@@ -67,4 +68,13 @@ public interface ProblemManager {
      * @return 如果存在返回true，否则返回false
      */
     boolean existsByTitle(String title);
+
+    /**
+     * 更新题目提交统计
+     *
+     * @param problemId  题目ID
+     * @param isAccepted 是否通过
+     * @return 更新的记录数
+     */
+    public int updateSubmissionStats(Long problemId, LoginUser loginUser, boolean isAccepted);
 }

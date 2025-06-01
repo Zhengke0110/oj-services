@@ -136,4 +136,46 @@ public class ProblemController {
             throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
         }
     }
+
+    /**
+     * 删除题目
+     * 接收题目删除请求并返回删除结果
+     *
+     * @param id 题目ID
+     * @return JsonData 包含删除结果的响应
+     */
+    @DeleteMapping("/{id}")
+    public JsonData deleteProblem(@PathVariable @Positive Long id) {
+        try {
+            log.info("删除题目请求, ID: {}", id);
+            boolean result = problemService.deleteProblem(id);
+            if (!result) throw new RuntimeException("删除题目失败");
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("ProblemController--->删除题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_DELETE_FAILED);
+        }
+    }
+
+    /**
+     * 更新题目提交统计
+     *
+     * @param id         题目ID
+     * @param isAccepted 是否通过
+     * @return 更新结果
+     */
+    @PutMapping("/{id}/submission-stats")
+    public JsonData updateSubmissionStats(@PathVariable @Positive Long id, @RequestParam(required = true) Boolean isAccepted) {
+        try {
+            log.info("更新题目提交统计请求, ID: {}, 是否通过: {}", id, isAccepted);
+            boolean result = problemService.updateSubmissionStats(id, isAccepted);
+            if (!result) {
+                throw new RuntimeException("更新题目提交统计失败，题目可能不存在");
+            }
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("ProblemController--->更新题目提交统计失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
 }

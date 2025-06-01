@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
@@ -284,6 +285,49 @@ public class ProblemManagerImpl implements ProblemManager {
         queryWrapper.eq(ProblemDO::getIsDeleted, false);
         // 如果count > 0，表示存在同名题目
         return problemMapper.selectCount(queryWrapper) > 0;
+    }
+
+    /**
+     * 更新题目提交统计信息
+     *
+     * @param problemId  题目ID
+     * @param isAccepted 提交是否被接受
+     * @return 更新操作的影响行数
+     */
+    @Override
+    public int updateSubmissionStats(Long problemId, LoginUser loginUser, boolean isAccepted) {
+        try {
+            // 1. 根据题目ID查询题目信息
+            ProblemDO problemDO = problemMapper.selectById(problemId);
+
+            // 2. 检查题目是否存在
+            if (problemDO == null) throw new RuntimeException("题目不存在，ID:" + problemId);
+
+            // 3. 检查题目状态和删除标志
+            if (problemDO.getStatus() != 1 || problemDO.getIsDeleted() == 1)
+                throw new RuntimeException("题目状态不正确，ID:" + problemId + "，状态:" + problemDO.getStatus() + "，删除标志:" + problemDO.getIsDeleted());
+
+            // 4. 检查题目可见性
+            if (problemDO.getVisibility() == 0) {
+                if (loginUser == null) throw new RuntimeException("用户未登录，无法更新私人题目的提交统计");
+                if (!loginUser.getAccountNo().equals(problemDO.getCreatorId())) {
+                    throw new RuntimeException("用户无权限更新该题目的提交统计, 用户ID: " + loginUser.getAccountNo() + "创建者ID: " + problemDO.getCreatorId());
+                }
+            }
+
+            // 5. 如果题目信息存在，则更新提交计数和接受计数
+            // 增加提交计数
+            problemDO.setSubmissionCount(problemDO.getSubmissionCount() + 1);
+            // 如果提交被接受，则增加接受计数
+            if (isAccepted) {
+                problemDO.setAcceptedCount(problemDO.getAcceptedCount() + 1);
+            }
+            // 更新题目的提交和接受计数
+            return problemMapper.updateById(problemDO);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
