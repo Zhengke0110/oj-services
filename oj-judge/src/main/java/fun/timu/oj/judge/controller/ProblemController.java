@@ -4,6 +4,7 @@ import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
+import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 题目控制器
@@ -84,4 +87,25 @@ public class ProblemController {
         }
     }
 
+    /**
+     * 创建新题目
+     *
+     * @param request 创建题目的请求对象
+     * @return 创建结果，包含新题目的ID
+     */
+    @PostMapping
+    public JsonData createProblem(@Valid @RequestBody ProblemCreateRequest request) {
+        try {
+            log.info("创建问题请求: {}", request);
+            Long problemId = problemService.createProblem(request);
+            if (problemId < 0) throw new RuntimeException("创建问题失败");
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("problemId", problemId);
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->创建问题失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_CREATE_FAILED);
+        }
+    }
 }

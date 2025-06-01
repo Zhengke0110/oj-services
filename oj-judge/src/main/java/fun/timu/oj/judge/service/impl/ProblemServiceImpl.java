@@ -9,7 +9,9 @@ import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
 import fun.timu.oj.common.interceptor.LoginInterceptor;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
+import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
@@ -76,23 +78,10 @@ public class ProblemServiceImpl implements ProblemService {
             int size = Optional.ofNullable(request.getSize()).orElse(20);
 
             // 2. 调用Manager层方法获取分页结果
-            IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(
-                    current,
-                    size,
-                    request.getProblemType(),
-                    request.getDifficulty(),
-                    request.getStatus(),
-                    request.getSupportedLanguages(),
-                    request.getHasInput(),
-                    request.getMinAcceptanceRate(),
-                    request.getMaxAcceptanceRate()
-            );
+            IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(current, size, request.getProblemType(), request.getDifficulty(), request.getStatus(), request.getSupportedLanguages(), request.getHasInput(), request.getMinAcceptanceRate(), request.getMaxAcceptanceRate());
 
             // 3. 将DO转换为VO
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
-                    .map(this::convertToVO)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             // 4. 构建并返回分页结果
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
@@ -133,6 +122,111 @@ public class ProblemServiceImpl implements ProblemService {
             log.error("获取当前用户创建的题目列表异常：{}", e.getMessage());
             // 返回空列表作为异常情况下的响应
             return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public Long createProblem(ProblemCreateRequest request) {
+        try {
+
+            // 参数校验
+            if (request == null) {
+                throw new RuntimeException("请求参数为空");
+            }
+
+            if (isDuplicateTitle(request.getTitle())) {
+                throw new RuntimeException("标题已存在" + request.getTitle());
+            }
+
+            // 获取当前登录用户信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+
+            // 创建ProblemDO对象并设置基本属性
+            ProblemDO problemDO = new ProblemDO();
+            BeanUtils.copyProperties(request, problemDO);
+
+            // 设置枚举类型的值
+            if (request.getDifficulty() != null) {
+                problemDO.setDifficulty(request.getDifficulty().getCode());
+            }
+            if (request.getStatus() != null) {
+                problemDO.setStatus(request.getStatus().getCode());
+            }
+            if (request.getVisibility() != null) {
+                problemDO.setVisibility(request.getVisibility().getCode());
+            }
+
+            // 设置Boolean类型的hasInput
+            problemDO.setHasInput(request.getHasInput() != null && request.getHasInput() ? 1 : 0);
+
+            // 设置创建者ID
+            problemDO.setCreatorId(loginUser.getAccountNo());
+
+            // 设置初始统计值
+            problemDO.setSubmissionCount(0L);
+            problemDO.setAcceptedCount(0L);
+
+            // 设置非删除状态
+            problemDO.setIsDeleted(0);
+
+            // 将各种列表/Map转换为JSON字符串
+            if (request.getSupportedLanguages() != null) {
+                problemDO.setSupportedLanguages(JSON.toJSONString(request.getSupportedLanguages()));
+            }
+
+            if (request.getSolutionTemplates() != null) {
+                problemDO.setSolutionTemplates(JSON.toJSONString(request.getSolutionTemplates()));
+            }
+
+            if (request.getExamples() != null) {
+                problemDO.setExamples(JSON.toJSONString(request.getExamples()));
+            }
+
+            if (request.getHints() != null) {
+                problemDO.setHints(JSON.toJSONString(request.getHints()));
+            }
+
+            if (request.getMetadata() != null) {
+                problemDO.setMetadata(JSON.toJSONString(request.getMetadata()));
+            }
+
+            // 保存题目并获取ID
+            int row = problemManager.save(problemDO);
+
+            // 处理标签关联
+            if (row > 0 && request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                // TODO: 关联题目和标签，可能需要调用ProblemTagService
+                // problemTagService.associateProblemWithTags(problemId, request.getTagIds());
+            }
+            Long problemId = problemDO.getId();
+            log.info("ProblemService--->创建题目成功，题目ID: {}, 标题: {}", problemId, request.getTitle());
+            return problemId;
+        } catch (Exception e) {
+            log.error("ProblemService--->创建题目失败: {}", e.getMessage(), e);
+            return -1L;
+        }
+    }
+
+    @Override
+    public boolean updateProblem(ProblemUpdateRequest request) {
+        try {
+            return true;
+        } catch (Exception e) {
+            log.error("ProblemTagService--->更新题目失败: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deleteProblem(Long id) {
+        try {
+            return true;
+        } catch (Exception e) {
+            log.error("ProblemTagService--->删除题目失败: {}", e.getMessage(), e);
+            return false;
         }
     }
 
@@ -218,4 +312,8 @@ public class ProblemServiceImpl implements ProblemService {
         return Collections.emptyMap();
     }
 
+    private boolean isDuplicateTitle(String title) {
+        // 实现查询逻辑，检查标题是否已存在
+        return problemManager.existsByTitle(title);
+    }
 }

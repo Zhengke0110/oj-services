@@ -35,4 +35,36 @@ public interface ProblemManager {
      * @return 题目列表
      */
     public List<ProblemDO> findByCreatorId(Long creatorId);
+
+    /**
+     * 保存题目
+     *
+     * @param problemDO
+     * @return
+     */
+    public int save(ProblemDO problemDO);
+
+    /**
+     * 更新题目
+     *
+     * @param problemDO
+     * @return
+     */
+    public int updateById(ProblemDO problemDO);
+
+    /**
+     * 删除题目
+     *
+     * @param id
+     * @return
+     */
+    public int deleteById(Long id);
+
+    /**
+     * 检查指定标题的题目是否已存在
+     *
+     * @param title 题目标题
+     * @return 如果存在返回true，否则返回false
+     */
+    boolean existsByTitle(String title);
 }

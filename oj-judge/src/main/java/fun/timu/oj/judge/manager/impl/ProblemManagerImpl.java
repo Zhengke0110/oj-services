@@ -1,16 +1,17 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
-import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
@@ -138,8 +139,6 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<ProblemDO> findByCreatorId(Long creatorId) {
-        if (creatorId == null) return List.of();
-
         // 使用MyBatis-Plus的LambdaQueryWrapper构建查询条件
         LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ProblemDO::getCreatorId, creatorId);
@@ -149,6 +148,142 @@ public class ProblemManagerImpl implements ProblemManager {
         queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
 
         return problemMapper.selectList(queryWrapper);
+    }
+
+    /**
+     * 保存问题信息到数据库中
+     * <p>
+     * 此方法负责将一个问题数据对象（ProblemDO）插入到数据库中它主要用于问题的创建或更新操作
+     * 通过调用problemMapper的insert方法来实现数据的插入功能
+     *
+     * @param problemDO 问题数据对象，包含需要保存的问题信息
+     * @return 插入操作的结果，通常是一个表示受影响行数的整数
+     */
+    @Override
+    public int save(ProblemDO problemDO) {
+        return problemMapper.insert(problemDO);
+    }
+
+    /**
+     * 根据ID更新问题信息
+     *
+     * @param problemDO 包含要更新的问题信息的对象
+     * @return 更新操作的结果，返回影响的行数
+     */
+    @Override
+    public int updateById(ProblemDO problemDO) {
+        // 创建UpdateWrapper对象，用于构建更新条件
+        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        // 指定更新的记录ID
+        updateWrapper.eq("id", problemDO.getId());
+
+        // 只有当字段不为null时，才将其添加到更新条件中
+        if (problemDO.getTitle() != null) {
+            updateWrapper.set("title", problemDO.getTitle());
+        }
+        if (problemDO.getTitleEn() != null) {
+            updateWrapper.set("title_en", problemDO.getTitleEn());
+        }
+        if (problemDO.getDescription() != null) {
+            updateWrapper.set("description", problemDO.getDescription());
+        }
+        if (problemDO.getDescriptionEn() != null) {
+            updateWrapper.set("description_en", problemDO.getDescriptionEn());
+        }
+        if (problemDO.getProblemType() != null) {
+            updateWrapper.set("problem_type", problemDO.getProblemType());
+        }
+        if (problemDO.getDifficulty() != null) {
+            updateWrapper.set("difficulty", problemDO.getDifficulty());
+        }
+        if (problemDO.getTimeLimit() != null) {
+            updateWrapper.set("time_limit", problemDO.getTimeLimit());
+        }
+        if (problemDO.getMemoryLimit() != null) {
+            updateWrapper.set("memory_limit", problemDO.getMemoryLimit());
+        }
+        if (problemDO.getSupportedLanguages() != null) {
+            updateWrapper.set("supported_languages", problemDO.getSupportedLanguages());
+        }
+        if (problemDO.getSolutionTemplates() != null) {
+            updateWrapper.set("solution_templates", problemDO.getSolutionTemplates());
+        }
+        if (problemDO.getInputDescription() != null) {
+            updateWrapper.set("input_description", problemDO.getInputDescription());
+        }
+        if (problemDO.getOutputDescription() != null) {
+            updateWrapper.set("output_description", problemDO.getOutputDescription());
+        }
+        if (problemDO.getHasInput() != null) {
+            updateWrapper.set("has_input", problemDO.getHasInput());
+        }
+        if (problemDO.getInputFormat() != null) {
+            updateWrapper.set("input_format", problemDO.getInputFormat());
+        }
+        if (problemDO.getExamples() != null) {
+            updateWrapper.set("examples", problemDO.getExamples());
+        }
+        if (problemDO.getStatus() != null) {
+            updateWrapper.set("status", problemDO.getStatus());
+        }
+        if (problemDO.getVisibility() != null) {
+            updateWrapper.set("visibility", problemDO.getVisibility());
+        }
+        if (problemDO.getHints() != null) {
+            updateWrapper.set("hints", problemDO.getHints());
+        }
+        if (problemDO.getConstraints() != null) {
+            updateWrapper.set("constraints", problemDO.getConstraints());
+        }
+        if (problemDO.getNotes() != null) {
+            updateWrapper.set("notes", problemDO.getNotes());
+        }
+        if (problemDO.getMetadata() != null) {
+            updateWrapper.set("metadata", problemDO.getMetadata());
+        }
+
+        // 如果没有字段需要更新，则直接返回0
+        if (updateWrapper.getSqlSet() == null || updateWrapper.getSqlSet().isEmpty()) {
+            return 0;
+        }
+        return problemMapper.update(new ProblemDO(), updateWrapper);
+    }
+
+    /**
+     * 根据ID删除问题
+     * 实际上，这个方法通过将问题标记为已删除来实现软删除它并不真正从数据库中删除记录
+     * 软删除是一种常见的做法，可以保持数据的完整性，避免真正删除后无法恢复
+     *
+     * @param id 问题的唯一标识符
+     *           这个参数用于标识数据库中的特定问题记录
+     * @return 影响的行数
+     * 这个返回值表示更新操作影响的数据库行数如果更新成功，返回1；否则，返回0
+     */
+    @Override
+    public int deleteById(Long id) {
+        ProblemDO problemDO = new ProblemDO();
+        problemDO.setId(id);
+        problemDO.setIsDeleted(1);
+        // 执行更新操作
+        return problemMapper.updateById(problemDO);
+    }
+
+    /**
+     * 检查指定标题的题目是否已存在
+     *
+     * @param title 题目标题
+     * @return 如果存在未删除的同名题目返回true，否则返回false
+     */
+    @Override
+    public boolean existsByTitle(String title) {
+        // 创建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+        // 查找与输入标题匹配的记录
+        queryWrapper.eq(ProblemDO::getTitle, title);
+        // 只检查未删除的题目
+        queryWrapper.eq(ProblemDO::getIsDeleted, false);
+        // 如果count > 0，表示存在同名题目
+        return problemMapper.selectCount(queryWrapper) > 0;
     }
 
 }

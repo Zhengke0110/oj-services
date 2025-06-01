@@ -1,7 +1,9 @@
 package fun.timu.oj.judge.service;
 
 import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
+import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 
 import java.util.List;
@@ -31,4 +33,28 @@ public interface ProblemService {
      * @return 题目列表
      */
     List<ProblemVO> getProblemsWithCurrentUser();
+
+    /**
+     * 创建题目
+     *
+     * @param request 创建题目请求
+     * @return 创建的题目ID
+     */
+    Long createProblem(ProblemCreateRequest request);
+
+    /**
+     * 更新题目信息
+     *
+     * @param request 更新题目请求
+     * @return 是否更新成功
+     */
+    boolean updateProblem(ProblemUpdateRequest request);
+
+    /**
+     * 删除题目
+     *
+     * @param id 题目ID
+     * @return 是否删除成功
+     */
+    boolean deleteProblem(Long id);
 }
