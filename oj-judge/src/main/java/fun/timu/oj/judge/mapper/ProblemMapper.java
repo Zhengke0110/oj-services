@@ -2,6 +2,8 @@ package fun.timu.oj.judge.mapper;
 
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
+import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
+import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -12,6 +14,26 @@ import java.util.List;
 
 @Mapper
 public interface ProblemMapper extends BaseMapper<ProblemDO> {
+
+    // ===== 新增：统一统计信息接口 =====
+
+    /**
+     * 统一的统计信息接口
+     * 根据不同的统计范围返回相应的统计数据
+     *
+     * @param request 统一统计请求参数
+     * @return 统一统计响应数据
+     */
+    UnifiedStatisticsResponse getUnifiedStatistics(@Param("request") UnifiedStatisticsRequest request);
+
+    /**
+     * 统一的统计信息接口（原始数据版本）
+     * 返回原始的HashMap格式数据，用于特殊场景
+     *
+     * @param request 统一统计请求参数
+     * @return 统计数据的原始HashMap
+     */
+    HashMap<String, Object> getUnifiedStatisticsRaw(@Param("request") UnifiedStatisticsRequest request);
 
     // ===== 新增：统一推荐接口 =====
 
@@ -52,7 +74,16 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * 获取题目统计信息
      *
      * @return 统计信息列表（包含各难度级别的题目数量等）
+     * @deprecated 请使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代
+     * <pre>
+     * 建议用法:
+     * UnifiedStatisticsRequest request = UnifiedStatisticsRequest.builder()
+     *     .scope(StatisticsScope.BASIC)
+     *     .build();
+     * getUnifiedStatistics(request);
+     * </pre>
      */
+    @Deprecated
     List<Object> getProblemStatistics();
 
 
@@ -60,7 +91,16 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * 获取题目详细统计信息（包含各种维度的数据）
      *
      * @return 详细统计信息Map
+     * @deprecated 请使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代
+     * <pre>
+     * 建议用法:
+     * UnifiedStatisticsRequest request = UnifiedStatisticsRequest.builder()
+     *     .scope(StatisticsScope.DETAILED)
+     *     .build();
+     * getUnifiedStatistics(request);
+     * </pre>
      */
+    @Deprecated
     HashMap<String, Object> getProblemDetailStatistics();
 
     /**
@@ -90,7 +130,16 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * 获取题目总体统计信息（增强版）
      *
      * @return 统计信息Map
+     * @deprecated 请使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代
+     * <pre>
+     * 建议用法:
+     * UnifiedStatisticsRequest request = UnifiedStatisticsRequest.builder()
+     *     .scope(StatisticsScope.OVERALL)
+     *     .build();
+     * getUnifiedStatistics(request);
+     * </pre>
      */
+    @Deprecated
     HashMap<String, Object> getOverallStatistics();
 
     /**
@@ -358,7 +407,16 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * 获取平台数据大屏统计
      *
      * @return 大屏展示数据
+     * @deprecated 请使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代
+     * <pre>
+     * 建议用法:
+     * UnifiedStatisticsRequest request = UnifiedStatisticsRequest.builder()
+     *     .scope(StatisticsScope.DASHBOARD)
+     *     .build();
+     * getUnifiedStatistics(request);
+     * </pre>
      */
+    @Deprecated
     HashMap<String, Object> getDashboardStatistics();
 
     /**

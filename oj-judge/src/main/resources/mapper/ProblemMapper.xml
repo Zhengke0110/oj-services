@@ -2489,4 +2489,453 @@
             LIMIT #{limit}
     </select>
 
+    <!-- ===== 新增：统一统计信息接口实现 ===== -->
+
+    <!-- 统一的统计信息接口（原始数据版本） -->
+    <select id="getUnifiedStatisticsRaw" resultType="java.util.HashMap">
+        <choose>
+            <!-- 基础统计 -->
+            <when test="request.scope.name() == 'BASIC'">
+                SELECT
+                problem_type,
+                difficulty,
+                COUNT(*) as total_count,
+                SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_count,
+                SUM(submission_count) as total_submissions,
+                SUM(accepted_count) as total_accepted,
+                ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count / submission_count ELSE 0 END), 4) as
+                avg_acceptance_rate
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+                GROUP BY problem_type, difficulty
+                ORDER BY problem_type, difficulty
+            </when>
+
+            <!-- 详细统计 -->
+            <when test="request.scope.name() == 'DETAILED'">
+                SELECT
+                COUNT(*) as total_problems,
+                SUM(CASE WHEN difficulty = 'EASY' THEN 1 ELSE 0 END) as easy_count,
+                SUM(CASE WHEN difficulty = 'MEDIUM' THEN 1 ELSE 0 END) as medium_count,
+                SUM(CASE WHEN difficulty = 'HARD' THEN 1 ELSE 0 END) as hard_count,
+                SUM(CASE WHEN problem_type = 'ALGORITHM' THEN 1 ELSE 0 END) as algorithm_count,
+                SUM(CASE WHEN problem_type = 'PRACTICE' THEN 1 ELSE 0 END) as practice_count,
+                SUM(CASE WHEN problem_type = 'DEBUG' THEN 1 ELSE 0 END) as debug_count,
+                SUM(submission_count) as total_submissions,
+                SUM(accepted_count) as total_accepted,
+                ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count / submission_count ELSE 0 END), 4) as
+                avg_acceptance_rate,
+                MAX(submission_count) as max_submissions,
+                MIN(CASE WHEN submission_count > 0 THEN submission_count ELSE NULL END) as min_submissions
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+                AND status = 1
+            </when>
+
+            <!-- 总体统计 -->
+            <when test="request.scope.name() == 'OVERALL'">
+                SELECT
+                COUNT(*) as total_problems,
+                COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                COUNT(CASE WHEN status = 0 THEN 1 END) as disabled_problems,
+                COUNT(CASE WHEN status = 2 THEN 1 END) as draft_problems,
+                SUM(submission_count) as total_submissions,
+                SUM(accepted_count) as total_accepted,
+                ROUND(CASE WHEN SUM(submission_count) > 0 THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                ELSE 0 END, 2) as overall_acceptance_rate,
+                COUNT(DISTINCT creator_id) as total_creators,
+                AVG(time_limit) as avg_time_limit,
+                AVG(memory_limit) as avg_memory_limit,
+                COUNT(CASE WHEN submission_count = 0 THEN 1 END) as zero_submission_problems,
+                COUNT(CASE WHEN DATEDIFF(CURRENT_DATE, updated_at) > 30 THEN 1 END) as stale_problems,
+                ROUND(AVG(DATEDIFF(CURRENT_DATE, created_at)), 2) as avg_problem_age_days,
+                COUNT(CASE WHEN visibility = 1 THEN 1 END) as public_problems,
+                COUNT(CASE WHEN visibility = 0 THEN 1 END) as private_problems
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+            </when>
+
+            <!-- 仪表盘统计 -->
+            <when test="request.scope.name() == 'DASHBOARD'">
+                SELECT
+                COUNT(*) as total_problems,
+                COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                COUNT(DISTINCT creator_id) as total_creators,
+                SUM(submission_count) as total_submissions,
+                SUM(accepted_count) as total_accepted,
+                COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as problems_created_today,
+                COUNT(CASE WHEN DATE(updated_at) = CURRENT_DATE THEN 1 END) as problems_updated_today,
+                COUNT(CASE WHEN created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY) THEN 1 END) as
+                problems_created_this_week,
+                COUNT(CASE WHEN created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY) THEN 1 END) as
+                problems_created_this_month,
+                COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
+                COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
+                COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
+                COUNT(CASE WHEN submission_count > 100 THEN 1 END) as hot_problems,
+                COUNT(CASE WHEN submission_count = 0 THEN 1 END) as cold_problems,
+                ROUND(CASE WHEN SUM(submission_count) > 0 THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                ELSE 0 END, 2) as overall_acceptance_rate
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+            </when>
+        </choose>
+    </select>
+
+    <!-- ===== 新增：统一统计信息接口实现 ===== -->
+
+    <!-- 统一的统计信息接口 -->
+    <select id="getUnifiedStatistics" resultType="fun.timu.oj.judge.model.response.UnifiedStatisticsResponse">
+        <choose>
+            <!-- 基础统计 -->
+            <when test="request.scope.name() == 'BASIC'">
+                SELECT
+                #{request.scope} as scope,
+                NOW() as timestamp,
+                'v1.0' as dataVersion,
+                JSON_OBJECT(
+                'total_problems', COUNT(*),
+                'problem_type', problem_type,
+                'difficulty', difficulty,
+                'total_count', COUNT(*),
+                'active_count', SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END),
+                'total_submissions', SUM(submission_count),
+                'total_accepted', SUM(accepted_count),
+                'avg_acceptance_rate', ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count / submission_count
+                ELSE 0 END), 4)
+                ) as data,
+                JSON_OBJECT(
+                'queryTime', NOW(),
+                'resultCount', COUNT(*),
+                'hasFilter',
+                <if test="request.difficulties != null or request.problemTypes != null or request.statuses != null">
+                    true
+                </if>
+                <if test="request.difficulties == null and request.problemTypes == null and request.statuses == null">
+                    false
+                </if>
+                ) as metadata
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+                GROUP BY problem_type, difficulty
+                ORDER BY problem_type, difficulty
+            </when>
+
+            <!-- 详细统计 -->
+            <when test="request.scope.name() == 'DETAILED'">
+                SELECT
+                #{request.scope} as scope,
+                NOW() as timestamp,
+                'v1.0' as dataVersion,
+                JSON_OBJECT(
+                'total_problems', COUNT(*),
+                'easy_count', SUM(CASE WHEN difficulty = 'EASY' THEN 1 ELSE 0 END),
+                'medium_count', SUM(CASE WHEN difficulty = 'MEDIUM' THEN 1 ELSE 0 END),
+                'hard_count', SUM(CASE WHEN difficulty = 'HARD' THEN 1 ELSE 0 END),
+                'algorithm_count', SUM(CASE WHEN problem_type = 'ALGORITHM' THEN 1 ELSE 0 END),
+                'practice_count', SUM(CASE WHEN problem_type = 'PRACTICE' THEN 1 ELSE 0 END),
+                'debug_count', SUM(CASE WHEN problem_type = 'DEBUG' THEN 1 ELSE 0 END),
+                'total_submissions', SUM(submission_count),
+                'total_accepted', SUM(accepted_count),
+                'avg_acceptance_rate', ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count / submission_count
+                ELSE 0 END), 4),
+                'max_submissions', MAX(submission_count),
+                'min_submissions', MIN(CASE WHEN submission_count > 0 THEN submission_count ELSE NULL END)
+                ) as data,
+                JSON_OBJECT(
+                'queryTime', NOW(),
+                'resultCount', COUNT(*),
+                'hasFilter',
+                <if test="request.difficulties != null or request.problemTypes != null or request.statuses != null">
+                    true
+                </if>
+                <if test="request.difficulties == null and request.problemTypes == null and request.statuses == null">
+                    false
+                </if>,
+                'includedMetrics', JSON_ARRAY('difficulty_distribution', 'type_distribution', 'submission_stats')
+                ) as metadata
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+                AND status = 1
+            </when>
+
+            <!-- 总体统计 -->
+            <when test="request.scope.name() == 'OVERALL'">
+                SELECT
+                #{request.scope} as scope,
+                NOW() as timestamp,
+                'v1.0' as dataVersion,
+                JSON_OBJECT(
+                'total_problems', COUNT(*),
+                'active_problems', COUNT(CASE WHEN status = 1 THEN 1 END),
+                'disabled_problems', COUNT(CASE WHEN status = 0 THEN 1 END),
+                'draft_problems', COUNT(CASE WHEN status = 2 THEN 1 END),
+                'total_submissions', SUM(submission_count),
+                'total_accepted', SUM(accepted_count),
+                'overall_acceptance_rate', ROUND(CASE WHEN SUM(submission_count) > 0 THEN (SUM(accepted_count) * 100.0 /
+                SUM(submission_count)) ELSE 0 END, 2),
+                'total_creators', COUNT(DISTINCT creator_id),
+                'avg_time_limit', AVG(time_limit),
+                'avg_memory_limit', AVG(memory_limit),
+                'zero_submission_problems', COUNT(CASE WHEN submission_count = 0 THEN 1 END),
+                'stale_problems', COUNT(CASE WHEN DATEDIFF(CURRENT_DATE, updated_at) > 30 THEN 1 END),
+                'avg_problem_age_days', ROUND(AVG(DATEDIFF(CURRENT_DATE, created_at)), 2),
+                'public_problems', COUNT(CASE WHEN visibility = 1 THEN 1 END),
+                'private_problems', COUNT(CASE WHEN visibility = 0 THEN 1 END)
+                ) as data,
+                JSON_OBJECT(
+                'queryTime', NOW(),
+                'resultCount', COUNT(*),
+                'hasFilter',
+                <if test="request.difficulties != null or request.problemTypes != null or request.statuses != null">
+                    true
+                </if>
+                <if test="request.difficulties == null and request.problemTypes == null and request.statuses == null">
+                    false
+                </if>,
+                'includedMetrics', JSON_ARRAY('status_distribution', 'creator_stats', 'aging_analysis',
+                'visibility_stats')
+                ) as metadata
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+            </when>
+
+            <!-- 仪表盘统计 -->
+            <when test="request.scope.name() == 'DASHBOARD'">
+                SELECT
+                #{request.scope} as scope,
+                NOW() as timestamp,
+                'v1.0' as dataVersion,
+                JSON_OBJECT(
+                'total_problems', COUNT(*),
+                'active_problems', COUNT(CASE WHEN status = 1 THEN 1 END),
+                'total_creators', COUNT(DISTINCT creator_id),
+                'total_submissions', SUM(submission_count),
+                'total_accepted', SUM(accepted_count),
+                'problems_created_today', COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END),
+                'problems_updated_today', COUNT(CASE WHEN DATE(updated_at) = CURRENT_DATE THEN 1 END),
+                'problems_created_this_week', COUNT(CASE WHEN created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY) THEN
+                1 END),
+                'problems_created_this_month', COUNT(CASE WHEN created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)
+                THEN 1 END),
+                'easy_problems', COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END),
+                'medium_problems', COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END),
+                'hard_problems', COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END),
+                'hot_problems', COUNT(CASE WHEN submission_count > 100 THEN 1 END),
+                'cold_problems', COUNT(CASE WHEN submission_count = 0 THEN 1 END),
+                'overall_acceptance_rate', ROUND(CASE WHEN SUM(submission_count) > 0 THEN (SUM(accepted_count) * 100.0 /
+                SUM(submission_count)) ELSE 0 END, 2) as overall_acceptance_rate
+                ) as data,
+                JSON_OBJECT(
+                'queryTime', NOW(),
+                'resultCount', COUNT(*),
+                'hasFilter',
+                <if test="request.difficulties != null or request.problemTypes != null or request.statuses != null">
+                    true
+                </if>
+                <if test="request.difficulties == null and request.problemTypes == null and request.statuses == null">
+                    false
+                </if>,
+                'includedMetrics', JSON_ARRAY('daily_stats', 'weekly_stats', 'monthly_stats', 'difficulty_distribution',
+                'activity_levels'),
+                'refreshInterval', 300
+                ) as metadata
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+            </when>
+        </choose>
+    </select>
+
 </mapper>

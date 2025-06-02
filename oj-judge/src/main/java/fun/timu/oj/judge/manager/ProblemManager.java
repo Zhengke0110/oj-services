@@ -8,6 +8,8 @@ import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
+import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
+import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -150,7 +152,9 @@ public interface ProblemManager {
      * 获取题目统计信息
      *
      * @return 统计信息列表（包含各难度级别的题目数量等）
+     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请参照统一接口迁移指南
      */
+    @Deprecated
     List<ProblemStatisticsDTO> getProblemStatistics();
 
     /**
@@ -226,7 +230,9 @@ public interface ProblemManager {
      * 获取题目详细统计信息
      *
      * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
+     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用DETAILED范围
      */
+    @Deprecated
     ProblemDetailStatisticsDTO getProblemDetailStatistics();
 
     /**
@@ -311,7 +317,9 @@ public interface ProblemManager {
      * 获取题目总体统计信息（增强版）
      *
      * @return 统计信息
+     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用OVERALL范围
      */
+    @Deprecated
     Map<String, Object> getOverallStatistics();
 
     /**
@@ -441,7 +449,9 @@ public interface ProblemManager {
      * 获取平台数据大屏统计
      *
      * @return 大屏统计数据
+     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用DASHBOARD范围
      */
+    @Deprecated
     Map<String, Object> getDashboardStatistics();
 
     /**
@@ -532,4 +542,24 @@ public interface ProblemManager {
      * @return 符合条件的题目列表
      */
     public List<ProblemDO> recommendProblems(RecommendationCriteria criteria);
+
+    // ===== 新增：统一统计信息接口 =====
+
+    /**
+     * 统一的统计信息接口
+     * 根据不同的统计范围返回相应的统计数据
+     *
+     * @param request 统一统计请求参数
+     * @return 统一统计响应数据
+     */
+    UnifiedStatisticsResponse getUnifiedStatistics(UnifiedStatisticsRequest request);
+
+    /**
+     * 统一的统计信息接口（原始数据版本）
+     * 返回原始的HashMap格式数据，用于特殊场景
+     *
+     * @param request 统一统计请求参数
+     * @return 统计数据的原始HashMap
+     */
+    Map<String, Object> getUnifiedStatisticsRaw(UnifiedStatisticsRequest request);
 }
