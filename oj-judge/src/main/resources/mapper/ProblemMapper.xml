@@ -112,5 +112,25 @@
         AND status = 1
     </select>
 
+    <!-- 获取最受欢迎的题目类型和难度组合 -->
+    <select id="getPopularProblemCategories" resultType="java.util.HashMap">
+        SELECT
+        problem_type,
+        difficulty,
+        COUNT(*) as total_count,
+        SUM(submission_count) as total_submissions,
+        SUM(accepted_count) as total_accepted,
+        ROUND(SUM(accepted_count) / NULLIF(SUM(submission_count), 0), 4) as acceptance_rate
+        FROM problem
+        <include refid="Base_Where_Clause"/>
+        AND status = 1
+        AND submission_count > 0
+        GROUP BY problem_type, difficulty
+        ORDER BY total_submissions DESC, acceptance_rate DESC
+        <if test="limit != null and limit > 0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
 
 </mapper>

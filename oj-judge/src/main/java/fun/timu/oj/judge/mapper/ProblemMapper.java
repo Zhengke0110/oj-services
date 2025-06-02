@@ -49,6 +49,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @return 详细统计信息Map
      */
     HashMap<String, Object> getProblemDetailStatistics();
+
+    /**
+     * 获取最受欢迎的题目类型和难度组合
+     *
+     * @param limit 返回结果数量限制
+     * @return 包含题目类型、难度及其统计信息的列表
+     */
+    List<HashMap<String, Object>> getPopularProblemCategories(@Param("limit") Integer limit);
 }
 
 

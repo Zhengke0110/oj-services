@@ -14,6 +14,7 @@ import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
@@ -690,10 +691,7 @@ public class ProblemServiceImpl implements ProblemService {
             List<ProblemDO> problemDOList = problemManager.selectBasicInfoByIds(problemIds);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemDOList.stream()
-                    .map(this::convertToBasicVO)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemDOList.stream().map(this::convertToBasicVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             log.info("批量获取题目基本信息成功, 获取到的题目数量: {}", problemVOList.size());
             return problemVOList;
@@ -711,11 +709,28 @@ public class ProblemServiceImpl implements ProblemService {
     @Override
     public ProblemDetailStatisticsDTO getProblemDetailStatistics() {
         try {
-            log.info("ProblemServiceImpl--->获取题目详细统计信息");
+            log.info("ProblemService--->获取题目详细统计信息");
             return problemManager.getProblemDetailStatistics();
         } catch (Exception e) {
-            log.error("ProblemServiceImpl--->获取题目详细统计信息失败: {}", e.getMessage(), e);
+            log.error("ProblemService--->获取题目详细统计信息失败: {}", e.getMessage(), e);
             return null;
+        }
+    }
+
+    /**
+     * 获取最受欢迎的题目类型和难度组合
+     *
+     * @param limit 返回结果数量限制
+     * @return 包含题目类型、难度及其统计信息的列表
+     */
+    @Override
+    public List<PopularProblemCategoryDTO> getPopularProblemCategories(Integer limit) {
+        try {
+            log.info("ProblemService--->获取最受欢迎的题目类型和难度组合, limit: {}", limit);
+            return problemManager.getPopularProblemCategories(limit);
+        } catch (Exception e) {
+            log.error("ProblemService--->获取最受欢迎的题目类型和难度组合失败: {}", e.getMessage(), e);
+            return Collections.emptyList();
         }
     }
 

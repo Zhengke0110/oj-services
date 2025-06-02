@@ -3,6 +3,7 @@ package fun.timu.oj.judge.manager;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 
@@ -189,4 +190,12 @@ public interface ProblemManager {
      * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
      */
     ProblemDetailStatisticsDTO getProblemDetailStatistics();
+
+    /**
+     * 获取最受欢迎的题目类型和难度组合
+     *
+     * @param limit 返回结果数量限制
+     * @return 包含题目类型、难度及其统计信息的列表
+     */
+    List<PopularProblemCategoryDTO> getPopularProblemCategories(Integer limit);
 }

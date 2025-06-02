@@ -6,6 +6,7 @@ import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.*;
+import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
@@ -414,6 +415,24 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目详细统计信息异常: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取最受欢迎的题目类型和难度组合
+     *
+     * @param limit 返回结果数量限制
+     * @return 包含题目类型、难度及其统计信息的列表
+     */
+    @GetMapping("/popular-categories")
+    public JsonData getPopularProblemCategories(@RequestParam(required = false, defaultValue = "10") Integer limit) {
+        try {
+            log.info("ProblemController--->获取最受欢迎的题目类型和难度组合, limit: {}", limit);
+            List<PopularProblemCategoryDTO> result = problemService.getPopularProblemCategories(limit);
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取最受欢迎的题目类型和难度组合失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

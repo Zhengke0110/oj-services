@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import lombok.RequiredArgsConstructor;
@@ -431,28 +433,9 @@ public class ProblemManagerImpl implements ProblemManager {
             if (rawStatistics == null) {
                 return Collections.emptyList();
             }
-
-            return rawStatistics.stream().filter(Objects::nonNull).map(item -> {
-                // 假设 item 是 Map<String, Object> 类型
-                if (!(item instanceof Map)) {
-                    log.warn("发现非 Map 类型的元素：{}", item.getClass());
-                    throw new RuntimeException("非 Map 类型的元素");
-                }
-                @SuppressWarnings("unchecked") Map<String, Object> data = (Map<String, Object>) item;
-
-                ProblemStatisticsDTO dto = new ProblemStatisticsDTO();
-
-                // 根据SQL查询结果字段映射到DTO属性
-                dto.setProblemType((String) data.get("problem_type"));
-                dto.setDifficulty((Integer) data.get("difficulty"));
-                dto.setTotalCount(((Number) data.get("total_count")).intValue());
-                dto.setActiveCount(((Number) data.get("active_count")).intValue());
-                dto.setTotalSubmissions(((Number) data.get("total_submissions")).intValue());
-                dto.setTotalAccepted(((Number) data.get("total_accepted")).intValue());
-                dto.setAvgAcceptanceRate(((Number) data.get("avg_acceptance_rate")).doubleValue());
-
-                return dto;
-            }).filter(Objects::nonNull).collect(Collectors.toList());
+            return rawStatistics.stream()
+                    .map(item -> ProblemStatisticsDTO.fromMap((Map<String, Object>) item))
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("获取题目统计信息失败: {}", e.getMessage(), e);
             throw new RuntimeException("获取题目统计信息失败", e);
@@ -765,5 +748,26 @@ public class ProblemManagerImpl implements ProblemManager {
             throw new RuntimeException("获取题目详细统计信息失败");
         }
         return ProblemDetailStatisticsDTO.fromMap(statistics);
+    }
+
+    /**
+     * 获取最受欢迎的题目类型和难度组合
+     *
+     * @param limit 返回结果数量限制
+     * @return 包含题目类型、难度及其统计信息的列表
+     */
+    @Override
+    public List<PopularProblemCategoryDTO> getPopularProblemCategories(Integer limit) {
+
+        List<HashMap<String, Object>> result = problemMapper.getPopularProblemCategories(limit);
+
+        // 处理结果，添加难度和类型的文本描述
+        for (Map<String, Object> item : result) {
+            Integer difficulty = (Integer) item.get("difficulty");
+
+            // 添加难度文本描述
+            item.put("difficulty_label", ProblemDifficultyEnum.getDescriptionByCode(difficulty));
+        }
+        return PopularProblemCategoryDTO.fromMapList(result);
     }
 }
