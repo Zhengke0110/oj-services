@@ -597,8 +597,157 @@ public class ProblemManagerImpl implements ProblemManager {
         return problemMapper.selectPage(page, queryWrapper);
     }
 
+    /**
+     * 批量软删除题目
+     *
+     * @param problemIds 题目ID列表，用于指定要删除的题目
+     * @return 返回成功删除的题目数量
+     */
     @Override
     public int batchSoftDelete(List<Long> problemIds) {
-        return 0;
+        // 参数校验
+        if (problemIds == null || problemIds.isEmpty()) {
+            return 0;
+        }
+
+        // 创建更新条件
+        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        // 只更新未删除的题目
+        updateWrapper.eq("is_deleted", 0);
+        // 限定要更新的ID列表
+        updateWrapper.in("id", problemIds);
+        // 设置要更新的字段
+        updateWrapper.set("is_deleted", 1);
+
+        // 执行批量更新并返回影响的行数
+        return problemMapper.update(null, updateWrapper);
+    }
+
+    /**
+     * 批量恢复删除的题目
+     *
+     * @param problemIds 需要恢复的题目ID列表
+     * @return 影响的行数，表示成功恢复的题目数量
+     */
+    @Override
+    public int batchRestore(List<Long> problemIds) {
+        // 参数校验
+        if (problemIds == null || problemIds.isEmpty()) {
+            return 0;
+        }
+
+        // 创建更新条件
+        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        // 只更新已删除的题目
+        updateWrapper.eq("is_deleted", 1);
+        // 限定要更新的ID列表
+        updateWrapper.in("id", problemIds);
+        // 设置要更新的字段
+        updateWrapper.set("is_deleted", 0);
+        // 使用数据库函数更新时间戳
+        updateWrapper.setSql("updated_at = NOW()");
+
+        // 执行批量更新并返回影响的行数
+        return problemMapper.update(null, updateWrapper);
+    }
+
+    /**
+     * 获取指定题目的通过率
+     *
+     * @param problemId 题目ID，用于识别特定的题目
+     * @return 返回题目的通过率，如果题目不存在或从未被提交过，则返回0.0
+     * @throws RuntimeException 如果题目ID无效，抛出运行时异常
+     */
+    @Override
+    public Double getAcceptanceRate(Long problemId) {
+        // 参数校验
+        if (problemId == null || problemId <= 0) {
+            throw new RuntimeException("题目ID无效");
+        }
+
+        // 创建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProblemDO::getId, problemId);
+        queryWrapper.eq(ProblemDO::getIsDeleted, 0);
+        // 只查询需要的字段，提高效率
+        queryWrapper.select(ProblemDO::getSubmissionCount, ProblemDO::getAcceptedCount);
+
+        // 查询题目
+        ProblemDO problem = problemMapper.selectOne(queryWrapper);
+
+        // 如果题目不存在，返回0
+        if (problem == null) {
+            return 0.0;
+        }
+
+        // 如果提交次数为0，返回0，避免除以零错误
+        if (problem.getSubmissionCount() == 0) {
+            return 0.0;
+        }
+
+        // 计算通过率并四舍五入到小数点后4位
+        double acceptanceRate = (double) problem.getAcceptedCount() / problem.getSubmissionCount();
+        return Math.round(acceptanceRate * 10000) / 10000.0;
+    }
+
+    /**
+     * 根据问题ID列表选择基本信息
+     * <p>
+     * 此方法用于批量获取问题的基本信息，仅返回指定字段和未删除的问题
+     * 它首先验证输入的ID列表，然后构建查询条件，最后执行数据库查询并按输入ID顺序返回结果
+     *
+     * @param problemIds 问题ID列表，用于指定需要查询的问题
+     * @return 返回包含问题基本信息的列表，如果找不到任何问题，则返回空列表
+     */
+    @Override
+    public List<ProblemDO> selectBasicInfoByIds(List<Long> problemIds) {
+        // 参数校验
+        if (problemIds == null || problemIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 创建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+        // 只查询指定的字段
+        queryWrapper.select(
+                ProblemDO::getId,
+                ProblemDO::getTitle,
+                ProblemDO::getTitleEn,
+                ProblemDO::getDifficulty,
+                ProblemDO::getStatus,
+                ProblemDO::getProblemType,
+                ProblemDO::getSubmissionCount,
+                ProblemDO::getAcceptedCount,
+                ProblemDO::getCreatedAt,
+                ProblemDO::getUpdatedAt
+        );
+        // 按ID列表筛选
+        queryWrapper.in(ProblemDO::getId, problemIds);
+        // 只查询未删除的题目
+        queryWrapper.eq(ProblemDO::getIsDeleted, 0);
+
+        // 执行查询
+        List<ProblemDO> problems = problemMapper.selectList(queryWrapper);
+
+        // 如果没有找到任何题目，直接返回空列表
+        if (problems.isEmpty()) {
+            return problems;
+        }
+
+        // 使用Map存储题目，以便按照传入的ID列表顺序进行排序
+        Map<Long, ProblemDO> problemMap = new HashMap<>();
+        for (ProblemDO problem : problems) {
+            problemMap.put(problem.getId(), problem);
+        }
+
+        // 按照传入的ID列表顺序排序
+        List<ProblemDO> orderedProblems = new ArrayList<>();
+        for (Long id : problemIds) {
+            ProblemDO problem = problemMap.get(id);
+            if (problem != null) {
+                orderedProblems.add(problem);
+            }
+        }
+        return orderedProblems;
     }
 }

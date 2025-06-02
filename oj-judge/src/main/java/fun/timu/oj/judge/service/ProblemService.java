@@ -133,5 +133,35 @@ public interface ProblemService {
      */
     PageResult<ProblemVO> selectByLanguage(int pageNum, int pageSize, String language);
 
+    /**
+     * 批量软删除题目
+     *
+     * @param problemIds 题目ID列表
+     * @return 成功删除的题目数量
+     */
+    int batchSoftDelete(List<Long> problemIds);
 
+    /**
+     * 批量恢复已删除的题目
+     *
+     * @param problemIds 需要恢复的题目ID列表
+     * @return 成功恢复的题目数量
+     */
+    int batchRestore(List<Long> problemIds);
+
+    /**
+     * 获取指定题目的通过率
+     *
+     * @param problemId 题目ID
+     * @return 题目的通过率，如果题目不存在或从未被提交过，则返回0.0
+     */
+    Double getAcceptanceRate(Long problemId);
+
+    /**
+     * 根据题目ID列表获取题目基本信息
+     *
+     * @param problemIds 题目ID列表
+     * @return 包含题目基本信息的列表
+     */
+    List<ProblemVO> selectBasicInfoByIds(List<Long> problemIds);
 }

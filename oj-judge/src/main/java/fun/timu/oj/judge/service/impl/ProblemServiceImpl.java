@@ -584,6 +584,152 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 批量软删除题目
+     *
+     * @param problemIds 题目ID列表
+     * @return 成功删除的题目数量
+     */
+    @Override
+    public int batchSoftDelete(List<Long> problemIds) {
+        try {
+            log.info("ProblemService--->批量软删除题目, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
+
+            // 参数校验
+            if (problemIds == null || problemIds.isEmpty()) {
+                log.warn("批量软删除题目失败：题目ID列表为空");
+                return 0;
+            }
+
+            // 调用manager层执行软删除操作
+            int deletedCount = problemManager.batchSoftDelete(problemIds);
+
+            log.info("批量软删除题目成功, 成功删除数量: {}", deletedCount);
+            return deletedCount;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量软删除题目失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量软删除题目失败", e);
+        }
+    }
+
+    /**
+     * 批量恢复已删除的题目
+     *
+     * @param problemIds 需要恢复的题目ID列表
+     * @return 成功恢复的题目数量
+     */
+    @Override
+    public int batchRestore(List<Long> problemIds) {
+        try {
+            log.info("ProblemService--->批量恢复已删除题目, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
+
+            // 参数校验
+            if (problemIds == null || problemIds.isEmpty()) {
+                log.warn("批量恢复已删除题目失败：题目ID列表为空");
+                return 0;
+            }
+
+            // 调用manager层执行恢复操作
+            int restoredCount = problemManager.batchRestore(problemIds);
+
+            log.info("批量恢复已删除题目成功, 成功恢复数量: {}", restoredCount);
+            return restoredCount;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量恢复已删除题目失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量恢复已删除题目失败", e);
+        }
+    }
+
+    /**
+     * 获取指定题目的通过率
+     *
+     * @param problemId 题目ID
+     * @return 题目的通过率，如果题目不存在或从未被提交过，则返回0.0
+     */
+    @Override
+    public Double getAcceptanceRate(Long problemId) {
+        try {
+            log.info("ProblemService--->获取题目通过率, 题目ID: {}", problemId);
+
+            // 参数校验
+            if (problemId == null || problemId <= 0) {
+                log.warn("获取题目通过率失败：题目ID无效");
+                return 0.0;
+            }
+
+            // 调用manager层获取通过率
+            Double acceptanceRate = problemManager.getAcceptanceRate(problemId);
+
+            log.info("获取题目通过率成功, 题目ID: {}, 通过率: {}", problemId, acceptanceRate);
+            return acceptanceRate;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取题目通过率失败: {}", e.getMessage(), e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 根据题目ID列表获取题目基本信息
+     *
+     * @param problemIds 题目ID列表
+     * @return 包含题目基本信息的列表
+     */
+    @Override
+    public List<ProblemVO> selectBasicInfoByIds(List<Long> problemIds) {
+        try {
+            log.info("ProblemService--->批量获取题目基本信息, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
+
+            // 参数校验
+            if (problemIds == null || problemIds.isEmpty()) {
+                log.warn("批量获取题目基本信息失败：题目ID列表为空");
+                return new ArrayList<>();
+            }
+
+            // 调用manager层获取题目基本信息
+            List<ProblemDO> problemDOList = problemManager.selectBasicInfoByIds(problemIds);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemDOList.stream()
+                    .map(this::convertToBasicVO)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            log.info("批量获取题目基本信息成功, 获取到的题目数量: {}", problemVOList.size());
+            return problemVOList;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量获取题目基本信息失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 将ProblemDO转换为基本信息的ProblemVO
+     * 只包含题目的基本字段，不包含详细内容
+     *
+     * @param problemDO 题目DO对象
+     * @return 基本信息的题目VO对象
+     */
+    private ProblemVO convertToBasicVO(ProblemDO problemDO) {
+        if (problemDO == null) return null;
+
+        ProblemVO problemVO = new ProblemVO();
+        // 只复制基本字段
+        BeanUtils.copyProperties(problemDO, problemVO);
+
+        // 设置难度和状态的标签
+        problemVO.setDifficultyLabel(ProblemDifficultyEnum.getDescriptionByCode(problemDO.getDifficulty()));
+        problemVO.setStatusLabel(ProblemStatusEnum.getDescriptionByCode(problemDO.getStatus()));
+
+        // 计算通过率
+        if (problemDO.getSubmissionCount() > 0) {
+            double acceptanceRate = (double) problemDO.getAcceptedCount() / problemDO.getSubmissionCount();
+            problemVO.setAcceptanceRate(Math.round(acceptanceRate * 10000) / 10000.0);
+        } else {
+            problemVO.setAcceptanceRate(0.0);
+        }
+
+        return problemVO;
+    }
 
     /**
      * 将ProblemDO对象转换为ProblemVO对象

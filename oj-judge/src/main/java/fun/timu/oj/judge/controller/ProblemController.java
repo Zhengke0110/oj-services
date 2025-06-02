@@ -247,8 +247,7 @@ public class ProblemController {
     @PutMapping("/batch-status")
     public JsonData batchUpdateStatus(@Valid @RequestBody BatchUpdateStatusRequest request) {
         try {
-            log.info("ProblemController--->批量更新题目状态请求, 题目数量: {}, 目标状态: {}",
-                    request.getProblemIds().size(), request.getStatus());
+            log.info("ProblemController--->批量更新题目状态请求, 题目数量: {}, 目标状态: {}", request.getProblemIds().size(), request.getStatus());
 
             boolean result = problemService.batchUpdateStatus(request.getProblemIds(), request.getStatus());
 
@@ -294,13 +293,9 @@ public class ProblemController {
      * @return 最近创建的题目列表
      */
     @GetMapping("/recent")
-    public JsonData getRecentProblems(
-            @RequestParam(defaultValue = "1") @Positive int pageNum,
-            @RequestParam(defaultValue = "10") @Positive int pageSize,
-            @RequestParam(required = false) Integer limit) {
+    public JsonData getRecentProblems(@RequestParam(defaultValue = "1") @Positive int pageNum, @RequestParam(defaultValue = "10") @Positive int pageSize, @RequestParam(required = false) Integer limit) {
         try {
-            log.info("ProblemController--->查询最近创建的题目, 页码: {}, 每页数量: {}, 限制数量: {}",
-                    pageNum, pageSize, limit);
+            log.info("ProblemController--->查询最近创建的题目, 页码: {}, 每页数量: {}, 限制数量: {}", pageNum, pageSize, limit);
 
             List<ProblemVO> problemList = problemService.selectRecentProblems(pageNum, pageSize, limit);
 
@@ -320,19 +315,87 @@ public class ProblemController {
      * @return 分页题目列表结果
      */
     @GetMapping("/language")
-    public JsonData getProblemsByLanguage(
-            @RequestParam(defaultValue = "1") @Positive int pageNum,
-            @RequestParam(defaultValue = "10") @Positive int pageSize,
-            @RequestParam(required = true) ProgrammingLanguage language) {
+    public JsonData getProblemsByLanguage(@RequestParam(defaultValue = "1") @Positive int pageNum, @RequestParam(defaultValue = "10") @Positive int pageSize, @RequestParam(required = true) ProgrammingLanguage language) {
         try {
-            log.info("ProblemController--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}",
-                    pageNum, pageSize, language);
+            log.info("ProblemController--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}", pageNum, pageSize, language);
 
             PageResult<ProblemVO> pageResult = problemService.selectByLanguage(pageNum, pageSize, language.name());
 
             return JsonData.buildSuccess(pageResult);
         } catch (Exception e) {
             log.error("ProblemController--->根据支持的编程语言查询题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 批量软删除题目
+     *
+     * @return 通用响应对象，包含成功删除的题目数量
+     */
+    @PostMapping("/batch-delete")
+    public JsonData batchSoftDelete(@Valid @RequestBody BatchProblemRequest request) {
+        log.info("批量软删除题目，题目ID列表: {}", request.getProblemIds());
+        try {
+            int deletedCount = problemService.batchSoftDelete(request.getProblemIds());
+            return JsonData.buildSuccess("批量软删除题目成功: " + deletedCount + " 道题目已被软删除");
+        } catch (Exception e) {
+            log.error("ProblemController--->批量软删除题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 批量恢复已删除的题目
+     *
+     * @return 通用响应对象，包含成功恢复的题目数量
+     */
+    @PostMapping("/batch-restore")
+    public JsonData batchRestore(@Valid @RequestBody BatchProblemRequest request) {
+        log.info("批量恢复已删除题目，题目ID列表: {}", request.getProblemIds());
+        try {
+            int restoredCount = problemService.batchRestore(request.getProblemIds());
+            return JsonData.buildSuccess("批量恢复删除题目成功: " + restoredCount + " 道题目已被恢复");
+        } catch (Exception e) {
+            log.error("ProblemController--->批量恢复已删除题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取指定题目的通过率
+     *
+     * @param problemId 题目ID
+     * @return 通用响应对象，包含题目的通过率
+     */
+    @GetMapping("/acceptance-rate/{problemId}")
+    public JsonData getAcceptanceRate(@PathVariable Long problemId) {
+        log.info("获取题目通过率，题目ID: {}", problemId);
+        try {
+            Double acceptanceRate = problemService.getAcceptanceRate(problemId);
+            Map<String, Object> result = new HashMap<>();
+            result.put("acceptanceRate", acceptanceRate);
+            result.put("problemId", problemId);
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取题目通过率失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 批量获取题目基本信息
+     *
+     * @return 通用响应对象，包含题目基本信息列表
+     */
+    @PostMapping("/basic-info")
+    public JsonData getBasicInfoByIds(@Valid @RequestBody BatchProblemRequest request) {
+        log.info("批量获取题目基本信息，题目ID列表: {}", request.getProblemIds());
+        try {
+            List<ProblemVO> problemVOList = problemService.selectBasicInfoByIds(request.getProblemIds());
+            return JsonData.buildSuccess(problemVOList);
+        } catch (Exception e) {
+            log.error("ProblemController--->批量获取题目基本信息失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

@@ -152,4 +152,28 @@ public interface ProblemManager {
      * @return 删除的记录数
      */
     int batchSoftDelete(List<Long> problemIds);
+
+    /**
+     * 恢复已删除的题目（批量）
+     *
+     * @param problemIds 题目ID列表
+     * @return 恢复的记录数
+     */
+    int batchRestore(List<Long> problemIds);
+
+    /**
+     * 查询题目的通过率
+     *
+     * @param problemId 题目ID
+     * @return 通过率（小数形式，如0.6表示60%）
+     */
+    Double getAcceptanceRate(Long problemId);
+
+    /**
+     * 批量获取题目的基本信息
+     *
+     * @param problemIds 题目ID列表
+     * @return 题目信息列表
+     */
+    List<ProblemDO> selectBasicInfoByIds(List<Long> problemIds);
 }
