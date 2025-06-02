@@ -9,6 +9,7 @@ import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
+import fun.timu.oj.judge.model.criteria.TrendCriteria;
 import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
 
@@ -352,13 +353,33 @@ public interface ProblemManager {
     List<Map<String, Object>> getStatisticsByStatus();
 
     /**
+     * 统一的趋势分析接口（替代原有的4个冗余接口）
+     *
+     * @param criteria 趋势分析条件
+     * @return 趋势数据列表
+     */
+    List<Map<String, Object>> getTrendAnalysis(TrendCriteria criteria);
+
+    /**
      * 获取题目创建趋势
      *
      * @param startDate   开始日期
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 创建趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.PROBLEM_CREATION)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
 
     /**
@@ -368,7 +389,19 @@ public interface ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 提交趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.SUBMISSION_TREND)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity);
 
     /**
@@ -378,7 +411,19 @@ public interface ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 通过率趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.ACCEPTANCE_RATE_TREND)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity);
 
 

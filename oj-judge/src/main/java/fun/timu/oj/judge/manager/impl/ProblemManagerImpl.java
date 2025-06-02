@@ -14,6 +14,7 @@ import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
+import fun.timu.oj.judge.model.criteria.TrendCriteria;
 import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
 import lombok.RequiredArgsConstructor;
@@ -1068,7 +1069,9 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 创建趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
      */
+    @Deprecated
     @Override
     public List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity) {
         try {
@@ -1087,7 +1090,9 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 提交趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
      */
+    @Deprecated
     @Override
     public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
         try {
@@ -1106,7 +1111,9 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 通过率趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
      */
+    @Deprecated
     @Override
     public List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity) {
         try {
@@ -1734,4 +1741,20 @@ public class ProblemManagerImpl implements ProblemManager {
         }
     }
 
+    /**
+     * 统一的趋势分析接口（替代原有的4个冗余接口）
+     *
+     * @param criteria 趋势分析条件
+     * @return 趋势数据列表
+     */
+    @Override
+    public List<Map<String, Object>> getTrendAnalysis(TrendCriteria criteria) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getTrendAnalysis(criteria);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取趋势分析失败", e);
+            throw new RuntimeException("获取趋势分析失败", e);
+        }
+    }
 }

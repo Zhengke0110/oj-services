@@ -3,6 +3,7 @@ package fun.timu.oj.judge.mapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
+import fun.timu.oj.judge.model.criteria.TrendCriteria;
 import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -200,13 +201,33 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
     // ===== V2新增：时间趋势分析聚合接口 =====
 
     /**
+     * 统一的趋势分析接口（替代原有的4个冗余接口）
+     *
+     * @param criteria 趋势分析条件
+     * @return 趋势数据列表
+     */
+    List<HashMap<String, Object>> getTrendAnalysis(@Param("criteria") TrendCriteria criteria);
+
+    /**
      * 获取题目创建趋势（按日期）
      *
      * @param startDate   开始日期
      * @param endDate     结束日期
      * @param granularity 时间粒度：DAY/WEEK/MONTH/YEAR
      * @return 趋势数据列表
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.PROBLEM_CREATION)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getProblemCreationTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
 
     /**
@@ -216,7 +237,19 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param endDate     结束日期
      * @param granularity 时间粒度：DAY/WEEK/MONTH/YEAR
      * @return 提交趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.SUBMISSION_TREND)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getSubmissionTrendAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
 
     /**
@@ -226,7 +259,19 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 通过率趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.ACCEPTANCE_RATE_TREND)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getAcceptanceRateTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
 
     /**
@@ -236,7 +281,19 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 活跃度趋势数据
+     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * TrendCriteria criteria = TrendCriteria.builder()
+     *     .type(TrendType.PROBLEM_ACTIVITY_TREND)
+     *     .timeGranularity(granularity)
+     *     .startTime(startDate)
+     *     .endTime(endDate)
+     *     .build();
+     * getTrendAnalysis(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getProblemActivityTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
 
     // ===== V2新增：多维度排行榜聚合接口 =====
