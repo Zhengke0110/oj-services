@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.model.VO;
+package fun.timu.oj.judge.model.VTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TagUsageStatisticsVO {
+public class TagUsageStatisticsVTO {
     private Long id;
     private String tagName;
     private String tagNameEn;

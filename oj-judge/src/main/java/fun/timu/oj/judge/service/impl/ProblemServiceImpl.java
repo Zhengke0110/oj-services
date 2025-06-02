@@ -17,9 +17,11 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.SubmissionTrendDTO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
+import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
+import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
+import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -497,12 +499,18 @@ public class ProblemServiceImpl implements ProblemService {
      * @return 统计信息列表
      */
     @Override
-    public List<ProblemStatisticsDTO> getProblemStatistics() {
+    public List<ProblemStatisticsVTO> getProblemStatistics() {
         try {
-            log.info("ProblemServiceImpl--->获取题目统计信息");
-            return problemManager.getProblemStatistics();
+            log.info("ProblemService--->获取题目统计信息");
+            List<ProblemStatisticsDTO> problemStatistics = problemManager.getProblemStatistics();
+            List<ProblemStatisticsVTO> problemStatisticsVTOList = problemStatistics.stream().map(problemStatisticsDTO -> {
+                ProblemStatisticsVTO problemStatisticsVTO = ProblemStatisticsVTO.fromDTO(problemStatisticsDTO);
+                return problemStatisticsVTO;
+            }).collect(Collectors.toList());
+            log.info("ProblemService--->获取题目统计信息成功，数量: {}", problemStatisticsVTOList.size());
+            return problemStatisticsVTOList;
         } catch (Exception e) {
-            log.error("ProblemServiceImpl--->获取题目统计信息异常: {}", e.getMessage(), e);
+            log.error("ProblemService--->获取题目统计信息异常: {}", e.getMessage(), e);
             throw new RuntimeException("获取题目统计信息失败", e);
         }
     }
@@ -708,10 +716,13 @@ public class ProblemServiceImpl implements ProblemService {
      * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
      */
     @Override
-    public ProblemDetailStatisticsDTO getProblemDetailStatistics() {
+    public ProblemDetailStatisticsVTO getProblemDetailStatistics() {
         try {
             log.info("ProblemService--->获取题目详细统计信息");
-            return problemManager.getProblemDetailStatistics();
+            ProblemDetailStatisticsDTO problemDetailStatistics = problemManager.getProblemDetailStatistics();
+            ProblemDetailStatisticsVTO problemDetailStatisticsVTO = ProblemDetailStatisticsVTO.fromDTO(problemDetailStatistics);
+            log.info("ProblemService--->获取题目详细统计信息成功, 统计信息: {}", problemDetailStatisticsVTO.toString());
+            return problemDetailStatisticsVTO;
         } catch (Exception e) {
             log.error("ProblemService--->获取题目详细统计信息失败: {}", e.getMessage(), e);
             return null;
@@ -725,10 +736,13 @@ public class ProblemServiceImpl implements ProblemService {
      * @return 包含题目类型、难度及其统计信息的列表
      */
     @Override
-    public List<PopularProblemCategoryDTO> getPopularProblemCategories(Integer limit) {
+    public List<PopularProblemCategoryVTO> getPopularProblemCategories(Integer limit) {
         try {
             log.info("ProblemService--->获取最受欢迎的题目类型和难度组合, limit: {}", limit);
-            return problemManager.getPopularProblemCategories(limit);
+            List<PopularProblemCategoryDTO> popularProblemCategories = problemManager.getPopularProblemCategories(limit);
+            List<PopularProblemCategoryVTO> popularProblemCategoriesVTO = PopularProblemCategoryVTO.fromDTOList(popularProblemCategories);
+            log.info("ProblemService--->获取最受欢迎的题目类型和难度组合成功, 获取到的组合数量: {}", popularProblemCategoriesVTO.size());
+            return popularProblemCategoriesVTO;
         } catch (Exception e) {
             log.error("ProblemService--->获取最受欢迎的题目类型和难度组合失败: {}", e.getMessage(), e);
             return Collections.emptyList();

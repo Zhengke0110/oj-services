@@ -1,13 +1,12 @@
 package fun.timu.oj.judge.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.enmus.TagCategoryEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
-import fun.timu.oj.judge.model.VO.TagUsageStatisticsVO;
-import fun.timu.oj.judge.model.VO.CategoryAggregateStatisticsVO;
+import fun.timu.oj.judge.model.VTO.TagUsageStatisticsVTO;
+import fun.timu.oj.judge.model.VTO.CategoryAggregateStatisticsVTO;
 
 import java.util.List;
 
@@ -49,14 +48,14 @@ public interface ProblemTagService {
     /**
      * 获取标签使用统计
      */
-    List<TagUsageStatisticsVO> getTagUsageStatistics(TagCategoryEnum category);
+    List<TagUsageStatisticsVTO> getTagUsageStatistics(TagCategoryEnum category);
 
     /**
      * 获取所有分类的标签使用聚合统计信息
      *
      * @return 每个分类的标签总数和使用情况统计
      */
-    List<CategoryAggregateStatisticsVO> getCategoryAggregateStatistics();
+    List<CategoryAggregateStatisticsVTO> getCategoryAggregateStatistics();
 
     /**
      * 根据使用次数范围查询标签

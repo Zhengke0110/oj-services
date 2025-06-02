@@ -10,9 +10,9 @@ import fun.timu.oj.judge.controller.request.ProblemTagBatchRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagListRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;
-import fun.timu.oj.judge.model.VO.CategoryAggregateStatisticsVO;
+import fun.timu.oj.judge.model.VTO.CategoryAggregateStatisticsVTO;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
-import fun.timu.oj.judge.model.VO.TagUsageStatisticsVO;
+import fun.timu.oj.judge.model.VTO.TagUsageStatisticsVTO;
 import fun.timu.oj.judge.service.ProblemTagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -192,7 +192,7 @@ public class ProblemTagController {
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException("无效的标签分类");
             }
-            List<TagUsageStatisticsVO> statistics = problemTagService.getTagUsageStatistics(categoryEnum);
+            List<TagUsageStatisticsVTO> statistics = problemTagService.getTagUsageStatistics(categoryEnum);
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemTagController--->获取标签使用统计失败: {}", e.getMessage(), e);
@@ -209,7 +209,7 @@ public class ProblemTagController {
     public JsonData getCategoryAggregateStatistics() {
         try {
             log.info("获取分类聚合统计请求");
-            List<CategoryAggregateStatisticsVO> statistics = problemTagService.getCategoryAggregateStatistics();
+            List<CategoryAggregateStatisticsVTO> statistics = problemTagService.getCategoryAggregateStatistics();
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemTagController--->获取分类聚合统计失败: {}", e.getMessage(), e);

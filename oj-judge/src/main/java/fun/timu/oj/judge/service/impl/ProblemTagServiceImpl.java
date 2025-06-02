@@ -11,9 +11,9 @@ import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.TagUsageStatisticsDTO;
-import fun.timu.oj.judge.model.VO.CategoryAggregateStatisticsVO;
+import fun.timu.oj.judge.model.VTO.CategoryAggregateStatisticsVTO;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
-import fun.timu.oj.judge.model.VO.TagUsageStatisticsVO;
+import fun.timu.oj.judge.model.VTO.TagUsageStatisticsVTO;
 import fun.timu.oj.judge.service.ProblemTagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -279,7 +278,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 如果在处理过程中遇到任何异常，都会记录错误日志并返回 null
      */
     @Override
-    public List<TagUsageStatisticsVO> getTagUsageStatistics(TagCategoryEnum category) {
+    public List<TagUsageStatisticsVTO> getTagUsageStatistics(TagCategoryEnum category) {
         try {
             // 调用 manager 层获取统计数据，注意这里返回的是 TagUsageStatisticsDTO 类型
             List<TagUsageStatisticsDTO> statisticsDTOs = problemTagManager.getTagUsageStatistics(category.toString());
@@ -303,7 +302,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 分类聚合统计信息的 VO 对象列表
      */
     @Override
-    public List<CategoryAggregateStatisticsVO> getCategoryAggregateStatistics() {
+    public List<CategoryAggregateStatisticsVTO> getCategoryAggregateStatistics() {
         try {
             // 调用 manager 层获取原始聚合统计数据
             List<CategoryAggregateStatisticsDTO> statisticsDTOs = problemTagManager.getCategoryAggregateStatistics();
@@ -659,8 +658,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @param dto 标签使用统计DTO
      * @return 标签使用统计VO
      */
-    private TagUsageStatisticsVO convertStatisticsToVO(TagUsageStatisticsDTO dto) {
-        TagUsageStatisticsVO vo = new TagUsageStatisticsVO();
+    private TagUsageStatisticsVTO convertStatisticsToVO(TagUsageStatisticsDTO dto) {
+        TagUsageStatisticsVTO vo = new TagUsageStatisticsVTO();
         BeanUtils.copyProperties(dto, vo);
         return vo;
     }
@@ -671,12 +670,12 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @param dto CategoryAggregateStatisticsDTO 对象
      * @return 转换后的 CategoryAggregateStatisticsVO 对象
      */
-    private CategoryAggregateStatisticsVO convertToVO(CategoryAggregateStatisticsDTO dto) {
+    private CategoryAggregateStatisticsVTO convertToVO(CategoryAggregateStatisticsDTO dto) {
         if (dto == null) {
             return null;
         }
         // 使用 BeanUtils 进行属性拷贝
-        CategoryAggregateStatisticsVO vo = new CategoryAggregateStatisticsVO();
+        CategoryAggregateStatisticsVTO vo = new CategoryAggregateStatisticsVTO();
         BeanUtils.copyProperties(dto, vo);
 
         // 设置额外的字段

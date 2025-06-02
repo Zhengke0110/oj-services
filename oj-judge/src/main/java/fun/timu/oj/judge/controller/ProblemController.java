@@ -6,11 +6,10 @@ import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.*;
-import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
-import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.SubmissionTrendDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
+import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
+import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
+import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -235,7 +234,7 @@ public class ProblemController {
     public JsonData getProblemStatistics() {
         try {
             log.info("ProblemController--->获取题目统计信息");
-            List<ProblemStatisticsDTO> statistics = problemService.getProblemStatistics();
+            List<ProblemStatisticsVTO> statistics = problemService.getProblemStatistics();
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目统计信息异常: {}", e.getMessage(), e);
@@ -414,7 +413,7 @@ public class ProblemController {
     public JsonData getProblemDetailStatistics() {
         try {
             log.info("ProblemController--->获取题目详细统计信息");
-            ProblemDetailStatisticsDTO statistics = problemService.getProblemDetailStatistics();
+            ProblemDetailStatisticsVTO statistics = problemService.getProblemDetailStatistics();
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目详细统计信息异常: {}", e.getMessage(), e);
@@ -432,7 +431,7 @@ public class ProblemController {
     public JsonData getPopularProblemCategories(@RequestParam(required = false, defaultValue = "10") Integer limit) {
         try {
             log.info("ProblemController--->获取最受欢迎的题目类型和难度组合, limit: {}", limit);
-            List<PopularProblemCategoryDTO> result = problemService.getPopularProblemCategories(limit);
+            List<PopularProblemCategoryVTO> result = problemService.getPopularProblemCategories(limit);
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->获取最受欢迎的题目类型和难度组合失败: {}", e.getMessage(), e);

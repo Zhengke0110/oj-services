@@ -4,11 +4,10 @@ import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
-import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
-import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.SubmissionTrendDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
+import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
+import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
+import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -99,7 +98,7 @@ public interface ProblemService {
      *
      * @return 统计信息列表（包含各难度级别的题目数量等）
      */
-    List<ProblemStatisticsDTO> getProblemStatistics();
+    List<ProblemStatisticsVTO> getProblemStatistics();
 
     /**
      * 批量更新题目状态
@@ -175,7 +174,7 @@ public interface ProblemService {
      *
      * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
      */
-    ProblemDetailStatisticsDTO getProblemDetailStatistics();
+    ProblemDetailStatisticsVTO getProblemDetailStatistics();
 
     /**
      * 获取最受欢迎的题目类型和难度组合
@@ -183,7 +182,7 @@ public interface ProblemService {
      * @param limit 返回结果数量限制
      * @return 包含题目类型、难度及其统计信息的列表
      */
-    List<PopularProblemCategoryDTO> getPopularProblemCategories(Integer limit);
+    List<PopularProblemCategoryVTO> getPopularProblemCategories(Integer limit);
 
     /**
      * 根据创建时间范围查询题目
