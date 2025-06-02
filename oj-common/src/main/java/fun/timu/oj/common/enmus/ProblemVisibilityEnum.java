@@ -4,14 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 题目可见性枚举：0-私有，1-公开，2-仅注册用户
+ * 题目可见性枚举：0-私有，1-公开，2-下线
  */
 @Getter
 @AllArgsConstructor
 public enum ProblemVisibilityEnum {
     PRIVATE(0, "私有"),
     PUBLIC(1, "公开"),
-    REGISTERED_ONLY(2, "仅注册用户");
+    OFFLINE(2, "下线");
 
     private final Integer code;
     private final String description;

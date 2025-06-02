@@ -35,7 +35,7 @@ CREATE TABLE problem (
     
     -- 题目状态和权限
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用，1-启用，2-草稿',
-    visibility TINYINT NOT NULL DEFAULT 1 COMMENT '可见性：0-私有，1-公开，2-仅注册用户',
+    visibility TINYINT NOT NULL DEFAULT 1 COMMENT '可见性：0-私有，1-公开，2-下线',
     
     -- 统计信息
     submission_count BIGINT NOT NULL DEFAULT 0 COMMENT '提交次数',
