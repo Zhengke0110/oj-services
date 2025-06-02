@@ -7,6 +7,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -99,6 +100,28 @@ public interface ProblemManager {
      */
     List<ProblemDO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
 
+    // ===== 新增：统一推荐接口 =====
+
+    /**
+     * 统一的推荐题目接口
+     * 支持多种推荐算法：通过率推荐、相似性推荐、热门推荐、算法数据推荐
+     *
+     * @param criteria 推荐条件
+     * @return 推荐题目列表
+     */
+    List<ProblemDO> getRecommendedProblems(RecommendationCriteria criteria);
+
+    /**
+     * 统一的推荐算法数据接口
+     * 返回包含推荐评分等详细信息的数据
+     *
+     * @param criteria 推荐条件
+     * @return 推荐数据列表（包含评分信息）
+     */
+    List<Map<String, Object>> getRecommendedProblemsWithScore(RecommendationCriteria criteria);
+
+    // ===== 原有推荐接口（保持向后兼容）=====
+
     /**
      * 查询推荐题目（通过率适中的题目）
      *
@@ -107,7 +130,19 @@ public interface ProblemManager {
      * @param difficulty        难度限制
      * @param limit             限制数量
      * @return 分页结果
+     * @deprecated 请使用 {@link #getRecommendedProblems(RecommendationCriteria)} 替代
+     * <p>示例用法：</p>
+     * <pre>
+     * RecommendationCriteria criteria = RecommendationCriteria.forAcceptanceRate()
+     *     .minAcceptanceRate(minAcceptanceRate)
+     *     .maxAcceptanceRate(maxAcceptanceRate)
+     *     .difficulty(difficulty)
+     *     .limit(limit)
+     *     .build();
+     * getRecommendedProblems(criteria);
+     * </pre>
      */
+    @Deprecated
     List<ProblemDO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
 
 
@@ -272,4 +307,229 @@ public interface ProblemManager {
      */
     public IPage<ProblemDO> selectProblemsWithoutSubmissions(int pageNum, int pageSize);
 
+    /**
+     * 获取题目总体统计信息（增强版）
+     *
+     * @return 统计信息
+     */
+    Map<String, Object> getOverallStatistics();
+
+    /**
+     * 按难度获取统计信息
+     *
+     * @return 难度统计列表
+     */
+    List<Map<String, Object>> getStatisticsByDifficulty();
+
+    /**
+     * 按类型获取统计信息
+     *
+     * @return 类型统计列表
+     */
+    List<Map<String, Object>> getStatisticsByType();
+
+    /**
+     * 按语言获取统计信息
+     *
+     * @return 语言统计列表
+     */
+    List<Map<String, Object>> getStatisticsByLanguage();
+
+    /**
+     * 按状态获取统计信息
+     *
+     * @return 状态统计列表
+     */
+    List<Map<String, Object>> getStatisticsByStatus();
+
+    /**
+     * 获取题目创建趋势
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 创建趋势数据
+     */
+    List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
+
+    /**
+     * 获取提交趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 提交趋势数据
+     */
+    List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity);
+
+    /**
+     * 获取通过率趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 通过率趋势数据
+     */
+    List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity);
+
+
+    /**
+     * 获取热门题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 热门题目排行榜
+     */
+    List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取最难题目排行榜
+     *
+     * @param limit          限制数量
+     * @param minSubmissions 最小提交数
+     * @return 最难题目排行榜
+     */
+    List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions);
+
+    /**
+     * 获取创建者贡献排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 创建者贡献排行榜
+     */
+    List<Map<String, Object>> getCreatorContributionRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取题目质量排行榜
+     *
+     * @param limit 限制数量
+     * @return 质量排行榜
+     */
+    List<Map<String, Object>> getQualityProblemsRanking(Integer limit);
+
+    /**
+     * 获取难度-类型分布矩阵
+     *
+     * @return 分布矩阵数据
+     */
+    List<Map<String, Object>> getDifficultyTypeDistribution();
+
+    /**
+     * 获取通过率分布统计
+     *
+     * @param bucketSize 区间大小
+     * @return 通过率分布数据
+     */
+    List<Map<String, Object>> getAcceptanceRateDistribution(Double bucketSize);
+
+    /**
+     * 获取提交量分布统计
+     *
+     * @return 提交量分布数据
+     */
+    List<Map<String, Object>> getSubmissionCountDistribution();
+
+    /**
+     * 获取题目综合健康度报告
+     *
+     * @return 健康度报告
+     */
+    Map<String, Object> getProblemHealthReport();
+
+    /**
+     * 获取平台数据大屏统计
+     *
+     * @return 大屏统计数据
+     */
+    Map<String, Object> getDashboardStatistics();
+
+    /**
+     * 获取题目推荐数据
+     *
+     * @param difficulty  难度偏好
+     * @param problemType 类型偏好
+     * @param limit       推荐数量
+     * @return 推荐数据
+     */
+    List<Map<String, Object>> getRecommendationData(Integer difficulty, String problemType, Integer limit);
+
+    /**
+     * 获取题目相关性分析
+     *
+     * @param problemId 题目ID
+     * @param limit     相关题目数量
+     * @return 相关性分析数据
+     */
+    List<Map<String, Object>> getProblemCorrelationAnalysis(Long problemId, Integer limit);
+
+    /**
+     * 获取平台增长指标
+     *
+     * @param timeRange 时间范围
+     * @return 增长指标数据
+     */
+    Map<String, Object> getPlatformGrowthMetrics(Integer timeRange);
+
+    /**
+     * 获取月度报表
+     *
+     * @param year  年份
+     * @param month 月份
+     * @return 月度报表数据
+     */
+    Map<String, Object> getMonthlyReport(Integer year, Integer month);
+
+    /**
+     * 获取年度报表
+     *
+     * @param year 年份
+     * @return 年度报表数据
+     */
+    Map<String, Object> getAnnualReport(Integer year);
+
+    /**
+     * 获取自定义时间范围报表
+     *
+     * @param startDate 开始时间
+     * @param endDate   结束时间
+     * @param metrics   指标列表
+     * @return 自定义报表数据
+     */
+    Map<String, Object> getCustomRangeReport(Date startDate, Date endDate, List<String> metrics);
+
+    /**
+     * 获取实时题目状态监控
+     *
+     * @return 实时状态数据
+     */
+    Map<String, Object> getRealTimeProblemStatus();
+
+    /**
+     * 获取实时提交监控
+     *
+     * @param timeWindow 时间窗口
+     * @return 实时提交监控数据
+     */
+    Map<String, Object> getRealTimeSubmissionMonitoring(Integer timeWindow);
+
+    /**
+     * 批量重置题目统计
+     *
+     * @param problemIds 题目ID列表
+     * @return 重置记录数
+     */
+    int batchResetStats(List<Long> problemIds);
+
+
+    /**
+     * 统一推荐方法
+     * <p>
+     * 此方法根据给定的推荐标准（RecommendationCriteria）返回题目推荐列表
+     * 支持根据难度、题目类型、标签、创建者等多种条件进行灵活组合查询
+     *
+     * @param criteria 推荐标准，包含多种筛选条件
+     * @return 符合条件的题目列表
+     */
+    public List<ProblemDO> recommendProblems(RecommendationCriteria criteria);
 }

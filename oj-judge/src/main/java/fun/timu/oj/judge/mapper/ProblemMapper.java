@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.mapper;
 
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -12,6 +13,28 @@ import java.util.List;
 @Mapper
 public interface ProblemMapper extends BaseMapper<ProblemDO> {
 
+    // ===== 新增：统一推荐接口 =====
+
+    /**
+     * 统一的推荐题目接口
+     * 根据不同的推荐条件返回推荐题目列表
+     *
+     * @param criteria 推荐条件
+     * @return 推荐题目列表
+     */
+    List<ProblemDO> getRecommendedProblems(@Param("criteria") RecommendationCriteria criteria);
+
+    /**
+     * 统一的推荐算法数据接口
+     * 返回包含推荐评分等详细信息的数据
+     *
+     * @param criteria 推荐条件
+     * @return 推荐数据列表
+     */
+    List<HashMap<String, Object>> getRecommendedProblemsWithScore(@Param("criteria") RecommendationCriteria criteria);
+
+    // ===== 原有推荐接口（已标记为过时）=====
+
     /**
      * 查询推荐题目（通过率适中的题目）
      *
@@ -20,7 +43,9 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param difficulty        难度限制
      * @param limit             限制数量
      * @return 分页结果
+     * @deprecated 请使用 {@link #getRecommendedProblems(RecommendationCriteria)} 替代
      */
+    @Deprecated
     List<ProblemDO> selectRecommendedProblems(@Param("minAcceptanceRate") Double minAcceptanceRate, @Param("maxAcceptanceRate") Double maxAcceptanceRate, @Param("difficulty") Integer difficulty, @Param("limit") Integer limit);
 
     /**
@@ -54,7 +79,9 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param problemType 题目类型限制
      * @param limit       返回数量限制
      * @return 相似题目列表
+     * @deprecated 请使用 {@link #getRecommendedProblems(RecommendationCriteria)} 替代
      */
+    @Deprecated
     List<ProblemDO> findSimilarProblems(@Param("problemId") Long problemId, @Param("difficulty") Integer difficulty, @Param("problemType") String problemType, @Param("limit") Integer limit);
 
     // ===== V2新增：深度统计聚合接口 =====
@@ -152,7 +179,17 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param limit     限制数量
      * @param timeRange 时间范围（天数）
      * @return 热门题目列表
+     * @deprecated 请使用 {@link #getRecommendedProblemsWithScore(RecommendationCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RecommendationCriteria criteria = RecommendationCriteria.forPopularity()
+     *     .limit(limit)
+     *     .timeRange(timeRange)
+     *     .build();
+     * getRecommendedProblemsWithScore(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getPopularProblemsRanking(@Param("limit") Integer limit, @Param("timeRange") Integer timeRange);
 
     /**
@@ -331,7 +368,18 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param problemType 类型偏好
      * @param limit       推荐数量
      * @return 推荐题目数据
+     * @deprecated 请使用 {@link #getRecommendedProblemsWithScore(RecommendationCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RecommendationCriteria criteria = RecommendationCriteria.forAlgorithmData()
+     *     .difficulty(difficulty)
+     *     .problemType(problemType)
+     *     .limit(limit)
+     *     .build();
+     * getRecommendedProblemsWithScore(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getRecommendationData(@Param("difficulty") Integer difficulty, @Param("problemType") String problemType, @Param("limit") Integer limit);
 
     /**

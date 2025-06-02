@@ -2,7 +2,6 @@ package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
@@ -13,6 +12,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -435,9 +435,7 @@ public class ProblemManagerImpl implements ProblemManager {
             if (rawStatistics == null) {
                 return Collections.emptyList();
             }
-            return rawStatistics.stream()
-                    .map(item -> ProblemStatisticsDTO.fromMap((Map<String, Object>) item))
-                    .collect(Collectors.toList());
+            return rawStatistics.stream().map(item -> ProblemStatisticsDTO.fromMap((Map<String, Object>) item)).collect(Collectors.toList());
         } catch (Exception e) {
             log.error("获取题目统计信息失败: {}", e.getMessage(), e);
             throw new RuntimeException("获取题目统计信息失败", e);
@@ -639,7 +637,7 @@ public class ProblemManagerImpl implements ProblemManager {
     }
 
     /**
-     * 获取指定题目的通过率
+     * 获取题目通过率
      *
      * @param problemId 题目ID，用于识别特定的题目
      * @return 返回题目的通过率，如果题目不存在或从未被提交过，则返回0.0
@@ -696,18 +694,7 @@ public class ProblemManagerImpl implements ProblemManager {
         // 创建查询条件
         LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
         // 只查询指定的字段
-        queryWrapper.select(
-                ProblemDO::getId,
-                ProblemDO::getTitle,
-                ProblemDO::getTitleEn,
-                ProblemDO::getDifficulty,
-                ProblemDO::getStatus,
-                ProblemDO::getProblemType,
-                ProblemDO::getSubmissionCount,
-                ProblemDO::getAcceptedCount,
-                ProblemDO::getCreatedAt,
-                ProblemDO::getUpdatedAt
-        );
+        queryWrapper.select(ProblemDO::getId, ProblemDO::getTitle, ProblemDO::getTitleEn, ProblemDO::getDifficulty, ProblemDO::getStatus, ProblemDO::getProblemType, ProblemDO::getSubmissionCount, ProblemDO::getAcceptedCount, ProblemDO::getCreatedAt, ProblemDO::getUpdatedAt);
         // 按ID列表筛选
         queryWrapper.in(ProblemDO::getId, problemIds);
         // 只查询未删除的题目
@@ -859,8 +846,7 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 使用LambdaUpdateWrapper构建更新条件
         LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(ProblemDO::getId, problemIds)
-                .set(ProblemDO::getVisibility, visibility);
+        updateWrapper.in(ProblemDO::getId, problemIds).set(ProblemDO::getVisibility, visibility);
 
         // 执行更新操作
         int updatedCount = problemMapper.update(null, updateWrapper);
@@ -890,8 +876,7 @@ public class ProblemManagerImpl implements ProblemManager {
         LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
 
         // 设置更新条件：ID在指定列表中且未删除
-        updateWrapper.in(ProblemDO::getId, problemIds)
-                .eq(ProblemDO::getIsDeleted, 0);
+        updateWrapper.in(ProblemDO::getId, problemIds).eq(ProblemDO::getIsDeleted, 0);
 
         // 设置更新字段：如果参数不为空，则更新对应字段
         if (timeLimit != null) {
@@ -922,10 +907,8 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 使用MyBatis-Plus的LambdaUpdateWrapper构建更新操作
         LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(ProblemDO::getId, problemIds)
-                .eq(ProblemDO::getIsDeleted, 0)  // 只重置未删除的题目
-                .set(ProblemDO::getSubmissionCount, 0)
-                .set(ProblemDO::getAcceptedCount, 0);
+        updateWrapper.in(ProblemDO::getId, problemIds).eq(ProblemDO::getIsDeleted, 0)  // 只重置未删除的题目
+                .set(ProblemDO::getSubmissionCount, 0).set(ProblemDO::getAcceptedCount, 0);
 
         return problemMapper.update(null, updateWrapper);
     }
@@ -939,8 +922,7 @@ public class ProblemManagerImpl implements ProblemManager {
      * @return 分页结果，包含符合条件的题目列表
      */
     public IPage<ProblemDO> selectStaleProblems(Date lastUpdateBefore, int pageNum, int pageSize) {
-        log.info("ProblemManager--->查询长时间未更新的题目, 更新时间早于: {}, 页码: {}, 每页大小: {}",
-                lastUpdateBefore, pageNum, pageSize);
+        log.info("ProblemManager--->查询长时间未更新的题目, 更新时间早于: {}, 页码: {}, 每页大小: {}", lastUpdateBefore, pageNum, pageSize);
 
         // 创建分页对象
         Page<ProblemDO> page = new Page<>(pageNum, pageSize);
@@ -949,9 +931,7 @@ public class ProblemManagerImpl implements ProblemManager {
         LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
 
         // 设置查询条件：更新时间早于指定日期，且未被删除
-        queryWrapper.lt(ProblemDO::getUpdatedAt, lastUpdateBefore)
-                .eq(ProblemDO::getIsDeleted, 0)
-                .eq(ProblemDO::getStatus, 1); // 只查询已发布的题目
+        queryWrapper.lt(ProblemDO::getUpdatedAt, lastUpdateBefore).eq(ProblemDO::getIsDeleted, 0).eq(ProblemDO::getStatus, 1); // 只查询已发布的题目
 
         // 按更新时间升序排序，最早更新的排在前面
         queryWrapper.orderByAsc(ProblemDO::getUpdatedAt);
@@ -979,9 +959,7 @@ public class ProblemManagerImpl implements ProblemManager {
             LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
 
             // 设置查询条件：提交数为0且未删除的题目
-            queryWrapper.eq(ProblemDO::getSubmissionCount, 0)
-                    .eq(ProblemDO::getIsDeleted, false)
-                    .orderByDesc(ProblemDO::getCreatedAt); // 按创建时间降序排Ï列
+            queryWrapper.eq(ProblemDO::getSubmissionCount, 0).eq(ProblemDO::getIsDeleted, false).orderByDesc(ProblemDO::getCreatedAt); // 按创建时间降序排Ï列
 
             // 执行分页查询
             IPage<ProblemDO> problemPage = problemMapper.selectPage(page, queryWrapper);
@@ -991,6 +969,575 @@ public class ProblemManagerImpl implements ProblemManager {
         } catch (Exception e) {
             log.error("ProblemManager--->查询零提交题目失败: {}", e.getMessage(), e);
             throw new RuntimeException("查询零提交题目失败", e);
+        }
+    }
+
+    /**
+     * 获取题目总体统计信息（增强版）
+     *
+     * @return 统计信息
+     */
+    @Override
+    public Map<String, Object> getOverallStatistics() {
+        try {
+            return problemMapper.getOverallStatistics();
+        } catch (Exception e) {
+            log.error("获取总体统计信息失败", e);
+            throw new RuntimeException("获取总体统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按难度获取统计信息
+     *
+     * @return 难度统计列表
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByDifficulty() {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getStatisticsByDifficulty();
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("按难度获取统计信息失败", e);
+            throw new RuntimeException("按难度获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按类型获取统计信息
+     *
+     * @return 类型统计列表
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByType() {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getStatisticsByType();
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("按类型获取统计信息失败", e);
+            throw new RuntimeException("按类型获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按语言获取统计信息
+     *
+     * @return 语言统计列表
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByLanguage() {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getStatisticsByLanguage();
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("按语言获取统计信息失败", e);
+            throw new RuntimeException("按语言获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按状态获取统计信息
+     *
+     * @return 状态统计列表
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByStatus() {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getStatisticsByStatus();
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("按状态获取统计信息失败", e);
+            throw new RuntimeException("按状态获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 获取题目创建趋势
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 创建趋势数据
+     */
+    @Override
+    public List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getProblemCreationTrend(startDate, endDate, granularity);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取题目创建趋势失败", e);
+            throw new RuntimeException("获取题目创建趋势失败", e);
+        }
+    }
+
+    /**
+     * 获取提交趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 提交趋势数据
+     */
+    @Override
+    public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getSubmissionTrendAnalysis(startDate, endDate, granularity);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取提交趋势分析失败", e);
+            throw new RuntimeException("获取提交趋势分析失败", e);
+        }
+    }
+
+    /**
+     * 获取通过率趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 通过率趋势数据
+     */
+    @Override
+    public List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getAcceptanceRateTrend(startDate, endDate, granularity);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取通过率趋势分析失败", e);
+            throw new RuntimeException("获取通过率趋势分析失败", e);
+        }
+    }
+
+    /**
+     * 获取热门题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 热门题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getPopularProblemsRanking(limit, timeRange);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取热门题目排行榜失败", e);
+            throw new RuntimeException("获取热门题目排行榜失败", e);
+        }
+    }
+
+    /**
+     * 获取最难题目排行榜
+     *
+     * @param limit          限制数量
+     * @param minSubmissions 最小提交数
+     * @return 最难题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getHardestProblemsRanking(limit, minSubmissions);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取最难题目排行榜失败", e);
+            throw new RuntimeException("获取最难题目排行榜失败", e);
+        }
+    }
+
+    /**
+     * 获取创建者贡献排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 创建者贡献排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getCreatorContributionRanking(Integer limit, Integer timeRange) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getCreatorContributionRanking(limit, timeRange);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取创建者贡献排行榜失败", e);
+            throw new RuntimeException("获取创建者贡献排行榜失败", e);
+        }
+    }
+
+    /**
+     * 获取题目质量排行榜
+     *
+     * @param limit 限制数量
+     * @return 质量排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getQualityProblemsRanking(Integer limit) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getQualityProblemsRanking(limit);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取高质量题目排名失败", e);
+            throw new RuntimeException("获取高质量题目排名失败", e);
+        }
+    }
+
+    /**
+     * 获取难度-类型分布矩阵
+     *
+     * @return 分布矩阵数据
+     */
+    @Override
+    public List<Map<String, Object>> getDifficultyTypeDistribution() {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getDifficultyTypeDistribution();
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取难度类型分布失败", e);
+            throw new RuntimeException("获取难度类型分布失败", e);
+        }
+    }
+
+    /**
+     * 获取通过率分布统计
+     *
+     * @param bucketSize 区间大小
+     * @return 通过率分布数据
+     */
+    @Override
+    public List<Map<String, Object>> getAcceptanceRateDistribution(Double bucketSize) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getAcceptanceRateDistribution(bucketSize);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取通过率分布失败", e);
+            throw new RuntimeException("获取通过率分布失败", e);
+        }
+    }
+
+    /**
+     * 获取提交量分布统计
+     *
+     * @return 提交量分布数据
+     */
+    @Override
+    public List<Map<String, Object>> getSubmissionCountDistribution() {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getSubmissionCountDistribution();
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取提交量分布失败", e);
+            throw new RuntimeException("获取提交量分布失败", e);
+        }
+    }
+
+    /**
+     * 获取题目综合健康度报告
+     *
+     * @return 健康度报告
+     */
+    @Override
+    public Map<String, Object> getProblemHealthReport() {
+        try {
+            return problemMapper.getProblemHealthReport();
+        } catch (Exception e) {
+            log.error("获取题目健康度报告失败", e);
+            throw new RuntimeException("获取题目健康度报告失败", e);
+        }
+    }
+
+    /**
+     * 获取平台数据大屏统计
+     *
+     * @return 大屏统计数据
+     */
+    @Override
+    public Map<String, Object> getDashboardStatistics() {
+        try {
+            return problemMapper.getDashboardStatistics();
+        } catch (Exception e) {
+            log.error("获取仪表盘统计数据失败", e);
+            throw new RuntimeException("获取仪表盘统计数据失败", e);
+        }
+    }
+
+    /**
+     * 获取题目推荐数据
+     *
+     * @param difficulty  难度偏好
+     * @param problemType 类型偏好
+     * @param limit       推荐数量
+     * @return 推荐数据
+     */
+    @Override
+    public List<Map<String, Object>> getRecommendationData(Integer difficulty, String problemType, Integer limit) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getRecommendationData(difficulty, problemType, limit);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取题目推荐数据失败", e);
+            throw new RuntimeException("获取题目推荐数据失败", e);
+        }
+    }
+
+
+    /**
+     * 获取题目相关性分析
+     *
+     * @param problemId 题目ID
+     * @param limit     相关题目数量
+     * @return 相关性分析数据
+     */
+    @Override
+    public List<Map<String, Object>> getProblemCorrelationAnalysis(Long problemId, Integer limit) {
+        try {
+            List<HashMap<String, Object>> result = problemMapper.getProblemCorrelationAnalysis(problemId, limit);
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取题目相关性分析失败", e);
+            throw new RuntimeException("获取题目相关性分析失败", e);
+        }
+    }
+
+    /**
+     * 获取平台增长指标
+     *
+     * @param timeRange 时间范围
+     * @return 增长指标数据
+     */
+    @Override
+    public Map<String, Object> getPlatformGrowthMetrics(Integer timeRange) {
+        try {
+            return problemMapper.getPlatformGrowthMetrics(timeRange);
+        } catch (Exception e) {
+            log.error("获取平台增长指标失败", e);
+            throw new RuntimeException("获取平台增长指标失败", e);
+        }
+    }
+
+    /**
+     * 获取月度报表
+     *
+     * @param year  年份
+     * @param month 月份
+     * @return 月度报表数据
+     */
+    @Override
+    public Map<String, Object> getMonthlyReport(Integer year, Integer month) {
+        try {
+            return problemMapper.getMonthlyReport(year, month);
+        } catch (Exception e) {
+            log.error("获取月度报表失败", e);
+            throw new RuntimeException("获取月度报表失败", e);
+        }
+    }
+
+    /**
+     * 获取年度报表
+     *
+     * @param year 年份
+     * @return 年度报表数据
+     */
+    @Override
+    public Map<String, Object> getAnnualReport(Integer year) {
+        try {
+            return problemMapper.getAnnualReport(year);
+        } catch (Exception e) {
+            log.error("获取年度报表失败", e);
+            throw new RuntimeException("获取年度报表失败", e);
+        }
+    }
+
+    /**
+     * 获取自定义时间范围报表
+     *
+     * @param startDate 开始时间
+     * @param endDate   结束时间
+     * @param metrics   指标列表
+     * @return 自定义报表数据
+     */
+    @Override
+    public Map<String, Object> getCustomRangeReport(Date startDate, Date endDate, List<String> metrics) {
+        try {
+            return problemMapper.getCustomRangeReport(startDate, endDate, metrics);
+        } catch (Exception e) {
+            log.error("获取自定义范围报表失败", e);
+            throw new RuntimeException("获取自定义范围报表失败", e);
+        }
+    }
+
+    /**
+     * 获取实时题目状态监控
+     *
+     * @return 实时状态数据
+     */
+    @Override
+    public Map<String, Object> getRealTimeProblemStatus() {
+        try {
+            return problemMapper.getRealTimeProblemStatus();
+        } catch (Exception e) {
+            log.error("获取实时题目状态监控失败", e);
+            throw new RuntimeException("获取实时题目状态监控失败", e);
+        }
+    }
+
+    /**
+     * 获取实时提交监控
+     *
+     * @param timeWindow 时间窗口
+     * @return 实时提交监控数据
+     */
+    @Override
+    public Map<String, Object> getRealTimeSubmissionMonitoring(Integer timeWindow) {
+        try {
+            return problemMapper.getRealTimeSubmissionMonitoring(timeWindow);
+        } catch (Exception e) {
+            log.error("获取实时提交监控失败", e);
+            throw new RuntimeException("获取实时提交监控失败", e);
+        }
+    }
+
+    /**
+     * 批量重置题目统计
+     *
+     * @param problemIds 题目ID列表
+     * @return 重置记录数
+     */
+    @Override
+    public int batchResetStats(List<Long> problemIds) {
+        return 0;
+    }
+
+    /**
+     * 统一推荐方法
+     * <p>
+     * 此方法根据给定的推荐标准（RecommendationCriteria）返回题目推荐列表
+     * 支持根据难度、题目类型、标签、创建者等多种条件进行灵活组合查询
+     *
+     * @param criteria 推荐标准，包含多种筛选条件
+     * @return 符合条件的题目列表
+     */
+    @Override
+    public List<ProblemDO> recommendProblems(RecommendationCriteria criteria) {
+        try {
+            LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+
+            // 只查询未删除的题目
+            queryWrapper.eq(ProblemDO::getIsDeleted, false);
+
+            // 按照创建时间降序排序
+            queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
+
+            // 根据难度筛选
+            if (criteria.getDifficulty() != null) {
+                queryWrapper.eq(ProblemDO::getDifficulty, criteria.getDifficulty());
+            }
+
+            // 根据题目类型筛选
+            if (criteria.getProblemType() != null && !criteria.getProblemType().isEmpty()) {
+                queryWrapper.eq(ProblemDO::getProblemType, criteria.getProblemType());
+            }
+
+            // 根据标签筛选（假设标签存储在JSON字段中）
+            if (criteria.getTags() != null && !criteria.getTags().isEmpty()) {
+                StringBuilder tagCondition = new StringBuilder("(");
+                for (int i = 0; i < criteria.getTags().size(); i++) {
+                    if (i > 0) tagCondition.append(" AND ");
+                    tagCondition.append("JSON_CONTAINS(tags, JSON_QUOTE('").append(criteria.getTags().get(i)).append("'))");
+                }
+                tagCondition.append(")");
+                queryWrapper.apply(tagCondition.toString());
+            }
+
+            // 根据创建者ID筛选
+            if (criteria.getCreatorId() != null) {
+                queryWrapper.eq(ProblemDO::getCreatorId, criteria.getCreatorId());
+            }
+
+            // 根据可见性筛选
+            if (criteria.getVisibility() != null) {
+                queryWrapper.eq(ProblemDO::getVisibility, criteria.getVisibility());
+            }
+
+            // 根据状态筛选
+            if (criteria.getStatus() != null) {
+                queryWrapper.eq(ProblemDO::getStatus, criteria.getStatus());
+            }
+
+            // 执行查询
+            return problemMapper.selectList(queryWrapper);
+
+        } catch (Exception e) {
+            log.error("推荐题目时发生错误: {}", e.getMessage(), e);
+            throw new RuntimeException("推荐题目时发生错误", e);
+        }
+    }
+
+    // ===== 新增：统一推荐接口实现 =====
+
+    /**
+     * 统一的推荐题目接口实现
+     * 支持多种推荐算法：通过率推荐、相似性推荐、热门推荐、算法数据推荐
+     *
+     * @param criteria 推荐条件
+     * @return 推荐题目列表
+     */
+    @Override
+    public List<ProblemDO> getRecommendedProblems(RecommendationCriteria criteria) {
+        try {
+            log.info("Manager层获取推荐题目，推荐类型: {}, 条件: {}", 
+                    criteria.getType(), criteria);
+            
+            // 参数校验
+            if (criteria == null) {
+                throw new IllegalArgumentException("推荐条件不能为空");
+            }
+            
+            // 调用Mapper层统一推荐接口
+            List<ProblemDO> result = problemMapper.getRecommendedProblems(criteria);
+            
+            log.info("Manager层获取推荐题目成功，推荐类型: {}, 结果数量: {}", 
+                    criteria.getType(), result.size());
+            
+            return result;
+        } catch (Exception e) {
+            log.error("Manager层获取推荐题目失败，推荐类型: {}, 错误: {}", 
+                     criteria != null ? criteria.getType() : "unknown", e.getMessage(), e);
+            throw new RuntimeException("获取推荐题目失败", e);
+        }
+    }
+
+    /**
+     * 统一的推荐算法数据接口实现
+     * 返回包含推荐评分等详细信息的数据
+     *
+     * @param criteria 推荐条件
+     * @return 推荐数据列表（包含评分信息）
+     */
+    @Override
+    public List<Map<String, Object>> getRecommendedProblemsWithScore(RecommendationCriteria criteria) {
+        try {
+            log.info("Manager层获取推荐题目数据（含评分），推荐类型: {}, 条件: {}", 
+                    criteria.getType(), criteria);
+            
+            // 参数校验
+            if (criteria == null) {
+                throw new IllegalArgumentException("推荐条件不能为空");
+            }
+            
+            // 调用Mapper层统一推荐接口
+            List<HashMap<String, Object>> result = problemMapper.getRecommendedProblemsWithScore(criteria);
+            
+            // 转换为标准Map接口
+            List<Map<String, Object>> finalResult = result.stream()
+                    .map(map -> (Map<String, Object>) map)
+                    .collect(Collectors.toList());
+            
+            log.info("Manager层获取推荐题目数据（含评分）成功，推荐类型: {}, 结果数量: {}", 
+                    criteria.getType(), finalResult.size());
+            
+            return finalResult;
+        } catch (Exception e) {
+            log.error("Manager层获取推荐题目数据（含评分）失败，推荐类型: {}, 错误: {}", 
+                     criteria != null ? criteria.getType() : "unknown", e.getMessage(), e);
+            throw new RuntimeException("获取推荐题目数据失败", e);
         }
     }
 }

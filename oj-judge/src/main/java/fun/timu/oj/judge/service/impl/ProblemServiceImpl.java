@@ -22,6 +22,7 @@ import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
 import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
+import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -430,28 +431,80 @@ public class ProblemServiceImpl implements ProblemService {
      * @param maxAcceptanceRate 最大接受率，用于筛选问题
      * @param difficulty        难度级别，用于筛选问题
      * @param limit             最多返回的问题数量
+     * @param minAcceptanceRate 最小通过率
+     * @param maxAcceptanceRate 最大通过率
+     * @param difficulty        难度级别，用于筛选问题
+     * @param limit             最多返回的问题数量
      * @return 返回一个ProblemVO对象列表，包含根据条件筛选出的问题
      * <p>
      * 该方法首先调用problemManager的selectRecommendedProblems方法来获取符合条件的问题列表，
      * 然后将这些问题从ProblemDO对象转换为ProblemVO对象，以便于后续处理或传输
      * 如果在处理过程中遇到异常，将记录错误日志并抛出运行时异常
+     * /**
+     * 查询推荐题目（旧接口，推荐使用新的统一接口）
+     * 为了保持向后兼容性，此方法将调用转换为新的统一接口
+     * @return 返回一个ProblemVO对象列表，包含根据条件筛选出的问题
+     * <p>
+     * 该方法首先调用problemManager的selectRecommendedProblems方法来获取符合条件的问题列表，
+     * 然后将这些问题从ProblemDO对象转换为ProblemVO对象，以便于后续处理或传输
+     * 如果在处理过程中遇到异常，将记录错误日志并抛出运行时异常
+     * @deprecated 此方法已弃用，请使用 {@link #getRecommendedProblems(RecommendationCriteria)} 替代
      */
     @Override
+    @Deprecated
     public List<ProblemVO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit) {
+        // 调用新的统一接口
+        RecommendationCriteria criteria = RecommendationCriteria.forAcceptanceRate(minAcceptanceRate, maxAcceptanceRate, difficulty, limit);
+        return getRecommendedProblems(criteria);
+    }
+
+    /**
+     * 获取推荐题目（统一接口）
+     * 支持多种推荐算法：通过率、相似性、热度、算法数据
+     *
+     * @param criteria 推荐条件，包含推荐类型和相关参数
+     * @return 推荐题目列表
+     * @since 2.0
+     */
+    @Override
+    public List<ProblemVO> getRecommendedProblems(RecommendationCriteria criteria) {
         try {
-            List<ProblemDO> problemDOList = problemManager.selectRecommendedProblems(minAcceptanceRate, maxAcceptanceRate, difficulty, limit);
-            List<ProblemVO> collects = problemDOList.stream().map(problemDO -> {
-                ProblemVO problemVO = new ProblemVO();
-                BeanUtils.copyProperties(problemDO, problemVO);
-                return problemVO;
-            }).collect(Collectors.toList());
-            log.info("ProblemService--->获取查询推荐题目成功, 难度:{},数量:{}", difficulty, collects.size());
-            return collects;
+            log.info("ProblemService--->获取推荐题目开始, 推荐类型:{}, 条件:{}", criteria.getType(), criteria);
+
+            List<ProblemDO> problemDOList = problemManager.getRecommendedProblems(criteria);
+            List<ProblemVO> result = problemDOList.stream().map(this::convertToVO).collect(Collectors.toList());
+
+            log.info("ProblemService--->获取推荐题目成功, 推荐类型:{}, 返回数量:{}", criteria.getType(), result.size());
+            return result;
         } catch (Exception e) {
-            log.error("ProblemService--->获取题目列表失败: {}", e.getMessage(), e);
-            throw new RuntimeException(e);
+            log.error("ProblemService--->获取推荐题目失败, 推荐类型:{}, 错误: {}", criteria.getType(), e.getMessage(), e);
+            throw new RuntimeException("获取推荐题目失败", e);
         }
     }
+
+    /**
+     * 获取带评分的推荐题目（统一接口）
+     * 支持多种推荐算法，返回题目及其推荐评分
+     *
+     * @param criteria 推荐条件，包含推荐类型和相关参数
+     * @return 带评分的推荐题目列表
+     * @since 2.0
+     */
+    @Override
+    public List<Map<String, Object>> getRecommendedProblemsWithScore(RecommendationCriteria criteria) {
+        try {
+            log.info("ProblemService--->获取带评分推荐题目开始, 推荐类型:{}, 条件:{}", criteria.getType(), criteria);
+
+            List<Map<String, Object>> recommendedProblemsWithScore = problemManager.getRecommendedProblemsWithScore(criteria);
+
+            log.info("ProblemService--->获取带评分推荐题目成功, 推荐类型:{}, 返回数量:{}", criteria.getType(), recommendedProblemsWithScore.size());
+            return recommendedProblemsWithScore;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取带评分推荐题目失败, 推荐类型:{}, 错误: {}", criteria.getType(), e.getMessage(), e);
+            throw new RuntimeException("获取带评分推荐题目失败", e);
+        }
+    }
+
 
     /**
      * 批量更新题目状态
@@ -515,31 +568,6 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
-    /**
-     * 查询最近创建的题目
-     *
-     * @param pageNum  当前页码
-     * @param pageSize 每页数量
-     * @param limit    限制返回的题目总数（可为null，表示无上限）
-     * @return 最近创建的题目列表
-     */
-    @Override
-    public List<ProblemVO> selectRecentProblems(int pageNum, int pageSize, Integer limit) {
-        try {
-            // 调用manager层查询最近创建的题目
-            IPage<ProblemDO> problemPage = problemManager.selectRecentProblems(pageNum, pageSize, limit);
-
-            // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
-
-            log.info("ProblemService--->获取最近创建的题目成功，页码: {}, 每页数量: {}, 限制数量: {}, 实际获取数量: {}", pageNum, pageSize, limit, problemVOList.size());
-
-            return problemVOList;
-        } catch (Exception e) {
-            log.error("ProblemService--->获取最近创建的题目失败: {}", e.getMessage(), e);
-            return new ArrayList<>();
-        }
-    }
 
     /**
      * 根据创建者ID统计题目数量
@@ -565,35 +593,6 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
-    /**
-     * 根据支持的编程语言查询题目
-     *
-     * @param pageNum  当前页码
-     * @param pageSize 每页数量
-     * @param language 编程语言
-     * @return 分页题目列表结果
-     */
-    @Override
-    public PageResult<ProblemVO> selectByLanguage(int pageNum, int pageSize, String language) {
-        try {
-            log.info("ProblemService--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}", pageNum, pageSize, language);
-
-            // 调用manager层获取分页数据
-            IPage<ProblemDO> problemPage = problemManager.selectByLanguage(pageNum, pageSize, language);
-
-            // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
-
-            // 构建分页结果
-            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
-
-            log.info("根据编程语言查询题目成功, 语言: {}, 总数: {}", language, pageResult.getTotal());
-            return pageResult;
-        } catch (Exception e) {
-            log.error("ProblemService--->根据支持的编程语言查询题目失败: {}", e.getMessage(), e);
-            return new PageResult<>();
-        }
-    }
 
     /**
      * 批量软删除题目
@@ -623,33 +622,6 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
-    /**
-     * 批量恢复已删除的题目
-     *
-     * @param problemIds 需要恢复的题目ID列表
-     * @return 成功恢复的题目数量
-     */
-    @Override
-    public int batchRestore(List<Long> problemIds) {
-        try {
-            log.info("ProblemService--->批量恢复已删除题目, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
-
-            // 参数校验
-            if (problemIds == null || problemIds.isEmpty()) {
-                log.warn("批量恢复已删除题目失败：题目ID列表为空");
-                return 0;
-            }
-
-            // 调用manager层执行恢复操作
-            int restoredCount = problemManager.batchRestore(problemIds);
-
-            log.info("批量恢复已删除题目成功, 成功恢复数量: {}", restoredCount);
-            return restoredCount;
-        } catch (Exception e) {
-            log.error("ProblemService--->批量恢复已删除题目失败: {}", e.getMessage(), e);
-            throw new RuntimeException("批量恢复已删除题目失败", e);
-        }
-    }
 
     /**
      * 获取指定题目的通过率
@@ -679,36 +651,6 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
-    /**
-     * 根据题目ID列表获取题目基本信息
-     *
-     * @param problemIds 题目ID列表
-     * @return 包含题目基本信息的列表
-     */
-    @Override
-    public List<ProblemVO> selectBasicInfoByIds(List<Long> problemIds) {
-        try {
-            log.info("ProblemService--->批量获取题目基本信息, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
-
-            // 参数校验
-            if (problemIds == null || problemIds.isEmpty()) {
-                log.warn("批量获取题目基本信息失败：题目ID列表为空");
-                return new ArrayList<>();
-            }
-
-            // 调用manager层获取题目基本信息
-            List<ProblemDO> problemDOList = problemManager.selectBasicInfoByIds(problemIds);
-
-            // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemDOList.stream().map(this::convertToBasicVO).filter(Objects::nonNull).collect(Collectors.toList());
-
-            log.info("批量获取题目基本信息成功, 获取到的题目数量: {}", problemVOList.size());
-            return problemVOList;
-        } catch (Exception e) {
-            log.error("ProblemService--->批量获取题目基本信息失败: {}", e.getMessage(), e);
-            return new ArrayList<>();
-        }
-    }
 
     /**
      * 获取题目详细统计信息
@@ -762,8 +704,7 @@ public class ProblemServiceImpl implements ProblemService {
     public PageResult<ProblemVO> selectByDateRange(Date startDate, Date endDate, int pageNum, int pageSize) {
         try {
             // 记录日志
-            log.info("按时间范围查询题目, 开始时间: {}, 结束时间: {}, 页码: {}, 每页大小: {}",
-                    startDate, endDate, pageNum, pageSize);
+            log.info("按时间范围查询题目, 开始时间: {}, 结束时间: {}, 页码: {}, 每页大小: {}", startDate, endDate, pageNum, pageSize);
 
             // 默认查询状态为1（激活状态）的题目
             Integer status = 1;
@@ -776,9 +717,7 @@ public class ProblemServiceImpl implements ProblemService {
             }
 
             // 转换DO对象为VO对象
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
-                    .map(this::convertToVO)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
 
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
             log.info("成功查询时间范围内的题目列表，当前页: {}, 每页大小: {}, 总数: {}", pageNum, pageSize, problemPage.getTotal());
@@ -801,8 +740,7 @@ public class ProblemServiceImpl implements ProblemService {
     @Override
     public List<ProblemVO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit) {
         try {
-            log.info("ProblemService--->查询相似题目, 题目ID: {}, 难度: {}, 题目类型: {}, 限制数量: {}",
-                    problemId, difficulty, problemType, limit);
+            log.info("ProblemService--->查询相似题目, 题目ID: {}, 难度: {}, 题目类型: {}, 限制数量: {}", problemId, difficulty, problemType, limit);
 
             // 参数校验
             if (problemId == null || problemId <= 0) {
@@ -813,10 +751,7 @@ public class ProblemServiceImpl implements ProblemService {
             List<ProblemDO> problemDOList = problemManager.findSimilarProblems(problemId, difficulty, problemType, limit);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemDOList.stream()
-                    .map(this::convertToVO)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemDOList.stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             log.info("查询相似题目成功, 题目ID: {}, 获取到 {} 个相似题目", problemId, problemVOList.size());
             return problemVOList;
@@ -880,8 +815,7 @@ public class ProblemServiceImpl implements ProblemService {
                 throw new RuntimeException("用户没有批量更新题目限制的权限");
             }
 
-            log.info("ProblemService--->开始批量更新题目时间和内存限制，题目ID列表大小: {}, 时间限制: {}秒, 内存限制: {}MB",
-                    problemIds.size(), timeLimit, memoryLimit);
+            log.info("ProblemService--->开始批量更新题目时间和内存限制，题目ID列表大小: {}, 时间限制: {}秒, 内存限制: {}MB", problemIds.size(), timeLimit, memoryLimit);
 
             // 调用manager层执行批量更新
             int updatedCount = problemManager.batchUpdateLimits(problemIds, timeLimit, memoryLimit);
@@ -952,9 +886,7 @@ public class ProblemServiceImpl implements ProblemService {
 
 
             // 转换DO对象为VO对象
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
-                    .map(this::convertToVO)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
 
             // 构建并返回分页结果
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
@@ -982,19 +914,10 @@ public class ProblemServiceImpl implements ProblemService {
             IPage<ProblemDO> problemPage = problemManager.selectProblemsWithoutSubmissions(pageNum, pageSize);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
-                    .map(this::convertToVO)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             // 构建分页结果
-            PageResult<ProblemVO> pageResult = new PageResult<>(
-                    problemVOList,
-                    problemPage.getTotal(),
-                    (int) problemPage.getSize(),
-                    (int) problemPage.getCurrent(),
-                    (int) problemPage.getPages()
-            );
+            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
 
             log.info("查询零提交题目成功，总数: {}", pageResult.getTotal());
             return pageResult;
@@ -1164,6 +1087,50 @@ public class ProblemServiceImpl implements ProblemService {
 
 
     /**
+     * 检查给定标题是否为重复标题
+     *
+     * @param title 待检查的标题字符串
+     * @return 返回一个布尔值，如果标题重复则为true，否则为false
+     */
+    private boolean isDuplicateTitle(String title) {
+        // 实现查询逻辑，检查标题是否已存在
+        return problemManager.existsByTitle(title);
+    }
+
+
+    /**
+     * 根据题目ID列表获取题目基本信息
+     *
+     * @param problemIds 题目ID列表
+     * @return 包含题目基本信息的列表
+     */
+    @Override
+    public List<ProblemVO> selectBasicInfoByIds(List<Long> problemIds) {
+        try {
+            log.info("ProblemService--->批量获取题目基本信息, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
+
+            // 参数校验
+            if (problemIds == null || problemIds.isEmpty()) {
+                log.warn("批量获取题目基本信息失败：题目ID列表为空");
+                return new ArrayList<>();
+            }
+
+            // 调用manager层获取题目基本信息
+            List<ProblemDO> problemDOList = problemManager.selectBasicInfoByIds(problemIds);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemDOList.stream().map(this::convertToBasicVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            log.info("批量获取题目基本信息成功, 获取到的题目数量: {}", problemVOList.size());
+            return problemVOList;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量获取题目基本信息失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+
+    /**
      * 将 Object 类型的 JSON 字符串字段解析为 Map<String, String>
      *
      * @param jsonField JSON 字段对象
@@ -1185,16 +1152,105 @@ public class ProblemServiceImpl implements ProblemService {
         return Collections.emptyMap();
     }
 
+
     /**
-     * 检查给定标题是否为重复标题
+     * 查询最近创建的题目
      *
-     * @param title 待检查的标题字符串
-     * @return 返回一个布尔值，如果标题重复则为true，否则为false
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param limit    限制返回的题目总数（可为null，表示无上限）
+     * @return 最近创建的题目列表
      */
-    private boolean isDuplicateTitle(String title) {
-        // 实现查询逻辑，检查标题是否已存在
-        return problemManager.existsByTitle(title);
+    @Override
+    public List<ProblemVO> selectRecentProblems(int pageNum, int pageSize, Integer limit) {
+        try {
+            // 调用manager层查询最近创建的题目
+            IPage<ProblemDO> problemPage = problemManager.selectRecentProblems(pageNum, pageSize, limit);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            log.info("ProblemService--->获取最近创建的题目成功，页码: {}, 每页数量: {}, 限制数量: {}, 实际获取数量: {}", pageNum, pageSize, limit, problemVOList.size());
+
+            return problemVOList;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取最近创建的题目失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
     }
 
 
+    /**
+     * 根据支持的编程语言查询题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param language 编程语言
+     * @return 分页题目列表结果
+     */
+    @Override
+    public PageResult<ProblemVO> selectByLanguage(int pageNum, int pageSize, String language) {
+        try {
+            log.info("ProblemService--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}", pageNum, pageSize, language);
+
+            // 调用manager层获取分页数据
+            IPage<ProblemDO> problemPage = problemManager.selectByLanguage(pageNum, pageSize, language);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            // 构建分页结果
+            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
+
+            log.info("根据编程语言查询题目成功, 语言: {}, 总数: {}", language, pageResult.getTotal());
+            return pageResult;
+        } catch (Exception e) {
+            log.error("ProblemService--->根据支持的编程语言查询题目失败: {}", e.getMessage(), e);
+            return new PageResult<>();
+        }
+    }
+
+
+    /**
+     * 批量恢复已删除的题目
+     *
+     * @param problemIds 需要恢复的题目ID列表
+     * @return 成功恢复的题目数量
+     */
+    @Override
+    public int batchRestore(List<Long> problemIds) {
+        try {
+            log.info("ProblemService--->批量恢复已删除题目, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
+
+            // 参数校验
+            if (problemIds == null || problemIds.isEmpty()) {
+                log.warn("批量恢复已删除题目失败：题目ID列表为空");
+                return 0;
+            }
+
+            // 调用manager层执行恢复操作
+            int restoredCount = problemManager.batchRestore(problemIds);
+
+            log.info("批量恢复已删除题目成功, 成功恢复数量: {}", restoredCount);
+            return restoredCount;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量恢复已删除题目失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量恢复已删除题目失败", e);
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

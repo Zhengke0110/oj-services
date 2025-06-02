@@ -10,6 +10,7 @@ import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
 import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
+import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -206,12 +207,46 @@ public class ProblemController {
 
 
     /**
-     * 获取推荐题目列表
+     * 获取统一推荐题目（新接口）
+     * 支持多种推荐算法：通过率、相似性、热度、算法数据
+     *
+     * @param request 统一推荐请求参数
+     * @return 推荐题目列表或带评分的推荐题目列表
+     * @since 2.0
+     */
+    @PostMapping("/recommendations")
+    public JsonData getUnifiedRecommendations(@Valid @RequestBody UnifiedRecommendationRequest request) {
+        try {
+            log.info("ProblemController--->获取统一推荐题目请求, 推荐类型: {}, 参数: {}",
+                    request.getType(), request);
+
+            // 构建推荐条件
+            RecommendationCriteria criteria = buildRecommendationCriteria(request);
+
+            if (request.getIncludeScore()) {
+                // 返回带评分的推荐题目
+                List<Map<String, Object>> recommendedProblemsWithScore = problemService.getRecommendedProblemsWithScore(criteria);
+                return JsonData.buildSuccess(recommendedProblemsWithScore);
+            } else {
+                // 返回普通推荐题目
+                List<ProblemVO> problemList = problemService.getRecommendedProblems(criteria);
+                return JsonData.buildSuccess(problemList);
+            }
+        } catch (Exception e) {
+            log.error("ProblemController--->获取统一推荐题目异常: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取推荐题目列表（旧接口，推荐使用新的统一接口）
      *
      * @param request 包含查询参数的请求对象
      * @return 推荐题目列表
+     * @deprecated 此方法已弃用，请使用 {@link #getUnifiedRecommendations(UnifiedRecommendationRequest)} 替代
      */
     @GetMapping("/recommended")
+    @Deprecated
     public JsonData getRecommendedProblems(@Valid @RequestBody RecommendedProblemRequest request) {
         try {
             log.info("ProblemController--->获取推荐题目列表请求, minAcceptanceRate: {}, maxAcceptanceRate: {}, difficulty: {}, limit: {}", request.getMinAcceptanceRate(), request.getMaxAcceptanceRate(), request.getDifficulty(), request.getLimit());
@@ -672,6 +707,25 @@ public class ProblemController {
             log.error("ProblemController--->下线题目失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
         }
+    }
+
+    /**
+     * 构建推荐条件对象
+     *
+     * @param request 统一推荐请求
+     * @return 推荐条件对象
+     */
+    private RecommendationCriteria buildRecommendationCriteria(UnifiedRecommendationRequest request) {
+        RecommendationCriteria criteria = new RecommendationCriteria();
+        criteria.setType(request.getType());
+        criteria.setMinAcceptanceRate(request.getMinAcceptanceRate());
+        criteria.setMaxAcceptanceRate(request.getMaxAcceptanceRate());
+        criteria.setDifficulty(request.getDifficulty());
+        criteria.setProblemType(request.getProblemType());
+        criteria.setBaseProblemId(request.getBaseProblemId());
+        criteria.setTimeRange(request.getTimeRange());
+        criteria.setLimit(request.getLimit());
+        return criteria;
     }
 
 }

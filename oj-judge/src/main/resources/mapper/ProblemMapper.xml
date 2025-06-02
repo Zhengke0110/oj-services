@@ -328,6 +328,245 @@
         ORDER BY time_period
     </select>
 
+    <!-- ===== 新增：统一推荐接口映射 ===== -->
+    
+    <!-- 统一推荐题目接口 -->
+    <select id="getRecommendedProblems" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem
+        <include refid="Base_Where_Clause"/>
+        AND status = 1
+        <choose>
+            <!-- 基于通过率的推荐 -->
+            <when test="criteria.type.name() == 'ACCEPTANCE_RATE'">
+                AND submission_count > 0
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+                <if test="criteria.minAcceptanceRate != null">
+                    AND (accepted_count * 1.0 / submission_count) >= #{criteria.minAcceptanceRate}
+                </if>
+                <if test="criteria.maxAcceptanceRate != null">
+                    AND (accepted_count * 1.0 / submission_count) &lt;= #{criteria.maxAcceptanceRate}
+                </if>
+                ORDER BY
+                RAND() * (accepted_count / submission_count + 0.1) DESC,
+                submission_count DESC
+            </when>
+            
+            <!-- 基于相似性的推荐 -->
+            <when test="criteria.type.name() == 'SIMILARITY'">
+                <if test="criteria.targetProblemId != null">
+                    AND id != #{criteria.targetProblemId}
+                    AND (
+                        problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0)
+                        OR difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0)
+                    )
+                </if>
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+                ORDER BY submission_count DESC, accepted_count DESC
+            </when>
+            
+            <!-- 基于热门度的推荐 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                <if test="criteria.timeRange != null">
+                    AND created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.timeRange} DAY)
+                </if>
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+                ORDER BY
+                submission_count * 0.7 + accepted_count * 0.3 +
+                (CASE WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 10 ELSE 0 END) DESC
+            </when>
+            
+            <!-- 基于算法数据的推荐 -->
+            <when test="criteria.type.name() == 'ALGORITHM_DATA'">
+                AND submission_count > 0
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+                ORDER BY 
+                LEAST(submission_count / 50.0, 1) * 40 +
+                (CASE
+                    WHEN submission_count = 0 THEN 0
+                    WHEN (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 70 THEN 30
+                    WHEN (accepted_count * 100.0 / submission_count) BETWEEN 10 AND 80 THEN 20
+                    ELSE 10
+                END) +
+                (CASE
+                    WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 20
+                    WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 90 THEN 15
+                    WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 180 THEN 10
+                    ELSE 5
+                END) DESC
+            </when>
+        </choose>
+        
+        <if test="criteria.limit != null and criteria.limit > 0">
+            LIMIT #{criteria.limit}
+        </if>
+    </select>
+
+    <!-- 统一推荐题目接口（包含评分） -->
+    <select id="getRecommendedProblemsWithScore" resultType="java.util.HashMap">
+        SELECT
+        id,
+        title,
+        title_en,
+        difficulty,
+        problem_type,
+        submission_count,
+        accepted_count,
+        ROUND(
+            CASE
+                WHEN submission_count > 0
+                    THEN (accepted_count * 100.0 / submission_count)
+                ELSE 0
+            END, 2
+        ) as acceptance_rate,
+        time_limit,
+        memory_limit,
+        created_at,
+        <choose>
+            <!-- 基于通过率的推荐评分 -->
+            <when test="criteria.type.name() == 'ACCEPTANCE_RATE'">
+                ROUND(
+                    (accepted_count * 1.0 / GREATEST(submission_count, 1)) * 60 +
+                    LEAST(submission_count / 100.0, 1) * 40, 2
+                ) as recommendation_score
+            </when>
+            
+            <!-- 基于相似性的推荐评分 -->
+            <when test="criteria.type.name() == 'SIMILARITY'">
+                <if test="criteria.targetProblemId != null">
+                    ROUND(
+                        (CASE WHEN problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0) THEN 30 ELSE 10 END) +
+                        (CASE WHEN difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0) THEN 25 ELSE 5 END) +
+                        LEAST(submission_count / 100.0, 1) * 25 +
+                        (CASE
+                            WHEN submission_count > 0 AND (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 80 THEN 20
+                            ELSE 10
+                        END), 2
+                    ) as recommendation_score
+                </if>
+                <if test="criteria.targetProblemId == null">
+                    ROUND(submission_count * 0.6 + accepted_count * 0.4, 2) as recommendation_score
+                </if>
+            </when>
+            
+            <!-- 基于热门度的推荐评分 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                ROUND(
+                    submission_count * 0.7 +
+                    accepted_count * 0.3 +
+                    (CASE WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 10 ELSE 0 END), 2
+                ) as recommendation_score
+            </when>
+            
+            <!-- 基于算法数据的推荐评分 -->
+            <when test="criteria.type.name() == 'ALGORITHM_DATA'">
+                ROUND(
+                    LEAST(submission_count / 50.0, 1) * 40 +
+                    (CASE
+                        WHEN submission_count = 0 THEN 0
+                        WHEN (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 70 THEN 30
+                        WHEN (accepted_count * 100.0 / submission_count) BETWEEN 10 AND 80 THEN 20
+                        ELSE 10
+                    END) +
+                    (CASE
+                        WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 20
+                        WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 90 THEN 15
+                        WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 180 THEN 10
+                        ELSE 5
+                    END) +
+                    (CASE WHEN status = 1 AND visibility = 1 THEN 10 ELSE 0 END), 2
+                ) as recommendation_score
+            </when>
+        </choose>
+        FROM problem
+        <include refid="Base_Where_Clause"/>
+        AND status = 1
+        <choose>
+            <!-- 基于通过率的推荐 -->
+            <when test="criteria.type.name() == 'ACCEPTANCE_RATE'">
+                AND submission_count > 0
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+                <if test="criteria.minAcceptanceRate != null">
+                    AND (accepted_count * 1.0 / submission_count) >= #{criteria.minAcceptanceRate}
+                </if>
+                <if test="criteria.maxAcceptanceRate != null">
+                    AND (accepted_count * 1.0 / submission_count) &lt;= #{criteria.maxAcceptanceRate}
+                </if>
+            </when>
+            
+            <!-- 基于相似性的推荐 -->
+            <when test="criteria.type.name() == 'SIMILARITY'">
+                <if test="criteria.targetProblemId != null">
+                    AND id != #{criteria.targetProblemId}
+                </if>
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+            </when>
+            
+            <!-- 基于热门度的推荐 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                <if test="criteria.timeRange != null">
+                    AND created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.timeRange} DAY)
+                </if>
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+            </when>
+            
+            <!-- 基于算法数据的推荐 -->
+            <when test="criteria.type.name() == 'ALGORITHM_DATA'">
+                AND submission_count > 0
+                <if test="criteria.difficulty != null">
+                    AND difficulty = #{criteria.difficulty}
+                </if>
+                <if test="criteria.problemType != null and criteria.problemType != ''">
+                    AND problem_type = #{criteria.problemType}
+                </if>
+            </when>
+        </choose>
+        
+        ORDER BY recommendation_score DESC, submission_count DESC
+        
+        <if test="criteria.limit != null and criteria.limit > 0">
+            LIMIT #{criteria.limit}
+        </if>
+    </select>
+
+    <!-- ===== 原有推荐接口映射（已废弃） ===== -->
+
     <!-- 查询推荐题目（通过率适中的题目） -->
     <select id="selectRecommendedProblems" resultMap="BaseResultMap">
         SELECT

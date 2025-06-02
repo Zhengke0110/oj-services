@@ -8,10 +8,11 @@ import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
 import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
+import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public interface ProblemService {
@@ -83,14 +84,36 @@ public interface ProblemService {
     List<ProblemVO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
 
     /**
-     * 查询推荐题目
+     * 获取推荐题目（统一接口）
+     * 支持多种推荐算法：通过率、相似性、热度、算法数据
+     *
+     * @param criteria 推荐条件，包含推荐类型和相关参数
+     * @return 推荐题目列表
+     * @since 2.0
+     */
+    List<ProblemVO> getRecommendedProblems(RecommendationCriteria criteria);
+
+    /**
+     * 获取带评分的推荐题目（统一接口）
+     * 支持多种推荐算法，返回题目及其推荐评分
+     *
+     * @param criteria 推荐条件，包含推荐类型和相关参数
+     * @return 带评分的推荐题目列表
+     * @since 2.0
+     */
+    List<Map<String, Object>> getRecommendedProblemsWithScore(RecommendationCriteria criteria);
+
+    /**
+     * 查询推荐题目（旧接口，推荐使用新的统一接口）
      *
      * @param minAcceptanceRate 最小通过率
      * @param maxAcceptanceRate 最大通过率
      * @param difficulty        难度
      * @param limit             数量限制
      * @return 推荐题目列表
+     * @deprecated 此方法已弃用，请使用 {@link #getRecommendedProblems(RecommendationCriteria)} 替代
      */
+    @Deprecated
     List<ProblemVO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
 
     /**
