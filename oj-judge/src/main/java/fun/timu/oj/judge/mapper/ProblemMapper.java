@@ -57,6 +57,21 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @return 包含题目类型、难度及其统计信息的列表
      */
     List<HashMap<String, Object>> getPopularProblemCategories(@Param("limit") Integer limit);
+
+    /**
+     * 查询相似题目（基于标签和难度）
+     *
+     * @param problemId   题目ID
+     * @param difficulty  难度限制
+     * @param problemType 题目类型限制
+     * @param limit       返回数量限制
+     * @return 相似题目列表
+     */
+    List<ProblemDO> findSimilarProblems(@Param("problemId") Long problemId,
+                                        @Param("difficulty") Integer difficulty,
+                                        @Param("problemType") String problemType,
+                                        @Param("limit") Integer limit);
+
 }
 
 

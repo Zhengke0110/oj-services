@@ -770,4 +770,74 @@ public class ProblemManagerImpl implements ProblemManager {
         }
         return PopularProblemCategoryDTO.fromMapList(result);
     }
+
+    /**
+     * 根据创建时间范围查询题目
+     *
+     * @param startDate 开始时间
+     * @param endDate   结束时间
+     * @param status    状态筛选
+     * @param pageNum   页码
+     * @param pageSize  每页大小
+     * @return 分页结果
+     */
+    @Override
+    public IPage<ProblemDO> selectByDateRange(Date startDate, Date endDate, Integer status, int pageNum, int pageSize) {
+        // 创建分页对象
+        Page<ProblemDO> page = new Page<>(pageNum, pageSize);
+
+        // 构建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 添加基本条件：未删除的记录
+        queryWrapper.eq(ProblemDO::getIsDeleted, 0);
+
+        // 添加可选条件
+        if (status != null) {
+            queryWrapper.eq(ProblemDO::getStatus, status);
+        }
+        if (startDate != null) {
+            queryWrapper.ge(ProblemDO::getCreatedAt, startDate);
+        }
+        if (endDate != null) {
+            queryWrapper.le(ProblemDO::getCreatedAt, endDate);
+        }
+
+        // 按创建时间降序排序
+        queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
+
+        // 执行分页查询
+        return problemMapper.selectPage(page, queryWrapper);
+    }
+
+    /**
+     * 查询相似题目（基于标签和难度）
+     *
+     * @param problemId   题目ID
+     * @param difficulty  难度限制
+     * @param problemType 题目类型限制
+     * @param limit       返回数量限制
+     * @return 相似题目列表
+     */
+    @Override
+    public List<ProblemDO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit) {
+        try {
+            // 参数校验
+            if (problemId == null || problemId <= 0) {
+                return Collections.emptyList();
+            }
+
+            // 设置默认限制
+            if (limit == null || limit <= 0) {
+                limit = 10; // 默认返回10条记录
+            }
+
+            // 调用Mapper层方法获取相似题目
+            List<ProblemDO> problemList = problemMapper.findSimilarProblems(problemId, difficulty, problemType, limit);
+
+            return problemList;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
 }

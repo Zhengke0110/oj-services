@@ -735,6 +735,83 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     /**
+     * 根据创建时间范围查询题目
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param pageNum   页码
+     * @param pageSize  每页大小
+     * @return 分页题目列表
+     */
+    @Override
+    public PageResult<ProblemVO> selectByDateRange(Date startDate, Date endDate, int pageNum, int pageSize) {
+        try {
+            // 记录日志
+            log.info("按时间范围查询题目, 开始时间: {}, 结束时间: {}, 页码: {}, 每页大小: {}",
+                    startDate, endDate, pageNum, pageSize);
+
+            // 默认查询状态为1（激活状态）的题目
+            Integer status = 1;
+
+            // 调用Manager层方法获取分页数据
+            IPage<ProblemDO> problemPage = problemManager.selectByDateRange(startDate, endDate, status, pageNum, pageSize);
+
+            if (problemPage == null || problemPage.getRecords().isEmpty()) {
+                throw new RuntimeException("没有找到符合要求的题目");
+            }
+
+            // 转换DO对象为VO对象
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+
+            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
+            log.info("成功查询时间范围内的题目列表，当前页: {}, 每页大小: {}, 总数: {}", pageNum, pageSize, problemPage.getTotal());
+            return pageResult;
+        } catch (Exception e) {
+            log.error("按时间范围查询题目失败: {}", e.getMessage(), e);
+            return new PageResult<>();
+        }
+    }
+
+    /**
+     * 查询相似题目（基于标签和难度）
+     *
+     * @param problemId   题目ID
+     * @param difficulty  难度限制
+     * @param problemType 题目类型限制
+     * @param limit       返回数量限制
+     * @return 相似题目列表
+     */
+    @Override
+    public List<ProblemVO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit) {
+        try {
+            log.info("ProblemService--->查询相似题目, 题目ID: {}, 难度: {}, 题目类型: {}, 限制数量: {}",
+                    problemId, difficulty, problemType, limit);
+
+            // 参数校验
+            if (problemId == null || problemId <= 0) {
+                throw new RuntimeException("题目ID无效");
+            }
+
+            // 调用manager层查询相似题目
+            List<ProblemDO> problemDOList = problemManager.findSimilarProblems(problemId, difficulty, problemType, limit);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemDOList.stream()
+                    .map(this::convertToVO)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            log.info("查询相似题目成功, 题目ID: {}, 获取到 {} 个相似题目", problemId, problemVOList.size());
+            return problemVOList;
+        } catch (Exception e) {
+            log.error("ProblemService--->查询相似题目失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * 将ProblemDO转换为基本信息的ProblemVO
      * 只包含题目的基本字段，不包含详细内容
      *

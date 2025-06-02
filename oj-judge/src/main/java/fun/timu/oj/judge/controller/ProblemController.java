@@ -13,10 +13,12 @@ import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -435,5 +437,55 @@ public class ProblemController {
             log.error("ProblemController--->获取最受欢迎的题目类型和难度组合失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
+    }
+
+    /**
+     * 根据创建时间范围查询题目
+     *
+     * @param startDate 开始日期，格式为yyyy-MM-dd
+     * @param endDate   结束日期，格式为yyyy-MM-dd
+     * @param pageNum   页码，默认为1
+     * @param pageSize  每页大小，默认为10
+     * @return 分页题目列表结果
+     */
+    @GetMapping("/date-range")
+    public JsonData selectByDateRange(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        try {
+            // 调用Service层方法获取时间范围内的题目
+            PageResult<ProblemVO> result = problemService.selectByDateRange(startDate, endDate, pageNum, pageSize);
+            log.info("ProblemController--->成功查询时间范围内的题目，开始时间：{}，结束时间：{}，页码：{}，每页数量：{}",
+                    startDate, endDate, pageNum, pageSize);
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->根据创建时间范围查询题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * TODO（未测试 目前暂未实现问题与标签的关联）查询相似题目（基于标签和难度）
+     *
+     * @param request 包含problemId、difficulty、problemType和limit的请求对象
+     * @return 相似题目列表
+     */
+    @PostMapping("/similar")
+    public JsonData findSimilarProblems(@Valid @RequestBody SimilarProblemRequest request) {
+        // 参数校验
+        if (request.getProblemId() == null || request.getProblemId() <= 0) {
+            return JsonData.buildError("题目ID不能为空或无效");
+        }
+
+        List<ProblemVO> problems = problemService.findSimilarProblems(
+                request.getProblemId(),
+                request.getDifficulty(),
+                request.getProblemType(),
+                request.getLimit()
+        );
+
+        return JsonData.buildSuccess(problems);
     }
 }

@@ -133,4 +133,29 @@
     </select>
 
 
+    <!-- 查询相似题目（基于标签和难度） -->
+    <select id="findSimilarProblems" resultMap="BaseResultMap">
+        SELECT DISTINCT
+        <include refid="Base_Column_List"/>
+        FROM problem p
+        WHERE p.id != #{problemId}
+        AND p.is_deleted = 0
+        AND p.status = 1
+        <if test="difficulty != null">
+            AND p.difficulty = #{difficulty}
+        </if>
+        <if test="problemType != null and problemType != ''">
+            AND p.problem_type = #{problemType}
+        </if>
+        AND EXISTS (
+        SELECT 1 FROM problem_tag_relation ptr1
+        JOIN problem_tag_relation ptr2 ON ptr1.tag_id = ptr2.tag_id
+        WHERE ptr1.problem_id = #{problemId}
+        AND ptr2.problem_id = p.id
+        AND ptr1.is_deleted = 0
+        AND ptr2.is_deleted = 0
+        )
+        ORDER BY p.submission_count DESC, p.created_at DESC
+        LIMIT #{limit}
+    </select>
 </mapper>

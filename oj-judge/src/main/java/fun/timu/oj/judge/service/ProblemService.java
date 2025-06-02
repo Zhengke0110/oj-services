@@ -9,6 +9,7 @@ import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -182,4 +183,26 @@ public interface ProblemService {
      * @return 包含题目类型、难度及其统计信息的列表
      */
     List<PopularProblemCategoryDTO> getPopularProblemCategories(Integer limit);
+
+    /**
+     * 根据创建时间范围查询题目
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param pageNum   页码
+     * @param pageSize  每页大小
+     * @return 分页题目列表
+     */
+    PageResult<ProblemVO> selectByDateRange(Date startDate, Date endDate, int pageNum, int pageSize);
+
+    /**
+     * 查询相似题目（基于标签和难度）
+     *
+     * @param problemId   题目ID
+     * @param difficulty  难度限制
+     * @param problemType 题目类型限制
+     * @param limit       返回数量限制
+     * @return 相似题目列表
+     */
+    List<ProblemVO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit);
 }
