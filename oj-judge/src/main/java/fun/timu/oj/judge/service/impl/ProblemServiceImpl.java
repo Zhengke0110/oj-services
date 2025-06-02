@@ -14,6 +14,7 @@ import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
@@ -699,6 +700,22 @@ public class ProblemServiceImpl implements ProblemService {
         } catch (Exception e) {
             log.error("ProblemService--->批量获取题目基本信息失败: {}", e.getMessage(), e);
             return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 获取题目详细统计信息
+     *
+     * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
+     */
+    @Override
+    public ProblemDetailStatisticsDTO getProblemDetailStatistics() {
+        try {
+            log.info("ProblemServiceImpl--->获取题目详细统计信息");
+            return problemManager.getProblemDetailStatistics();
+        } catch (Exception e) {
+            log.error("ProblemServiceImpl--->获取题目详细统计信息失败: {}", e.getMessage(), e);
+            return null;
         }
     }
 

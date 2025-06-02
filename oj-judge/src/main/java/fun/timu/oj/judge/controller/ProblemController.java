@@ -6,6 +6,7 @@ import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.*;
+import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
@@ -396,6 +397,23 @@ public class ProblemController {
             return JsonData.buildSuccess(problemVOList);
         } catch (Exception e) {
             log.error("ProblemController--->批量获取题目基本信息失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取题目详细统计信息
+     *
+     * @return 包含各种维度统计数据的响应
+     */
+    @GetMapping("/detail-statistics")
+    public JsonData getProblemDetailStatistics() {
+        try {
+            log.info("ProblemController--->获取题目详细统计信息");
+            ProblemDetailStatisticsDTO statistics = problemService.getProblemDetailStatistics();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取题目详细统计信息异常: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

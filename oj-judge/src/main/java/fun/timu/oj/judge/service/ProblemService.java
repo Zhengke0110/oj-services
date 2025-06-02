@@ -4,9 +4,11 @@ import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
+import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -164,4 +166,11 @@ public interface ProblemService {
      * @return 包含题目基本信息的列表
      */
     List<ProblemVO> selectBasicInfoByIds(List<Long> problemIds);
+
+    /**
+     * 获取题目详细统计信息
+     *
+     * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
+     */
+    ProblemDetailStatisticsDTO getProblemDetailStatistics();
 }

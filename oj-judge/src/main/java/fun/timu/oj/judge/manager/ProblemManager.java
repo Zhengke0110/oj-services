@@ -3,8 +3,10 @@ package fun.timu.oj.judge.manager;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 
+import java.util.HashMap;
 import java.util.List;
 
 public interface ProblemManager {
@@ -19,14 +21,18 @@ public interface ProblemManager {
 
 
     /**
-     * 根据类型、难度、状态分页获取题目列表
+     * 分页查询题目列表
      *
-     * @param pageNum     当前页码
-     * @param pageSize    每页大小
-     * @param problemType 题目类型
-     * @param difficulty  题目难度
-     * @param status      题目状态
-     * @return 题目列表
+     * @param pageNum            当前页码
+     * @param pageSize           每页数量
+     * @param problemType        题目类型
+     * @param difficulty         难度等级
+     * @param status             状态
+     * @param visibility         可见性
+     * @param supportedLanguages 支持的语言列表
+     * @param hasInput           是否有输入
+     * @param MinAcceptanceRate  最小通过率
+     * @param MaxAcceptanceRate  最大通过率
      */
     public IPage<ProblemDO> findTagListWithPage(int pageNum, int pageSize, String problemType, Integer difficulty, Integer status, Integer visibility, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate);
 
@@ -176,4 +182,11 @@ public interface ProblemManager {
      * @return 题目信息列表
      */
     List<ProblemDO> selectBasicInfoByIds(List<Long> problemIds);
+
+    /**
+     * 获取题目详细统计信息
+     *
+     * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
+     */
+    ProblemDetailStatisticsDTO getProblemDetailStatistics();
 }

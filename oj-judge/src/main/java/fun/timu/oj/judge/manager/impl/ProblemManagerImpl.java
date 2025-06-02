@@ -8,6 +8,7 @@ import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -749,5 +750,20 @@ public class ProblemManagerImpl implements ProblemManager {
             }
         }
         return orderedProblems;
+    }
+
+    /**
+     * 获取题目详细统计信息
+     * 该方法通过调用Mapper层获取包含题目各维度的统计数据
+     *
+     * @return 包含详细统计数据的HashMap
+     */
+    @Override
+    public ProblemDetailStatisticsDTO getProblemDetailStatistics() {
+        HashMap<String, Object> statistics = problemMapper.getProblemDetailStatistics();
+        if (statistics == null) {
+            throw new RuntimeException("获取题目详细统计信息失败");
+        }
+        return ProblemDetailStatisticsDTO.fromMap(statistics);
     }
 }

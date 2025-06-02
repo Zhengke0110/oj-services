@@ -6,7 +6,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author zhengke
@@ -41,6 +43,12 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
     List<Object> getProblemStatistics();
 
 
+    /**
+     * 获取题目详细统计信息（包含各种维度的数据）
+     *
+     * @return 详细统计信息Map
+     */
+    HashMap<String, Object> getProblemDetailStatistics();
 }
 
 
