@@ -352,8 +352,38 @@ public class ProblemManagerImpl implements ProblemManager {
         // 如果limit为null或小于等于0，设置默认值为10
         if (limit == null || limit <= 0) limit = 10;
 
-        // 调用mapper的对应方法获取热门题目列表
-        return problemMapper.selectHotProblems(problemType, difficulty, limit);
+        // 创建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 未删除的题目
+        queryWrapper.eq(ProblemDO::getIsDeleted, 0);
+
+        // 状态为激活的题目
+        queryWrapper.eq(ProblemDO::getStatus, 1);
+
+        // 提交次数大于0的题目
+        queryWrapper.gt(ProblemDO::getSubmissionCount, 0);
+
+        // 可选的题目类型筛选
+        if (problemType != null && !problemType.isEmpty()) {
+            queryWrapper.eq(ProblemDO::getProblemType, problemType);
+        }
+
+        // 可选的难度筛选
+        if (difficulty != null) {
+            queryWrapper.eq(ProblemDO::getDifficulty, difficulty);
+        }
+
+        // 按提交次数降序排序，如果提交次数相同则按通过次数降序排序
+        queryWrapper.orderByDesc(ProblemDO::getSubmissionCount, ProblemDO::getAcceptedCount);
+
+        // 限制返回的结果数量
+        Page<ProblemDO> page = new Page<>(1, limit);
+
+        // 执行查询并返回结果
+        IPage<ProblemDO> pageResult = problemMapper.selectPage(page, queryWrapper);
+
+        return pageResult.getRecords();
     }
 
     /**
@@ -444,11 +474,17 @@ public class ProblemManagerImpl implements ProblemManager {
             throw new RuntimeException("批量更新题目状态失败:参数无效，题目ID列表为空或状态值为null");
         }
 
-        // 调用Mapper层执行批量更新
-        int updatedCount = problemMapper.batchUpdateStatus(problemIds, status);
-        log.info("批量更新题目状态成功，题目数量: {}，更新状态: {}, 实际更新记录数: {}", problemIds.size(), status, updatedCount);
+        // 创建更新条件
+        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        // 只更新未删除的题目
+        updateWrapper.eq("is_deleted", 0);
+        // 限定要更新的ID列表
+        updateWrapper.in("id", problemIds);
+        // 设置要更新的字段
+        updateWrapper.set("status", status);
 
-        return updatedCount;
+        // 执行批量更新并返回影响的行数
+        return problemMapper.update(null, updateWrapper);
     }
 
     /**
@@ -468,7 +504,14 @@ public class ProblemManagerImpl implements ProblemManager {
         if (creatorId == null || creatorId <= 0) {
             throw new RuntimeException("用户ID无效");
         }
-        return problemMapper.countByCreator(creatorId);
+
+        // 创建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProblemDO::getCreatorId, creatorId);
+        queryWrapper.eq(ProblemDO::getIsDeleted, 0);
+
+        // 执行查询并返回结果
+        return Long.valueOf(problemMapper.selectCount(queryWrapper));
     }
 
 
@@ -515,4 +558,47 @@ public class ProblemManagerImpl implements ProblemManager {
         }
     }
 
+    /**
+     * 根据支持的编程语言查询题目
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @param language 编程语言
+     * @return 包含题目列表的分页结果
+     */
+    @Override
+    public IPage<ProblemDO> selectByLanguage(int pageNum, int pageSize, String language) {
+        // 创建分页对象
+        Page<ProblemDO> page = new Page<>(pageNum, pageSize);
+
+        // 创建查询条件
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 只查询未删除的题目
+        queryWrapper.eq(ProblemDO::getIsDeleted, false);
+
+        // 只查询状态为激活的题目
+        queryWrapper.eq(ProblemDO::getStatus, 1);
+
+        // 只查询可见性为公开的题目
+        queryWrapper.eq(ProblemDO::getVisibility, 1);
+
+        // 如果语言参数有效，添加JSON查询条件
+        if (language != null && !language.trim().isEmpty()) {
+            // 使用apply方法应用原生SQL条件，通过JSON_CONTAINS函数查询
+            // 使用参数化查询防止SQL注入
+            queryWrapper.apply("JSON_CONTAINS(supported_languages, JSON_QUOTE({0}))", language);
+        }
+
+        // 按创建时间降序排序
+        queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
+
+        // 执行查询并返回分页结果
+        return problemMapper.selectPage(page, queryWrapper);
+    }
+
+    @Override
+    public int batchSoftDelete(List<Long> problemIds) {
+        return 0;
+    }
 }

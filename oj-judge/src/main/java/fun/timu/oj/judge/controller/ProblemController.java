@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.controller;
 
 import fun.timu.oj.common.enmus.BizCodeEnum;
+import fun.timu.oj.common.enmus.ProgrammingLanguage;
 import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
@@ -306,6 +307,32 @@ public class ProblemController {
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
             log.error("ProblemController--->查询最近创建的题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 根据支持的编程语言查询题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param language 编程语言
+     * @return 分页题目列表结果
+     */
+    @GetMapping("/language")
+    public JsonData getProblemsByLanguage(
+            @RequestParam(defaultValue = "1") @Positive int pageNum,
+            @RequestParam(defaultValue = "10") @Positive int pageSize,
+            @RequestParam(required = true) ProgrammingLanguage language) {
+        try {
+            log.info("ProblemController--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}",
+                    pageNum, pageSize, language);
+
+            PageResult<ProblemVO> pageResult = problemService.selectByLanguage(pageNum, pageSize, language.name());
+
+            return JsonData.buildSuccess(pageResult);
+        } catch (Exception e) {
+            log.error("ProblemController--->根据支持的编程语言查询题目失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

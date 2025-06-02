@@ -48,26 +48,6 @@
         WHERE is_deleted = 0
     </sql>
 
-    <!-- 查询热门题目（按提交次数排序） -->
-    <select id="selectHotProblems" resultMap="BaseResultMap">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM problem
-        <include refid="Base_Where_Clause"/>
-        AND status = 1
-        AND submission_count > 0
-        <if test="problemType != null and problemType != ''">
-            AND problem_type = #{problemType}
-        </if>
-        <if test="difficulty != null">
-            AND difficulty = #{difficulty}
-        </if>
-        ORDER BY submission_count DESC, accepted_count DESC
-        <if test="limit != null and limit > 0">
-            LIMIT #{limit}
-        </if>
-    </select>
-
 
     <!-- 查询推荐题目（通过率适中的题目） -->
     <select id="selectRecommendedProblems" resultMap="BaseResultMap">
@@ -111,21 +91,5 @@
         ORDER BY problem_type, difficulty
     </select>
 
-    <!-- 批量更新题目状态 -->
-    <update id="batchUpdateStatus">
-        UPDATE problem SET status = #{status}, updated_at = NOW()
-        WHERE id IN
-        <foreach collection="problemIds" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-        AND is_deleted = 0
-    </update>
 
-    <!-- 根据创建者查询题目数量 -->
-    <select id="countByCreator" resultType="java.lang.Long">
-        SELECT COUNT(*)
-        FROM problem
-        WHERE creator_id = #{creatorId}
-          AND is_deleted = 0
-    </select>
 </mapper>

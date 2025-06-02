@@ -122,4 +122,16 @@ public interface ProblemService {
      * @return 最近创建的题目列表
      */
     List<ProblemVO> selectRecentProblems(int pageNum, int pageSize, Integer limit);
+
+    /**
+     * 根据支持的编程语言查询题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param language 编程语言
+     * @return 分页题目列表结果
+     */
+    PageResult<ProblemVO> selectByLanguage(int pageNum, int pageSize, String language);
+
+
 }

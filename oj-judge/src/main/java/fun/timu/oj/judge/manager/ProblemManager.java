@@ -135,4 +135,21 @@ public interface ProblemManager {
      */
     IPage<ProblemDO> selectRecentProblems(int pageNum, int pageSize, Integer limit);
 
+    /**
+     * 根据支持的编程语言查询题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param language 编程语言
+     * @return 分页结果
+     */
+    IPage<ProblemDO> selectByLanguage(int pageNum, int pageSize, String language);
+
+    /**
+     * 软删除题目（批量）
+     *
+     * @param problemIds 题目ID列表
+     * @return 删除的记录数
+     */
+    int batchSoftDelete(List<Long> problemIds);
 }

@@ -519,13 +519,9 @@ public class ProblemServiceImpl implements ProblemService {
             IPage<ProblemDO> problemPage = problemManager.selectRecentProblems(pageNum, pageSize, limit);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
-                    .map(this::convertToVO)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
-            log.info("ProblemService--->获取最近创建的题目成功，页码: {}, 每页数量: {}, 限制数量: {}, 实际获取数量: {}",
-                    pageNum, pageSize, limit, problemVOList.size());
+            log.info("ProblemService--->获取最近创建的题目成功，页码: {}, 每页数量: {}, 限制数量: {}, 实际获取数量: {}", pageNum, pageSize, limit, problemVOList.size());
 
             return problemVOList;
         } catch (Exception e) {
@@ -555,6 +551,36 @@ public class ProblemServiceImpl implements ProblemService {
         } catch (Exception e) {
             log.error("查询创建者题目数量失败, 创建者ID: {}, 错误: {}", creatorId, e.getMessage(), e);
             throw new RuntimeException("查询创建者题目数量失败", e);
+        }
+    }
+
+    /**
+     * 根据支持的编程语言查询题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param language 编程语言
+     * @return 分页题目列表结果
+     */
+    @Override
+    public PageResult<ProblemVO> selectByLanguage(int pageNum, int pageSize, String language) {
+        try {
+            log.info("ProblemService--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}", pageNum, pageSize, language);
+
+            // 调用manager层获取分页数据
+            IPage<ProblemDO> problemPage = problemManager.selectByLanguage(pageNum, pageSize, language);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(this::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            // 构建分页结果
+            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
+
+            log.info("根据编程语言查询题目成功, 语言: {}, 总数: {}", language, pageResult.getTotal());
+            return pageResult;
+        } catch (Exception e) {
+            log.error("ProblemService--->根据支持的编程语言查询题目失败: {}", e.getMessage(), e);
+            return new PageResult<>();
         }
     }
 
