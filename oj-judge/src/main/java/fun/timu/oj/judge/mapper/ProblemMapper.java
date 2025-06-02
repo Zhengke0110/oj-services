@@ -1,21 +1,14 @@
 package fun.timu.oj.judge.mapper;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-/**
- * @author zhengke
- * @description 针对表【problem(题目信息表(优化版))】的数据库操作Mapper
- * @createDate 2025-05-30 18:41:57
- * @Entity generator.domain.Problem
- */
 @Mapper
 public interface ProblemMapper extends BaseMapper<ProblemDO> {
 
@@ -28,12 +21,7 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param limit             限制数量
      * @return 分页结果
      */
-    List<ProblemDO> selectRecommendedProblems(
-            @Param("minAcceptanceRate") Double minAcceptanceRate,
-            @Param("maxAcceptanceRate") Double maxAcceptanceRate,
-            @Param("difficulty") Integer difficulty,
-            @Param("limit") Integer limit
-    );
+    List<ProblemDO> selectRecommendedProblems(@Param("minAcceptanceRate") Double minAcceptanceRate, @Param("maxAcceptanceRate") Double maxAcceptanceRate, @Param("difficulty") Integer difficulty, @Param("limit") Integer limit);
 
     /**
      * 获取题目统计信息
@@ -67,11 +55,466 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param limit       返回数量限制
      * @return 相似题目列表
      */
-    List<ProblemDO> findSimilarProblems(@Param("problemId") Long problemId,
-                                        @Param("difficulty") Integer difficulty,
-                                        @Param("problemType") String problemType,
-                                        @Param("limit") Integer limit);
+    List<ProblemDO> findSimilarProblems(@Param("problemId") Long problemId, @Param("difficulty") Integer difficulty, @Param("problemType") String problemType, @Param("limit") Integer limit);
 
+    // ===== V2新增：深度统计聚合接口 =====
+
+    /**
+     * 获取题目总体统计信息（增强版）
+     *
+     * @return 统计信息Map
+     */
+    HashMap<String, Object> getOverallStatistics();
+
+    /**
+     * 按难度统计题目数量和通过率
+     *
+     * @return 难度统计列表
+     */
+    List<HashMap<String, Object>> getStatisticsByDifficulty();
+
+    /**
+     * 按题目类型统计题目数量和提交情况
+     *
+     * @return 类型统计列表
+     */
+    List<HashMap<String, Object>> getStatisticsByType();
+
+    /**
+     * 按语言支持统计题目分布
+     *
+     * @return 语言统计列表
+     */
+    List<HashMap<String, Object>> getStatisticsByLanguage();
+
+    /**
+     * 获取题目状态分布统计
+     *
+     * @return 状态统计列表
+     */
+    List<HashMap<String, Object>> getStatisticsByStatus();
+
+    /**
+     * 获取题目创建者活跃度统计
+     *
+     * @param timeRange 时间范围（天数）
+     * @return 创建者活跃度统计
+     */
+    List<HashMap<String, Object>> getCreatorActivityStatistics(@Param("timeRange") Integer timeRange);
+
+    // ===== V2新增：时间趋势分析聚合接口 =====
+
+    /**
+     * 获取题目创建趋势（按日期）
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度：DAY/WEEK/MONTH/YEAR
+     * @return 趋势数据列表
+     */
+    List<HashMap<String, Object>> getProblemCreationTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
+
+    /**
+     * 获取提交趋势统计（按时间维度）
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度：DAY/WEEK/MONTH/YEAR
+     * @return 提交趋势数据
+     */
+    List<HashMap<String, Object>> getSubmissionTrendAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
+
+    /**
+     * 获取通过率趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 通过率趋势数据
+     */
+    List<HashMap<String, Object>> getAcceptanceRateTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
+
+    /**
+     * 获取题目活跃度时间趋势
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 活跃度趋势数据
+     */
+    List<HashMap<String, Object>> getProblemActivityTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("granularity") String granularity);
+
+    // ===== V2新增：多维度排行榜聚合接口 =====
+
+    /**
+     * 获取最受欢迎题目排行榜（按提交量）
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围（天数）
+     * @return 热门题目列表
+     */
+    List<HashMap<String, Object>> getPopularProblemsRanking(@Param("limit") Integer limit, @Param("timeRange") Integer timeRange);
+
+    /**
+     * 获取最难题目排行榜（按通过率）
+     *
+     * @param limit          限制数量
+     * @param minSubmissions 最小提交数要求
+     * @return 最难题目列表
+     */
+    List<HashMap<String, Object>> getHardestProblemsRanking(@Param("limit") Integer limit, @Param("minSubmissions") Integer minSubmissions);
+
+    /**
+     * 获取创建者贡献排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围（天数）
+     * @return 创建者排行榜
+     */
+    List<HashMap<String, Object>> getCreatorContributionRanking(@Param("limit") Integer limit, @Param("timeRange") Integer timeRange);
+
+    /**
+     * 获取题目质量排行榜（综合评分）
+     *
+     * @param limit 限制数量
+     * @return 高质量题目列表
+     */
+    List<HashMap<String, Object>> getQualityProblemsRanking(@Param("limit") Integer limit);
+
+    /**
+     * 获取最新题目排行榜
+     *
+     * @param limit    限制数量
+     * @param dayRange 天数范围
+     * @return 最新题目列表
+     */
+    List<HashMap<String, Object>> getNewestProblemsRanking(@Param("limit") Integer limit, @Param("dayRange") Integer dayRange);
+
+    /**
+     * 获取零提交题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 零提交题目列表
+     */
+    List<HashMap<String, Object>> getZeroSubmissionProblemsRanking(@Param("limit") Integer limit);
+
+    // ===== V2新增：分布分析聚合接口 =====
+
+    /**
+     * 获取难度-类型分布矩阵
+     *
+     * @return 分布矩阵数据
+     */
+    List<HashMap<String, Object>> getDifficultyTypeDistribution();
+
+    /**
+     * 获取通过率分布统计
+     *
+     * @param bucketSize 区间大小（如0.1表示10%一个区间）
+     * @return 通过率分布数据
+     */
+    List<HashMap<String, Object>> getAcceptanceRateDistribution(@Param("bucketSize") Double bucketSize);
+
+    /**
+     * 获取提交量分布统计
+     *
+     * @return 提交量分布数据
+     */
+    List<HashMap<String, Object>> getSubmissionCountDistribution();
+
+    /**
+     * 获取题目时间限制分布
+     *
+     * @return 时间限制分布数据
+     */
+    List<HashMap<String, Object>> getTimeLimitDistribution();
+
+    /**
+     * 获取题目内存限制分布
+     *
+     * @return 内存限制分布数据
+     */
+    List<HashMap<String, Object>> getMemoryLimitDistribution();
+
+    /**
+     * 获取题目可见性分布
+     *
+     * @return 可见性分布数据
+     */
+    List<HashMap<String, Object>> getVisibilityDistribution();
+
+    /**
+     * 获取编程语言使用分布
+     *
+     * @return 语言使用分布数据
+     */
+    List<HashMap<String, Object>> getLanguageUsageDistribution();
+
+    // ===== V2新增：用户行为分析聚合接口 =====
+
+    /**
+     * 获取创建者活跃度分析
+     *
+     * @param timeRange 时间范围（天数）
+     * @return 创建者活跃度数据
+     */
+    List<HashMap<String, Object>> getCreatorActivityAnalysis(@Param("timeRange") Integer timeRange);
+
+    /**
+     * 获取题目被访问热度分析
+     *
+     * @param limit 限制数量
+     * @return 访问热度数据
+     */
+    List<HashMap<String, Object>> getProblemAccessHeatmap(@Param("limit") Integer limit);
+
+    /**
+     * 获取题目解题模式分析
+     *
+     * @param limit 限制数量
+     * @return 解题模式数据
+     */
+    List<HashMap<String, Object>> getProblemSolvingPatternAnalysis(@Param("limit") Integer limit);
+
+    /**
+     * 获取题目难度偏好分析
+     *
+     * @return 难度偏好数据
+     */
+    List<HashMap<String, Object>> getDifficultyPreferenceAnalysis();
+
+    // ===== V2新增：性能分析聚合接口 =====
+
+    /**
+     * 获取题目性能指标分析
+     *
+     * @param limit 限制数量
+     * @return 性能指标数据
+     */
+    List<HashMap<String, Object>> getProblemPerformanceMetrics(@Param("limit") Integer limit);
+
+    /**
+     * 获取资源使用效率分析
+     *
+     * @return 资源使用效率数据
+     */
+    List<HashMap<String, Object>> getResourceUsageEfficiencyAnalysis();
+
+    /**
+     * 获取题目响应时间分析
+     *
+     * @param timeRange 时间范围（天数）
+     * @return 响应时间分析数据
+     */
+    List<HashMap<String, Object>> getProblemResponseTimeAnalysis(@Param("timeRange") Integer timeRange);
+
+    // ===== V2新增：综合分析聚合接口 =====
+
+    /**
+     * 获取题目综合健康度报告
+     *
+     * @return 健康度报告数据
+     */
+    HashMap<String, Object> getProblemHealthReport();
+
+    /**
+     * 获取平台数据大屏统计
+     *
+     * @return 大屏展示数据
+     */
+    HashMap<String, Object> getDashboardStatistics();
+
+    /**
+     * 获取题目推荐算法数据
+     *
+     * @param difficulty  难度偏好
+     * @param problemType 类型偏好
+     * @param limit       推荐数量
+     * @return 推荐题目数据
+     */
+    List<HashMap<String, Object>> getRecommendationData(@Param("difficulty") Integer difficulty, @Param("problemType") String problemType, @Param("limit") Integer limit);
+
+    /**
+     * 获取题目标签云数据
+     *
+     * @param limit 标签数量限制
+     * @return 标签云数据
+     */
+    List<HashMap<String, Object>> getTagCloudData(@Param("limit") Integer limit);
+
+    /**
+     * 获取平台竞争力分析
+     *
+     * @return 竞争力分析数据
+     */
+    HashMap<String, Object> getPlatformCompetitivenessAnalysis();
+
+    /**
+     * 获取题目生态健康度指标
+     *
+     * @return 生态健康度数据
+     */
+    HashMap<String, Object> getProblemEcosystemHealth();
+
+    // ===== V2新增：高级聚合分析接口 =====
+
+    /**
+     * 获取题目相关性分析（基于用户行为）
+     *
+     * @param problemId 目标题目ID
+     * @param limit     相关题目数量
+     * @return 相关题目数据
+     */
+    List<HashMap<String, Object>> getProblemCorrelationAnalysis(@Param("problemId") Long problemId, @Param("limit") Integer limit);
+
+    /**
+     * 获取题目难度预测数据
+     *
+     * @param problemId 题目ID
+     * @return 难度预测数据
+     */
+    HashMap<String, Object> getDifficultyPredictionData(@Param("problemId") Long problemId);
+
+    /**
+     * 获取题目生命周期分析
+     *
+     * @param problemId 题目ID
+     * @return 生命周期数据
+     */
+    HashMap<String, Object> getProblemLifecycleAnalysis(@Param("problemId") Long problemId);
+
+    /**
+     * 获取平台增长指标
+     *
+     * @param timeRange 时间范围（天数）
+     * @return 增长指标数据
+     */
+    HashMap<String, Object> getPlatformGrowthMetrics(@Param("timeRange") Integer timeRange);
+
+    /**
+     * 获取题目集群分析
+     *
+     * @param clusterMethod 聚类方法
+     * @param clusterCount  聚类数量
+     * @return 聚类分析数据
+     */
+    List<HashMap<String, Object>> getProblemClusterAnalysis(@Param("clusterMethod") String clusterMethod, @Param("clusterCount") Integer clusterCount);
+
+    /**
+     * 获取题目异常检测分析
+     *
+     * @param detectionMethod 检测方法
+     * @return 异常检测数据
+     */
+    List<HashMap<String, Object>> getProblemAnomalyDetection(@Param("detectionMethod") String detectionMethod);
+
+    // ===== V2新增：导出和报表聚合接口 =====
+
+    /**
+     * 获取题目月度报表数据
+     *
+     * @param year  年份
+     * @param month 月份
+     * @return 月度报表数据
+     */
+    HashMap<String, Object> getMonthlyReport(@Param("year") Integer year, @Param("month") Integer month);
+
+    /**
+     * 获取题目年度报表数据
+     *
+     * @param year 年份
+     * @return 年度报表数据
+     */
+    HashMap<String, Object> getAnnualReport(@Param("year") Integer year);
+
+    /**
+     * 获取自定义时间范围统计报表
+     *
+     * @param startDate 开始时间
+     * @param endDate   结束时间
+     * @param metrics   指标列表
+     * @return 自定义报表数据
+     */
+    HashMap<String, Object> getCustomRangeReport(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("metrics") List<String> metrics);
+
+    /**
+     * 获取周度报表数据
+     *
+     * @param year 年份
+     * @param week 周数
+     * @return 周度报表数据
+     */
+    HashMap<String, Object> getWeeklyReport(@Param("year") Integer year, @Param("week") Integer week);
+
+    /**
+     * 获取季度报表数据
+     *
+     * @param year    年份
+     * @param quarter 季度
+     * @return 季度报表数据
+     */
+    HashMap<String, Object> getQuarterlyReport(@Param("year") Integer year, @Param("quarter") Integer quarter);
+
+    // ===== V2新增：实时监控聚合接口 =====
+
+    /**
+     * 获取实时题目状态监控
+     *
+     * @return 实时状态数据
+     */
+    HashMap<String, Object> getRealTimeProblemStatus();
+
+    /**
+     * 获取实时提交监控统计
+     *
+     * @param timeWindow 时间窗口（分钟）
+     * @return 实时提交统计
+     */
+    HashMap<String, Object> getRealTimeSubmissionMonitoring(@Param("timeWindow") Integer timeWindow);
+
+    /**
+     * 获取实时错误率监控
+     *
+     * @param timeWindow 时间窗口（分钟）
+     * @return 实时错误率数据
+     */
+    HashMap<String, Object> getRealTimeErrorRateMonitoring(@Param("timeWindow") Integer timeWindow);
+
+    /**
+     * 获取实时性能监控
+     *
+     * @param timeWindow 时间窗口（分钟）
+     * @return 实时性能数据
+     */
+    HashMap<String, Object> getRealTimePerformanceMonitoring(@Param("timeWindow") Integer timeWindow);
+
+    // ===== V2新增：预测分析聚合接口 =====
+
+    /**
+     * 获取题目提交量预测
+     *
+     * @param problemId   题目ID
+     * @param predictDays 预测天数
+     * @return 提交量预测数据
+     */
+    HashMap<String, Object> getProblemSubmissionPrediction(@Param("problemId") Long problemId, @Param("predictDays") Integer predictDays);
+
+    /**
+     * 获取平台增长预测
+     *
+     * @param predictMonths 预测月数
+     * @return 增长预测数据
+     */
+    HashMap<String, Object> getPlatformGrowthPrediction(@Param("predictMonths") Integer predictMonths);
+
+    /**
+     * 获取题目流行度预测
+     *
+     * @param timeRange 时间范围
+     * @param limit     限制数量
+     * @return 流行度预测数据
+     */
+    List<HashMap<String, Object>> getProblemPopularityPrediction(@Param("timeRange") Integer timeRange, @Param("limit") Integer limit);
 }
 
 
