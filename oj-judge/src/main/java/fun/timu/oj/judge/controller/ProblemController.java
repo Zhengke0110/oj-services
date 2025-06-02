@@ -622,4 +622,56 @@ public class ProblemController {
         }
     }
 
+    /**
+     * 发布题目
+     *
+     * @param id 题目ID
+     * @return 操作结果
+     */
+    @PostMapping("/{id}/publish")
+    public JsonData publishProblem(@PathVariable Long id) {
+        try {
+            log.info("ProblemController--->发布题目, 题目ID: {}", id);
+            if (id == null || id <= 0) {
+                return JsonData.buildError("无效的题目ID");
+            }
+
+            boolean result = problemService.publishProblem(id);
+            if (result) {
+                return JsonData.buildSuccess();
+            } else {
+                return JsonData.buildError("发布题目失败");
+            }
+        } catch (Exception e) {
+            log.error("ProblemController--->发布题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
+
+    /**
+     * 下线题目
+     *
+     * @param id 题目ID
+     * @return 操作结果
+     */
+    @PostMapping("/{id}/unpublish")
+    public JsonData unpublishProblem(@PathVariable Long id) {
+        try {
+            log.info("ProblemController--->下线题目, 题目ID: {}", id);
+            if (id == null || id <= 0) {
+                return JsonData.buildError("无效的题目ID");
+            }
+
+            boolean result = problemService.unpublishProblem(id);
+            if (result) {
+                return JsonData.buildSuccess();
+            } else {
+                return JsonData.buildError("下线题目失败");
+            }
+        } catch (Exception e) {
+            log.error("ProblemController--->下线题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
+
 }

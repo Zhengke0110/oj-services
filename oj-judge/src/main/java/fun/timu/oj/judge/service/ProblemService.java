@@ -252,4 +252,13 @@ public interface ProblemService {
      */
     PageResult<ProblemVO> selectProblemsWithoutSubmissions(int pageNum, int pageSize);
 
+    /**
+     * 发布问题
+     */
+    boolean publishProblem(Long id);
+
+    /**
+     * 下线问题
+     */
+    boolean unpublishProblem(Long id);
 }

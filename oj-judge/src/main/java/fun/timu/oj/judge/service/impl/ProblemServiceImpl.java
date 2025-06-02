@@ -1004,6 +1004,39 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 发布题目
+     *
+     * @param id 题目ID
+     */
+    @Override
+    public boolean publishProblem(Long id) {
+        try {
+            log.info("ProblemService--->发布题目, ID: {}", id);
+            int row = problemManager.batchUpdateVisibility(List.of(id), 1);
+            return row > 0;
+        } catch (Exception e) {
+            log.error("ProblemService--->发布题目: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 下线题目
+     *
+     * @param id 题目ID
+     */
+    @Override
+    public boolean unpublishProblem(Long id) {
+        try {
+            log.info("ProblemService--->下线题目, ID: {}", id);
+            int row = problemManager.batchUpdateVisibility(List.of(id), 2);
+            return row > 0;
+        } catch (Exception e) {
+            log.error("ProblemService--->下线题目: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 
     /**
      * 将ProblemDO转换为基本信息的ProblemVO
