@@ -205,4 +205,23 @@ public interface ProblemService {
      * @return 相似题目列表
      */
     List<ProblemVO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit);
+
+    /**
+     * 批量更新题目可见性
+     *
+     * @param problemIds 题目ID列表
+     * @param visibility 可见性值
+     * @return 是否更新成功
+     */
+    boolean batchUpdateVisibility(List<Long> problemIds, Integer visibility);
+
+    /**
+     * 批量更新题目的时间和内存限制
+     *
+     * @param problemIds  题目ID列表
+     * @param timeLimit   时间限制（秒）
+     * @param memoryLimit 内存限制（MB）
+     * @return 是否更新成功
+     */
+    boolean batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit);
 }

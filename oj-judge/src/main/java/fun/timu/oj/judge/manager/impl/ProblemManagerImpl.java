@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -839,5 +840,70 @@ public class ProblemManagerImpl implements ProblemManager {
         } catch (Exception e) {
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * 批量更新题目可见性
+     *
+     * @param problemIds 题目ID列表
+     * @param visibility 可见性值
+     * @return 更新的记录数
+     */
+    public int batchUpdateVisibility(List<Long> problemIds, Integer visibility) {
+        // 参数校验
+        if (problemIds == null || problemIds.isEmpty() || visibility == null) {
+            throw new IllegalArgumentException("参数错误");
+        }
+
+        // 使用LambdaUpdateWrapper构建更新条件
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(ProblemDO::getId, problemIds)
+                .set(ProblemDO::getVisibility, visibility);
+
+        // 执行更新操作
+        int updatedCount = problemMapper.update(null, updateWrapper);
+        if (updatedCount <= 0) throw new RuntimeException("更新失败");
+        return updatedCount;
+    }
+
+    /**
+     * 批量更新题目的时间和内存限制
+     *
+     * @param problemIds  需要更新的题目ID列表
+     * @param timeLimit   新的时间限制值（毫秒）
+     * @param memoryLimit 新的内存限制值（MB）
+     * @return 成功更新的记录数
+     */
+    public int batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit) {
+        // 参数校验
+        if (problemIds == null || problemIds.isEmpty()) {
+            throw new IllegalArgumentException("参数错误");
+        }
+
+        if (timeLimit == null && memoryLimit == null) {
+            throw new IllegalArgumentException("参数错误");
+        }
+
+        // 创建更新构造器
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+
+        // 设置更新条件：ID在指定列表中且未删除
+        updateWrapper.in(ProblemDO::getId, problemIds)
+                .eq(ProblemDO::getIsDeleted, 0);
+
+        // 设置更新字段：如果参数不为空，则更新对应字段
+        if (timeLimit != null) {
+            updateWrapper.set(ProblemDO::getTimeLimit, timeLimit);
+        }
+
+        if (memoryLimit != null) {
+            updateWrapper.set(ProblemDO::getMemoryLimit, memoryLimit);
+        }
+
+        // 执行更新操作
+        int updatedRows = problemMapper.update(null, updateWrapper);
+        if (updatedRows <= 0) throw new RuntimeException("更新失败,请检查题目ID是否存在或未被删除");
+        return updatedRows;
+
     }
 }

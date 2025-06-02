@@ -488,4 +488,61 @@ public class ProblemController {
 
         return JsonData.buildSuccess(problems);
     }
+
+    /**
+     * 批量更新题目可见性
+     *
+     * @param request 包含题目ID列表和目标可见性的请求对象
+     * @return 更新结果
+     */
+    @PutMapping("/batch-visibility")
+    public JsonData batchUpdateVisibility(@Valid @RequestBody BatchUpdateVisibilityRequest request) {
+        try {
+            log.info("ProblemController--->批量更新题目可见性请求, 题目数量: {}, 目标可见性: {}",
+                    request.getProblemIds().size(), request.getVisibility());
+
+            boolean result = problemService.batchUpdateVisibility(request.getProblemIds(), request.getVisibility());
+
+            if (!result) {
+                throw new RuntimeException("批量更新题目可见性失败");
+            }
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("ProblemController--->批量更新题目可见性失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
+
+    /**
+     * 批量更新题目的时间和内存限制
+     *
+     * @param request 包含题目ID列表、时间限制和内存限制的请求对象
+     * @return 更新结果
+     */
+    @PutMapping("/batch-limits")
+    public JsonData batchUpdateLimits(@Valid @RequestBody BatchUpdateLimitsRequest request) {
+        try {
+            log.info("ProblemController--->批量更新题目时间和内存限制请求, 题目数量: {}, 时间限制: {}, 内存限制: {}",
+                    request.getProblemIds().size(), request.getTimeLimit(), request.getMemoryLimit());
+
+            // 参数校验 - 至少要有一个不为null
+            if (request.getTimeLimit() == null && request.getMemoryLimit() == null) {
+                return JsonData.buildError("时间限制和内存限制至少需要指定一个");
+            }
+
+            boolean result = problemService.batchUpdateLimits(
+                    request.getProblemIds(),
+                    request.getTimeLimit(),
+                    request.getMemoryLimit()
+            );
+
+            if (!result) {
+                throw new RuntimeException("批量更新题目时间和内存限制失败");
+            }
+            return JsonData.buildSuccess();
+        } catch (Exception e) {
+            log.error("ProblemController--->批量更新题目时间和内存限制失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+        }
+    }
 }

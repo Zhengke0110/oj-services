@@ -222,4 +222,24 @@ public interface ProblemManager {
      * @return 相似题目列表
      */
     List<ProblemDO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit);
+
+    /**
+     * 批量更新题目可见性
+     *
+     * @param problemIds 题目ID列表
+     * @param visibility 可见性值
+     * @return 更新的记录数
+     */
+    int batchUpdateVisibility(List<Long> problemIds, Integer visibility);
+
+    /**
+     * 批量更新题目的时间和内存限制
+     *
+     * @param problemIds  需要更新的题目ID列表
+     * @param timeLimit   新的时间限制值（毫秒）
+     * @param memoryLimit 新的内存限制值（MB）
+     * @return 成功更新的记录数
+     */
+    public int batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit);
+
 }

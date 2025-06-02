@@ -812,6 +812,74 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     /**
+     * 批量更新题目可见性
+     *
+     * @param problemIds 题目ID列表
+     * @param visibility 可见性值
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional
+    public boolean batchUpdateVisibility(List<Long> problemIds, Integer visibility) {
+        try {
+            // 获取当前登录用户，验证权限
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量更新题目可见性的权限");
+            }
+
+            log.info("ProblemService--->开始批量更新题目可见性，题目ID列表大小: {}, 目标可见性: {}", problemIds.size(), visibility);
+
+            // 调用manager层执行批量更新
+            int updatedCount = problemManager.batchUpdateVisibility(problemIds, visibility);
+
+            log.info("ProblemService--->批量更新题目可见性成功，更新记录数: {}", updatedCount);
+            return true;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量更新题目可见性失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量更新题目可见性失败");
+        }
+    }
+
+    /**
+     * 批量更新题目的时间和内存限制
+     *
+     * @param problemIds  题目ID列表
+     * @param timeLimit   时间限制（秒）
+     * @param memoryLimit 内存限制（MB）
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional
+    public boolean batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit) {
+        try {
+            // 获取当前登录用户，验证权限
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有批量更新题目限制的权限");
+            }
+
+            log.info("ProblemService--->开始批量更新题目时间和内存限制，题目ID列表大小: {}, 时间限制: {}秒, 内存限制: {}MB",
+                    problemIds.size(), timeLimit, memoryLimit);
+
+            // 调用manager层执行批量更新
+            int updatedCount = problemManager.batchUpdateLimits(problemIds, timeLimit, memoryLimit);
+
+            log.info("ProblemService--->批量更新题目时间和内存限制成功，更新记录数: {}", updatedCount);
+            return updatedCount > 0;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量更新题目时间和内存限制失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量更新题目时间和内存限制失败");
+        }
+    }
+
+    /**
      * 将ProblemDO转换为基本信息的ProblemVO
      * 只包含题目的基本字段，不包含详细内容
      *
