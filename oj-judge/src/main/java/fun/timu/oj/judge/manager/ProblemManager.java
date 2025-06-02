@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.manager;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
@@ -10,6 +11,7 @@ import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public interface ProblemManager {
 
@@ -241,5 +243,33 @@ public interface ProblemManager {
      * @return 成功更新的记录数
      */
     public int batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit);
+
+    /**
+     * 重置题目统计数据（将提交次数和通过次数重置为0）
+     *
+     * @param problemIds 需要重置统计数据的题目ID列表
+     * @return 更新成功的记录数
+     */
+    public int resetProblemStats(List<Long> problemIds);
+
+
+    /**
+     * 查询长时间未更新的题目
+     *
+     * @param lastUpdateBefore 上次更新时间早于此日期的题目将被视为陈旧题目
+     * @param pageNum          页码（从1开始）
+     * @param pageSize         每页大小
+     * @return 分页结果，包含符合条件的题目列表
+     */
+    public IPage<ProblemDO> selectStaleProblems(Date lastUpdateBefore, int pageNum, int pageSize);
+
+    /**
+     * 查询零提交的题目（即 submission_count = 0 的题目）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    public IPage<ProblemDO> selectProblemsWithoutSubmissions(int pageNum, int pageSize);
 
 }

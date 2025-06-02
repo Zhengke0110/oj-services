@@ -17,6 +17,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.DTO.SubmissionTrendDTO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
@@ -878,6 +879,117 @@ public class ProblemServiceImpl implements ProblemService {
             throw new RuntimeException("批量更新题目时间和内存限制失败");
         }
     }
+
+    /**
+     * 批量重置题目统计数据（将提交次数和通过次数重置为0）
+     *
+     * @param problemIds 题目ID列表
+     * @return 成功重置的题目数量
+     */
+    @Override
+    @Transactional
+    public int batchResetStatistics(List<Long> problemIds) {
+        try {
+            // 获取当前登录用户，验证权限
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                throw new RuntimeException("用户未登录");
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                throw new RuntimeException("用户没有重置题目统计数据的权限");
+            }
+
+            log.info("ProblemService--->批量重置题目统计数据, 题目数量: {}", problemIds == null ? 0 : problemIds.size());
+
+            // 参数校验
+            if (problemIds == null || problemIds.isEmpty()) {
+                throw new RuntimeException("参数错误, 题目ID列表不能为空");
+            }
+
+            // 调用manager层执行重置操作
+            int resetCount = problemManager.resetProblemStats(problemIds);
+
+            log.info("批量重置题目统计数据成功, 成功重置数量: {}", resetCount);
+            return resetCount;
+        } catch (Exception e) {
+            log.error("ProblemService--->批量重置题目统计数据失败: {}", e.getMessage(), e);
+            throw new RuntimeException("批量重置题目统计数据失败", e);
+        }
+    }
+
+    /**
+     * 查询长时间未更新的题目
+     *
+     * @param days     超过多少天未更新视为长时间未更新
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    @Override
+    public PageResult<ProblemVO> selectStaleProblems(int days, int pageNum, int pageSize) {
+        try {
+            // 计算目标日期：当前日期减去指定的天数
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_MONTH, -days);
+            Date lastUpdateBefore = calendar.getTime();
+
+            // 调用管理层方法查询数据
+            IPage<ProblemDO> problemPage = problemManager.selectStaleProblems(lastUpdateBefore, pageNum, pageSize);
+
+
+            // 转换DO对象为VO对象
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
+                    .map(this::convertToVO)
+                    .collect(Collectors.toList());
+
+            // 构建并返回分页结果
+            PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
+            log.info("ProblemService--->成功查询长时间未更新题目，当前页: {}, 每页大小: {}, 总数: {}", pageNum, pageSize, problemPage.getTotal());
+            return pageResult;
+        } catch (Exception e) {
+            log.error("ProblemService--->查询长时间未更新题目失败: {}", e.getMessage(), e);
+            throw new RuntimeException("查询长时间未更新题目失败", e);
+        }
+    }
+
+    /**
+     * 查询零提交的题目（即 submission_count = 0 的题目）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    @Override
+    public PageResult<ProblemVO> selectProblemsWithoutSubmissions(int pageNum, int pageSize) {
+        try {
+            log.info("ProblemService--->查询零提交的题目, 页码: {}, 每页大小: {}", pageNum, pageSize);
+
+            // 调用manager层查询零提交题目
+            IPage<ProblemDO> problemPage = problemManager.selectProblemsWithoutSubmissions(pageNum, pageSize);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
+                    .map(this::convertToVO)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            // 构建分页结果
+            PageResult<ProblemVO> pageResult = new PageResult<>(
+                    problemVOList,
+                    problemPage.getTotal(),
+                    (int) problemPage.getSize(),
+                    (int) problemPage.getCurrent(),
+                    (int) problemPage.getPages()
+            );
+
+            log.info("查询零提交题目成功，总数: {}", pageResult.getTotal());
+            return pageResult;
+        } catch (Exception e) {
+            log.error("ProblemService--->查询零提交题目失败: {}", e.getMessage(), e);
+            return new PageResult<>();
+        }
+    }
+
 
     /**
      * 将ProblemDO转换为基本信息的ProblemVO

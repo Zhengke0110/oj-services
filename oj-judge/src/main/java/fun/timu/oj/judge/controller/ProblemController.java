@@ -9,6 +9,7 @@ import fun.timu.oj.judge.controller.request.*;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.DTO.SubmissionTrendDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
@@ -545,4 +546,81 @@ public class ProblemController {
             throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
         }
     }
+
+    /**
+     * 批量重置题目统计数据（将提交次数和通过次数重置为0）
+     *
+     * @param request 包含题目ID列表的请求对象
+     * @return 重置结果
+     */
+    @PostMapping("/batch-reset-statistics")
+    public JsonData batchResetStatistics(@Valid @RequestBody BatchProblemRequest request) {
+        try {
+            log.info("ProblemController--->批量重置题目统计数据请求, 题目数量: {}", request.getProblemIds().size());
+
+            // 参数校验
+            if (request.getProblemIds() == null || request.getProblemIds().isEmpty()) {
+                return JsonData.buildError("题目ID列表不能为空");
+            }
+
+            // 调用服务层方法执行重置操作
+            int resetCount = problemService.batchResetStatistics(request.getProblemIds());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("resetCount", resetCount);
+
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->批量重置题目统计数据失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 查询长时间未更新的题目
+     *
+     * @param days     超过多少天未更新视为长时间未更新
+     * @param pageNum  页码，默认为1
+     * @param pageSize 每页大小，默认为10
+     * @return 分页结果，包含符合条件的题目列表
+     */
+    @GetMapping("/stale")
+    public JsonData getStaleProblems(
+            @RequestParam(defaultValue = "30") @Positive(message = "天数必须为正数") int days,
+            @RequestParam(defaultValue = "1") @Positive(message = "页码必须为正数") int pageNum,
+            @RequestParam(defaultValue = "10") @Positive(message = "每页大小必须为正数") int pageSize) {
+        try {
+            log.info("ProblemController--->查询长时间未更新的题目, 超过{}天, 页码: {}, 每页大小: {}",
+                    days, pageNum, pageSize);
+
+            PageResult<ProblemVO> result = problemService.selectStaleProblems(days, pageNum, pageSize);
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->查询长时间未更新的题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 查询零提交的题目（即 submission_count = 0 的题目）
+     *
+     * @param pageNum  页码，默认为1
+     * @param pageSize 每页大小，默认为10
+     * @return 分页结果，包含零提交的题目列表
+     */
+    @GetMapping("/no-submissions")
+    public JsonData getProblemsWithoutSubmissions(
+            @RequestParam(defaultValue = "1") @Positive(message = "页码必须为正数") int pageNum,
+            @RequestParam(defaultValue = "10") @Positive(message = "每页大小必须为正数") int pageSize) {
+        try {
+            log.info("ProblemController--->查询零提交的题目, 页码: {}, 每页大小: {}", pageNum, pageSize);
+
+            PageResult<ProblemVO> result = problemService.selectProblemsWithoutSubmissions(pageNum, pageSize);
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->查询零提交的题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
 }

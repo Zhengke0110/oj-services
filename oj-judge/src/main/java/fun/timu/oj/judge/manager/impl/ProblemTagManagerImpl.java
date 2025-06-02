@@ -1,7 +1,7 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemTagManager;
@@ -80,28 +80,29 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
     @Override
     public int updateById(ProblemTagDO problemTagDO) {
         // 创建UpdateWrapper对象，用于构建更新条件
-        UpdateWrapper<ProblemTagDO> updateWrapper = new UpdateWrapper<>();
+        LambdaUpdateWrapper<ProblemTagDO> updateWrapper = new LambdaUpdateWrapper<>();
+
         // 指定更新的记录ID
-        updateWrapper.eq("id", problemTagDO.getId());
+        updateWrapper.eq(ProblemTagDO::getId, problemTagDO.getId());
 
         // 只有当字段不为null时，才将其添加到更新条件中
         if (problemTagDO.getStatus() != null) {
-            updateWrapper.set("status", problemTagDO.getStatus());
+            updateWrapper.set(ProblemTagDO::getStatus, problemTagDO.getStatus());
         }
         if (problemTagDO.getTagName() != null) {
-            updateWrapper.set("tag_name", problemTagDO.getTagName());
+            updateWrapper.set(ProblemTagDO::getTagName, problemTagDO.getTagName());
         }
         if (problemTagDO.getTagNameEn() != null) {
-            updateWrapper.set("tag_name_en", problemTagDO.getTagNameEn());
+            updateWrapper.set(ProblemTagDO::getTagNameEn, problemTagDO.getTagNameEn());
         }
         if (problemTagDO.getTagColor() != null) {
-            updateWrapper.set("tag_color", problemTagDO.getTagColor());
+            updateWrapper.set(ProblemTagDO::getTagColor, problemTagDO.getTagColor());
         }
         if (problemTagDO.getCategory() != null) {
-            updateWrapper.set("category", problemTagDO.getCategory());
+            updateWrapper.set(ProblemTagDO::getCategory, problemTagDO.getCategory());
         }
         if (problemTagDO.getDescription() != null) {
-            updateWrapper.set("description", problemTagDO.getDescription());
+            updateWrapper.set(ProblemTagDO::getDescription, problemTagDO.getDescription());
         }
 
         // 如果没有字段需要更新，则直接返回0

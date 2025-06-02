@@ -7,6 +7,7 @@ import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.DTO.SubmissionTrendDTO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 
 import java.util.Date;
@@ -224,4 +225,32 @@ public interface ProblemService {
      * @return 是否更新成功
      */
     boolean batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit);
+
+    /**
+     * 批量重置题目统计数据（将提交次数和通过次数重置为0）
+     *
+     * @param problemIds 题目ID列表
+     * @return 成功重置的题目数量
+     */
+    int batchResetStatistics(List<Long> problemIds);
+
+    /**
+     * 查询长时间未更新的题目
+     *
+     * @param days     超过多少天未更新视为长时间未更新
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageResult<ProblemVO> selectStaleProblems(int days, int pageNum, int pageSize);
+
+    /**
+     * 查询零提交的题目（即 submission_count = 0 的题目）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageResult<ProblemVO> selectProblemsWithoutSubmissions(int pageNum, int pageSize);
+
 }

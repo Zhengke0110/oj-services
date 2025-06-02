@@ -184,73 +184,74 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public int updateById(ProblemDO problemDO) {
         // 创建UpdateWrapper对象，用于构建更新条件
-        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+
         // 指定更新的记录ID
-        updateWrapper.eq("id", problemDO.getId());
+        updateWrapper.eq(ProblemDO::getId, problemDO.getId());
 
         // 只有当字段不为null时，才将其添加到更新条件中
         if (problemDO.getTitle() != null) {
-            updateWrapper.set("title", problemDO.getTitle());
+            updateWrapper.set(ProblemDO::getTitle, problemDO.getTitle());
         }
         if (problemDO.getTitleEn() != null) {
-            updateWrapper.set("title_en", problemDO.getTitleEn());
+            updateWrapper.set(ProblemDO::getTitleEn, problemDO.getTitleEn());
         }
         if (problemDO.getDescription() != null) {
-            updateWrapper.set("description", problemDO.getDescription());
+            updateWrapper.set(ProblemDO::getDescription, problemDO.getDescription());
         }
         if (problemDO.getDescriptionEn() != null) {
-            updateWrapper.set("description_en", problemDO.getDescriptionEn());
+            updateWrapper.set(ProblemDO::getDescriptionEn, problemDO.getDescriptionEn());
         }
         if (problemDO.getProblemType() != null) {
-            updateWrapper.set("problem_type", problemDO.getProblemType());
+            updateWrapper.set(ProblemDO::getProblemType, problemDO.getProblemType());
         }
         if (problemDO.getDifficulty() != null) {
-            updateWrapper.set("difficulty", problemDO.getDifficulty());
+            updateWrapper.set(ProblemDO::getDifficulty, problemDO.getDifficulty());
         }
         if (problemDO.getTimeLimit() != null) {
-            updateWrapper.set("time_limit", problemDO.getTimeLimit());
+            updateWrapper.set(ProblemDO::getTimeLimit, problemDO.getTimeLimit());
         }
         if (problemDO.getMemoryLimit() != null) {
-            updateWrapper.set("memory_limit", problemDO.getMemoryLimit());
+            updateWrapper.set(ProblemDO::getMemoryLimit, problemDO.getMemoryLimit());
         }
         if (problemDO.getSupportedLanguages() != null) {
-            updateWrapper.set("supported_languages", problemDO.getSupportedLanguages());
+            updateWrapper.set(ProblemDO::getSupportedLanguages, problemDO.getSupportedLanguages());
         }
         if (problemDO.getSolutionTemplates() != null) {
-            updateWrapper.set("solution_templates", problemDO.getSolutionTemplates());
+            updateWrapper.set(ProblemDO::getSolutionTemplates, problemDO.getSolutionTemplates());
         }
         if (problemDO.getInputDescription() != null) {
-            updateWrapper.set("input_description", problemDO.getInputDescription());
+            updateWrapper.set(ProblemDO::getInputDescription, problemDO.getInputDescription());
         }
         if (problemDO.getOutputDescription() != null) {
-            updateWrapper.set("output_description", problemDO.getOutputDescription());
+            updateWrapper.set(ProblemDO::getOutputDescription, problemDO.getOutputDescription());
         }
         if (problemDO.getHasInput() != null) {
-            updateWrapper.set("has_input", problemDO.getHasInput());
+            updateWrapper.set(ProblemDO::getHasInput, problemDO.getHasInput());
         }
         if (problemDO.getInputFormat() != null) {
-            updateWrapper.set("input_format", problemDO.getInputFormat());
+            updateWrapper.set(ProblemDO::getInputFormat, problemDO.getInputFormat());
         }
         if (problemDO.getExamples() != null) {
-            updateWrapper.set("examples", problemDO.getExamples());
+            updateWrapper.set(ProblemDO::getExamples, problemDO.getExamples());
         }
         if (problemDO.getStatus() != null) {
-            updateWrapper.set("status", problemDO.getStatus());
+            updateWrapper.set(ProblemDO::getStatus, problemDO.getStatus());
         }
         if (problemDO.getVisibility() != null) {
-            updateWrapper.set("visibility", problemDO.getVisibility());
+            updateWrapper.set(ProblemDO::getVisibility, problemDO.getVisibility());
         }
         if (problemDO.getHints() != null) {
-            updateWrapper.set("hints", problemDO.getHints());
+            updateWrapper.set(ProblemDO::getHints, problemDO.getHints());
         }
         if (problemDO.getConstraints() != null) {
-            updateWrapper.set("constraints", problemDO.getConstraints());
+            updateWrapper.set(ProblemDO::getConstraints, problemDO.getConstraints());
         }
         if (problemDO.getNotes() != null) {
-            updateWrapper.set("notes", problemDO.getNotes());
+            updateWrapper.set(ProblemDO::getNotes, problemDO.getNotes());
         }
         if (problemDO.getMetadata() != null) {
-            updateWrapper.set("metadata", problemDO.getMetadata());
+            updateWrapper.set(ProblemDO::getMetadata, problemDO.getMetadata());
         }
 
         // 如果没有字段需要更新，则直接返回0
@@ -460,13 +461,14 @@ public class ProblemManagerImpl implements ProblemManager {
         }
 
         // 创建更新条件
-        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+
         // 只更新未删除的题目
-        updateWrapper.eq("is_deleted", 0);
+        updateWrapper.eq(ProblemDO::getIsDeleted, 0);
         // 限定要更新的ID列表
-        updateWrapper.in("id", problemIds);
+        updateWrapper.in(ProblemDO::getId, problemIds);
         // 设置要更新的字段
-        updateWrapper.set("status", status);
+        updateWrapper.set(ProblemDO::getStatus, status);
 
         // 执行批量更新并返回影响的行数
         return problemMapper.update(null, updateWrapper);
@@ -596,13 +598,14 @@ public class ProblemManagerImpl implements ProblemManager {
         }
 
         // 创建更新条件
-        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+
         // 只更新未删除的题目
-        updateWrapper.eq("is_deleted", 0);
+        updateWrapper.eq(ProblemDO::getIsDeleted, 0);
         // 限定要更新的ID列表
-        updateWrapper.in("id", problemIds);
+        updateWrapper.in(ProblemDO::getId, problemIds);
         // 设置要更新的字段
-        updateWrapper.set("is_deleted", 1);
+        updateWrapper.set(ProblemDO::getIsDeleted, 1);
 
         // 执行批量更新并返回影响的行数
         return problemMapper.update(null, updateWrapper);
@@ -622,15 +625,14 @@ public class ProblemManagerImpl implements ProblemManager {
         }
 
         // 创建更新条件
-        UpdateWrapper<ProblemDO> updateWrapper = new UpdateWrapper<>();
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+
         // 只更新已删除的题目
-        updateWrapper.eq("is_deleted", 1);
+        updateWrapper.eq(ProblemDO::getIsDeleted, 1);
         // 限定要更新的ID列表
-        updateWrapper.in("id", problemIds);
+        updateWrapper.in(ProblemDO::getId, problemIds);
         // 设置要更新的字段
-        updateWrapper.set("is_deleted", 0);
-        // 使用数据库函数更新时间戳
-        updateWrapper.setSql("updated_at = NOW()");
+        updateWrapper.set(ProblemDO::getIsDeleted, 0);
 
         // 执行批量更新并返回影响的行数
         return problemMapper.update(null, updateWrapper);
@@ -905,5 +907,90 @@ public class ProblemManagerImpl implements ProblemManager {
         if (updatedRows <= 0) throw new RuntimeException("更新失败,请检查题目ID是否存在或未被删除");
         return updatedRows;
 
+    }
+
+    /**
+     * 重置题目统计数据（将提交次数和通过次数重置为0）
+     *
+     * @param problemIds 需要重置统计数据的题目ID列表
+     * @return 更新成功的记录数
+     */
+    public int resetProblemStats(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            throw new IllegalArgumentException("参数错误");
+        }
+
+        // 使用MyBatis-Plus的LambdaUpdateWrapper构建更新操作
+        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(ProblemDO::getId, problemIds)
+                .eq(ProblemDO::getIsDeleted, 0)  // 只重置未删除的题目
+                .set(ProblemDO::getSubmissionCount, 0)
+                .set(ProblemDO::getAcceptedCount, 0);
+
+        return problemMapper.update(null, updateWrapper);
+    }
+
+    /**
+     * 查询长时间未更新的题目
+     *
+     * @param lastUpdateBefore 上次更新时间早于此日期的题目将被视为陈旧题目
+     * @param pageNum          页码（从1开始）
+     * @param pageSize         每页大小
+     * @return 分页结果，包含符合条件的题目列表
+     */
+    public IPage<ProblemDO> selectStaleProblems(Date lastUpdateBefore, int pageNum, int pageSize) {
+        log.info("ProblemManager--->查询长时间未更新的题目, 更新时间早于: {}, 页码: {}, 每页大小: {}",
+                lastUpdateBefore, pageNum, pageSize);
+
+        // 创建分页对象
+        Page<ProblemDO> page = new Page<>(pageNum, pageSize);
+
+        // 创建查询条件构造器
+        LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 设置查询条件：更新时间早于指定日期，且未被删除
+        queryWrapper.lt(ProblemDO::getUpdatedAt, lastUpdateBefore)
+                .eq(ProblemDO::getIsDeleted, 0)
+                .eq(ProblemDO::getStatus, 1); // 只查询已发布的题目
+
+        // 按更新时间升序排序，最早更新的排在前面
+        queryWrapper.orderByAsc(ProblemDO::getUpdatedAt);
+
+        // 执行查询并返回分页结果
+        return problemMapper.selectPage(page, queryWrapper);
+    }
+
+    /**
+     * 查询零提交的题目（即 submission_count = 0 的题目）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    @Override
+    public IPage<ProblemDO> selectProblemsWithoutSubmissions(int pageNum, int pageSize) {
+        try {
+            log.info("ProblemManager--->查询零提交题目，页码: {}, 每页大小: {}", pageNum, pageSize);
+
+            // 创建分页对象
+            Page<ProblemDO> page = new Page<>(pageNum, pageSize);
+
+            // 创建查询条件构造器
+            LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+
+            // 设置查询条件：提交数为0且未删除的题目
+            queryWrapper.eq(ProblemDO::getSubmissionCount, 0)
+                    .eq(ProblemDO::getIsDeleted, false)
+                    .orderByDesc(ProblemDO::getCreatedAt); // 按创建时间降序排Ï列
+
+            // 执行分页查询
+            IPage<ProblemDO> problemPage = problemMapper.selectPage(page, queryWrapper);
+
+            log.info("查询零提交题目成功，总数: {}", problemPage.getTotal());
+            return problemPage;
+        } catch (Exception e) {
+            log.error("ProblemManager--->查询零提交题目失败: {}", e.getMessage(), e);
+            throw new RuntimeException("查询零提交题目失败", e);
+        }
     }
 }
