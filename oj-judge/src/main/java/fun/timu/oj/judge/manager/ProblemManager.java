@@ -21,14 +21,14 @@ public interface ProblemManager {
     /**
      * 根据类型、难度、状态分页获取题目列表
      *
-     * @param current     当前页码
-     * @param size        每页大小
+     * @param pageNum     当前页码
+     * @param pageSize    每页大小
      * @param problemType 题目类型
      * @param difficulty  题目难度
      * @param status      题目状态
      * @return 题目列表
      */
-    public IPage<ProblemDO> findTagListWithPage(int current, int size, String problemType, Integer difficulty, Integer status, Integer visibility, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate);
+    public IPage<ProblemDO> findTagListWithPage(int pageNum, int pageSize, String problemType, Integer difficulty, Integer status, Integer visibility, List<String> supportedLanguages, Boolean hasInput, Double MinAcceptanceRate, Double MaxAcceptanceRate);
 
     /**
      * 根据创建者id查询题目列表
@@ -112,8 +112,27 @@ public interface ProblemManager {
      * 批量更新题目状态
      *
      * @param problemIds 题目ID列表
-     * @param status 要更新的状态值
+     * @param status     要更新的状态值
      * @return 更新的记录数
      */
     int batchUpdateStatus(List<Long> problemIds, Integer status);
+
+    /**
+     * 根据创建者查询题目数量
+     *
+     * @param creatorId 创建者ID
+     * @return 题目数量
+     */
+    Long countByCreator(Long creatorId);
+
+    /**
+     * 查询最近创建的题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param limit    限制返回的题目总数（可为 null，表示无上限）
+     * @return 分页结果
+     */
+    IPage<ProblemDO> selectRecentProblems(int pageNum, int pageSize, Integer limit);
+
 }

@@ -104,4 +104,22 @@ public interface ProblemService {
      * @return 是否更新成功
      */
     boolean batchUpdateStatus(List<Long> problemIds, Integer status);
+
+    /**
+     * 根据创建者ID统计题目数量
+     *
+     * @param creatorId 创建者ID
+     * @return 创建者创建的题目数量
+     */
+    Long countByCreator(Long creatorId);
+
+    /**
+     * 查询最近创建的题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param limit    限制返回的题目总数（可为null，表示无上限）
+     * @return 最近创建的题目列表
+     */
+    List<ProblemVO> selectRecentProblems(int pageNum, int pageSize, Integer limit);
 }

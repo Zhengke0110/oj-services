@@ -261,4 +261,52 @@ public class ProblemController {
             throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
         }
     }
+
+    /**
+     * 根据创建者ID统计题目数量
+     *
+     * @param creatorId 创建者ID
+     * @return 包含题目数量的响应
+     */
+    @GetMapping("/count/creator/{creatorId}")
+    public JsonData countByCreator(@PathVariable @Positive(message = "创建者ID必须为正数") Long creatorId) {
+        try {
+            log.info("ProblemController--->根据创建者ID统计题目数量, 创建者ID: {}", creatorId);
+            Long count = problemService.countByCreator(creatorId);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("count", count);
+
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("ProblemController--->根据创建者ID统计题目数量失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 查询最近创建的题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param limit    限制返回的题目总数（可为null，表示无上限）
+     * @return 最近创建的题目列表
+     */
+    @GetMapping("/recent")
+    public JsonData getRecentProblems(
+            @RequestParam(defaultValue = "1") @Positive int pageNum,
+            @RequestParam(defaultValue = "10") @Positive int pageSize,
+            @RequestParam(required = false) Integer limit) {
+        try {
+            log.info("ProblemController--->查询最近创建的题目, 页码: {}, 每页数量: {}, 限制数量: {}",
+                    pageNum, pageSize, limit);
+
+            List<ProblemVO> problemList = problemService.selectRecentProblems(pageNum, pageSize, limit);
+
+            return JsonData.buildSuccess(problemList);
+        } catch (Exception e) {
+            log.error("ProblemController--->查询最近创建的题目失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
 }

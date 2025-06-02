@@ -504,6 +504,60 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
+    /**
+     * 查询最近创建的题目
+     *
+     * @param pageNum  当前页码
+     * @param pageSize 每页数量
+     * @param limit    限制返回的题目总数（可为null，表示无上限）
+     * @return 最近创建的题目列表
+     */
+    @Override
+    public List<ProblemVO> selectRecentProblems(int pageNum, int pageSize, Integer limit) {
+        try {
+            // 调用manager层查询最近创建的题目
+            IPage<ProblemDO> problemPage = problemManager.selectRecentProblems(pageNum, pageSize, limit);
+
+            // 将DO列表转换为VO列表
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream()
+                    .map(this::convertToVO)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            log.info("ProblemService--->获取最近创建的题目成功，页码: {}, 每页数量: {}, 限制数量: {}, 实际获取数量: {}",
+                    pageNum, pageSize, limit, problemVOList.size());
+
+            return problemVOList;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取最近创建的题目失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 根据创建者ID统计题目数量
+     *
+     * @param creatorId 创建者ID
+     * @return 创建者创建的题目数量
+     */
+    @Override
+    public Long countByCreator(Long creatorId) {
+        try {
+            // 参数校验
+            if (creatorId == null || creatorId <= 0) {
+                throw new RuntimeException("创建者ID无效");
+            }
+
+            // 调用manager层查询题目数量
+            Long count = problemManager.countByCreator(creatorId);
+            log.info("查询创建者题目数量成功，创建者ID: {}, 题目数量: {}", creatorId, count);
+            return count;
+        } catch (Exception e) {
+            log.error("查询创建者题目数量失败, 创建者ID: {}, 错误: {}", creatorId, e.getMessage(), e);
+            throw new RuntimeException("查询创建者题目数量失败", e);
+        }
+    }
+
 
     /**
      * 将ProblemDO对象转换为ProblemVO对象

@@ -451,4 +451,68 @@ public class ProblemManagerImpl implements ProblemManager {
         return updatedCount;
     }
 
+    /**
+     * 根据创建者ID统计问题数量
+     * <p>
+     * 此方法用于统计由特定用户创建的问题总数它首先检查传入的用户ID是否有效，
+     * 如果无效，则抛出运行时异常如果用户ID有效，它将调用problemMapper中的相应方法
+     * 来统计该创建者创建的问题数量
+     *
+     * @param creatorId 创建者ID，用于标识问题的创建者
+     * @return 创建者创建的问题数量如果用户ID无效，将抛出异常而不是返回值
+     * @throws RuntimeException 如果用户ID无效（null、负数或零），则抛出此异常
+     */
+    @Override
+    public Long countByCreator(Long creatorId) {
+        // 检查用户ID是否无效如果无效，抛出异常
+        if (creatorId == null || creatorId <= 0) {
+            throw new RuntimeException("用户ID无效");
+        }
+        return problemMapper.countByCreator(creatorId);
+    }
+
+
+    /**
+     * 选择最近创建的题目
+     *
+     * @param pageNum  页码，表示请求的数据位于第几页
+     * @param pageSize 每页大小，表示每页包含的数据条数
+     * @param limit    限制数量，如果指定，则只返回指定数量的数据，通常用于获取最新的一批数据
+     * @return 返回一个分页对象，包含查询到的题目数据
+     * <p>
+     * 此方法用于查询系统中最近创建的题目，可以根据是否有limit参数来决定查询方式
+     * 如果limit参数存在且大于0，则使用单页查询方式，直接返回指定数量的最新题目；
+     * 否则，使用常规分页方式查询
+     */
+    @Override
+    public IPage<ProblemDO> selectRecentProblems(int pageNum, int pageSize, Integer limit) {
+        try {
+            // 创建查询条件
+            LambdaQueryWrapper<ProblemDO> queryWrapper = new LambdaQueryWrapper<>();
+            // 只查询未删除的题目
+            queryWrapper.eq(ProblemDO::getIsDeleted, false);
+            // 只查询状态为1（激活）的题目
+            queryWrapper.eq(ProblemDO::getStatus, 1);
+            // 只查询可见性为1（公开）的题目
+            queryWrapper.eq(ProblemDO::getVisibility, 1);
+            // 按创建时间降序排序
+            queryWrapper.orderByDesc(ProblemDO::getCreatedAt);
+            // TODO 如果需要，可以添加其他查询条件，如题目类型、难度等
+
+            // 根据是否有limit参数决定查询方式
+            if (limit != null && limit > 0) {
+                // 使用单页查询方式，直接获取前limit条记录
+                Page<ProblemDO> singlePage = new Page<>(1, limit);
+                return problemMapper.selectPage(singlePage, queryWrapper);
+            } else {
+                // 使用常规分页方式
+                Page<ProblemDO> page = new Page<>(pageNum, pageSize);
+                return problemMapper.selectPage(page, queryWrapper);
+            }
+        } catch (Exception e) {
+            log.error("获取最近创建的题目失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取最近创建的题目失败", e);
+        }
+    }
+
 }

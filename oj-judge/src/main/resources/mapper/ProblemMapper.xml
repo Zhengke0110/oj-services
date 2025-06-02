@@ -120,4 +120,12 @@
         </foreach>
         AND is_deleted = 0
     </update>
+
+    <!-- 根据创建者查询题目数量 -->
+    <select id="countByCreator" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM problem
+        WHERE creator_id = #{creatorId}
+          AND is_deleted = 0
+    </select>
 </mapper>

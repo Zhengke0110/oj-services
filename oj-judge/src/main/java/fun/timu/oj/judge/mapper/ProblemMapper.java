@@ -1,5 +1,6 @@
 package fun.timu.oj.judge.mapper;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
@@ -62,6 +63,15 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @return 更新的记录数
      */
     int batchUpdateStatus(@Param("problemIds") List<Long> problemIds, @Param("status") Integer status);
+
+    /**
+     * 根据创建者查询题目数量
+     *
+     * @param creatorId 创建者ID
+     * @return 题目数量
+     */
+    Long countByCreator(@Param("creatorId") Long creatorId);
+
 
 }
 
