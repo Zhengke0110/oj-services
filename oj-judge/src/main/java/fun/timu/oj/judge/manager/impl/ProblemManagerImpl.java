@@ -12,6 +12,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -1492,24 +1494,24 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<ProblemDO> getRecommendedProblems(RecommendationCriteria criteria) {
         try {
-            log.info("Manager层获取推荐题目，推荐类型: {}, 条件: {}", 
+            log.info("Manager层获取推荐题目，推荐类型: {}, 条件: {}",
                     criteria.getType(), criteria);
-            
+
             // 参数校验
             if (criteria == null) {
                 throw new IllegalArgumentException("推荐条件不能为空");
             }
-            
+
             // 调用Mapper层统一推荐接口
             List<ProblemDO> result = problemMapper.getRecommendedProblems(criteria);
-            
-            log.info("Manager层获取推荐题目成功，推荐类型: {}, 结果数量: {}", 
+
+            log.info("Manager层获取推荐题目成功，推荐类型: {}, 结果数量: {}",
                     criteria.getType(), result.size());
-            
+
             return result;
         } catch (Exception e) {
-            log.error("Manager层获取推荐题目失败，推荐类型: {}, 错误: {}", 
-                     criteria != null ? criteria.getType() : "unknown", e.getMessage(), e);
+            log.error("Manager层获取推荐题目失败，推荐类型: {}, 错误: {}",
+                    criteria != null ? criteria.getType() : "unknown", e.getMessage(), e);
             throw new RuntimeException("获取推荐题目失败", e);
         }
     }
@@ -1524,29 +1526,29 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getRecommendedProblemsWithScore(RecommendationCriteria criteria) {
         try {
-            log.info("Manager层获取推荐题目数据（含评分），推荐类型: {}, 条件: {}", 
+            log.info("Manager层获取推荐题目数据（含评分），推荐类型: {}, 条件: {}",
                     criteria.getType(), criteria);
-            
+
             // 参数校验
             if (criteria == null) {
                 throw new IllegalArgumentException("推荐条件不能为空");
             }
-            
+
             // 调用Mapper层统一推荐接口
             List<HashMap<String, Object>> result = problemMapper.getRecommendedProblemsWithScore(criteria);
-            
+
             // 转换为标准Map接口
             List<Map<String, Object>> finalResult = result.stream()
                     .map(map -> (Map<String, Object>) map)
                     .collect(Collectors.toList());
-            
-            log.info("Manager层获取推荐题目数据（含评分）成功，推荐类型: {}, 结果数量: {}", 
+
+            log.info("Manager层获取推荐题目数据（含评分）成功，推荐类型: {}, 结果数量: {}",
                     criteria.getType(), finalResult.size());
-            
+
             return finalResult;
         } catch (Exception e) {
-            log.error("Manager层获取推荐题目数据（含评分）失败，推荐类型: {}, 错误: {}", 
-                     criteria != null ? criteria.getType() : "unknown", e.getMessage(), e);
+            log.error("Manager层获取推荐题目数据（含评分）失败，推荐类型: {}, 错误: {}",
+                    criteria != null ? criteria.getType() : "unknown", e.getMessage(), e);
             throw new RuntimeException("获取推荐题目数据失败", e);
         }
     }
@@ -1561,9 +1563,9 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public UnifiedStatisticsResponse getUnifiedStatistics(UnifiedStatisticsRequest request) {
         try {
-            log.info("Manager层获取统一统计信息，范围: {}, 过滤条件: {}", 
+            log.info("Manager层获取统一统计信息，范围: {}, 过滤条件: {}",
                     request.getScope(), request);
-            
+
             // 参数校验
             if (request == null) {
                 throw new IllegalArgumentException("统计请求参数不能为空");
@@ -1571,30 +1573,30 @@ public class ProblemManagerImpl implements ProblemManager {
             if (request.getScope() == null) {
                 throw new IllegalArgumentException("统计范围不能为空");
             }
-            
+
             // 调用Mapper层获取原始统计数据
             Map<String, Object> rawData = problemMapper.getUnifiedStatisticsRaw(request);
-            
+
             if (rawData == null) {
                 rawData = new HashMap<>();
             }
-            
+
             // 构建结构化响应
             UnifiedStatisticsResponse response = UnifiedStatisticsResponse.builder()
                     .scope(request.getScope())
-                    .timestamp(new Date())
+                    .timestamp(LocalDateTime.now())
                     .version("1.0")
                     .data(rawData)
                     .metadata(buildMetadata(request, rawData))
                     .build();
-            
-            log.info("Manager层获取统一统计信息成功，范围: {}, 数据项数量: {}", 
+
+            log.info("Manager层获取统一统计信息成功，范围: {}, 数据项数量: {}",
                     request.getScope(), rawData.size());
-            
+
             return response;
         } catch (Exception e) {
-            log.error("Manager层获取统一统计信息失败，范围: {}, 错误: {}", 
-                     request != null ? request.getScope() : "unknown", e.getMessage(), e);
+            log.error("Manager层获取统一统计信息失败，范围: {}, 错误: {}",
+                    request != null ? request.getScope() : "unknown", e.getMessage(), e);
             throw new RuntimeException("获取统一统计信息失败", e);
         }
     }
@@ -1609,9 +1611,9 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public Map<String, Object> getUnifiedStatisticsRaw(UnifiedStatisticsRequest request) {
         try {
-            log.info("Manager层获取统一统计原始数据，范围: {}, 过滤条件: {}", 
+            log.info("Manager层获取统一统计原始数据，范围: {}, 过滤条件: {}",
                     request.getScope(), request);
-            
+
             // 参数校验
             if (request == null) {
                 throw new IllegalArgumentException("统计请求参数不能为空");
@@ -1619,56 +1621,117 @@ public class ProblemManagerImpl implements ProblemManager {
             if (request.getScope() == null) {
                 throw new IllegalArgumentException("统计范围不能为空");
             }
-            
+
             // 调用Mapper层获取原始统计数据
             Map<String, Object> rawData = problemMapper.getUnifiedStatisticsRaw(request);
-            
+
             if (rawData == null) {
                 rawData = new HashMap<>();
             }
-            
-            log.info("Manager层获取统一统计原始数据成功，范围: {}, 数据项数量: {}", 
+
+            log.info("Manager层获取统一统计原始数据成功，范围: {}, 数据项数量: {}",
                     request.getScope(), rawData.size());
-            
+
             return rawData;
         } catch (Exception e) {
-            log.error("Manager层获取统一统计原始数据失败，范围: {}, 错误: {}", 
-                     request != null ? request.getScope() : "unknown", e.getMessage(), e);
+            log.error("Manager层获取统一统计原始数据失败，范围: {}, 错误: {}",
+                    request != null ? request.getScope() : "unknown", e.getMessage(), e);
             throw new RuntimeException("获取统一统计原始数据失败", e);
         }
     }
 
-    /**
-     * 构建统计响应的元数据
-     * 包含请求参数摘要、数据特征等信息
-     *
-     * @param request 统计请求
-     * @param rawData 原始统计数据
-     * @return 元数据Map
-     */
     private UnifiedStatisticsResponse.StatisticsMetadata buildMetadata(UnifiedStatisticsRequest request, Map<String, Object> rawData) {
-        Map<String, Object> metadata = new HashMap<>();
-        
-        // 请求参数摘要
-        metadata.put("scope", request.getScope().name());
-        metadata.put("hasDateFilter", request.getStartDate() != null || request.getEndDate() != null);
-        metadata.put("hasDifficultyFilter", request.getDifficultyFilters() != null && !request.getDifficultyFilters().isEmpty());
-        metadata.put("hasProblemTypeFilter", request.getProblemTypeFilters() != null && !request.getProblemTypeFilters().isEmpty());
-        metadata.put("hasStatusFilter", request.getStatusFilters() != null && !request.getStatusFilters().isEmpty());
-        
-        // 数据特征
-        metadata.put("dataItemCount", rawData.size());
-        metadata.put("generatedAt", new Date());
-        metadata.put("cacheHint", "TTL_300"); // 建议缓存5分钟
-        
-        // 数据范围提示
+        // 创建 StatisticsMetadata 对象
+        UnifiedStatisticsResponse.StatisticsMetadata metadata = new UnifiedStatisticsResponse.StatisticsMetadata();
+
+        // 设置基本统计信息
+        metadata.setTotalCount(rawData.size() > 0 ? Long.valueOf(rawData.size()) : 0L);
+
+        // 设置分页信息
+        if (request.getPageNum() != null && request.getPageSize() != null) {
+            metadata.setCurrentPage(request.getPageNum());
+            metadata.setPageSize(request.getPageSize());
+
+            // 计算总页数
+            long totalItems = metadata.getTotalCount();
+            int pageSize = request.getPageSize();
+            int totalPages = (int) Math.ceil((double) totalItems / pageSize);
+            metadata.setTotalPages(totalPages);
+        }
+
+        // 设置执行时间
+        metadata.setExecutionTime(System.currentTimeMillis());
+
+        // 设置数据源
+        metadata.setDataSource("problem-statistics");
+
+        // 创建附加信息
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put("scope", request.getScope().name());
+        additionalInfo.put("hasDateFilter", request.getStartDate() != null || request.getEndDate() != null);
+        additionalInfo.put("hasDifficultyFilter", request.getDifficulties() != null && !request.getDifficulties().isEmpty());
+        additionalInfo.put("hasProblemTypeFilter", request.getProblemTypes() != null && !request.getProblemTypes().isEmpty());
+        additionalInfo.put("hasStatusFilter", request.getStatuses() != null && !request.getStatuses().isEmpty());
+        additionalInfo.put("dataItemCount", rawData.size());
+        additionalInfo.put("cacheHint", "TTL_300"); // 建议缓存5分钟
+
+        // 添加日期范围
         if (request.getStartDate() != null) {
-            metadata.put("startDate", request.getStartDate());
+            additionalInfo.put("startDate", request.getStartDate());
         }
         if (request.getEndDate() != null) {
-            metadata.put("endDate", request.getEndDate());
+            additionalInfo.put("endDate", request.getEndDate());
         }
-        
+
+        metadata.setAdditionalInfo(additionalInfo);
+
         return metadata;
     }
+
+    // ===== 新增：统一排行榜接口实现 =====
+
+    /**
+     * 统一的排行榜接口
+     * 根据不同的排行榜类型返回相应的排行榜数据
+     *
+     * @param criteria 排行榜条件
+     * @return 排行榜数据列表
+     */
+    @Override
+    public List<Map<String, Object>> getProblemRanking(RankingCriteria criteria) {
+        try {
+            log.info("获取排行榜数据，排行榜类型: {}, 限制数量: {}", criteria.getType(), criteria.getLimit());
+
+            List<HashMap<String, Object>> result = problemMapper.getProblemRanking(criteria);
+            log.info("成功获取排行榜数据，数量: {}", result.size());
+
+            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("获取排行榜数据失败，排行榜类型: {}", criteria.getType(), e);
+            throw new RuntimeException("获取排行榜数据失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 统一的排行榜接口（题目实体版本）
+     * 返回ProblemDO实体列表，用于需要完整题目信息的场景
+     *
+     * @param criteria 排行榜条件
+     * @return 题目实体列表
+     */
+    @Override
+    public List<ProblemDO> getProblemRankingEntities(RankingCriteria criteria) {
+        try {
+            log.info("获取排行榜题目实体，排行榜类型: {}, 限制数量: {}", criteria.getType(), criteria.getLimit());
+
+            List<ProblemDO> result = problemMapper.getProblemRankingEntities(criteria);
+            log.info("成功获取排行榜题目实体，数量: {}", result.size());
+
+            return result;
+        } catch (Exception e) {
+            log.error("获取排行榜题目实体失败，排行榜类型: {}", criteria.getType(), e);
+            throw new RuntimeException("获取排行榜题目实体失败: " + e.getMessage(), e);
+        }
+    }
+
 }

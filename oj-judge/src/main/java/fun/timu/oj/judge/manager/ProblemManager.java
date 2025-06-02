@@ -7,6 +7,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
@@ -387,7 +388,14 @@ public interface ProblemManager {
      * @param limit     限制数量
      * @param timeRange 时间范围
      * @return 热门题目排行榜
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forPopularity(limit, timeRange);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
 
     /**
@@ -396,7 +404,14 @@ public interface ProblemManager {
      * @param limit          限制数量
      * @param minSubmissions 最小提交数
      * @return 最难题目排行榜
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forHardest(limit, minSubmissions);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions);
 
     /**
@@ -562,4 +577,24 @@ public interface ProblemManager {
      * @return 统计数据的原始HashMap
      */
     Map<String, Object> getUnifiedStatisticsRaw(UnifiedStatisticsRequest request);
+
+    // ===== 新增：统一排行榜接口 =====
+
+    /**
+     * 统一的排行榜接口
+     * 根据不同的排行榜类型返回相应的排行榜数据
+     *
+     * @param criteria 排行榜条件
+     * @return 排行榜数据列表
+     */
+    List<Map<String, Object>> getProblemRanking(RankingCriteria criteria);
+
+    /**
+     * 统一的排行榜接口（题目实体版本）
+     * 返回ProblemDO实体列表，用于需要完整题目信息的场景
+     *
+     * @param criteria 排行榜条件
+     * @return 题目实体列表
+     */
+    List<ProblemDO> getProblemRankingEntities(RankingCriteria criteria);
 }

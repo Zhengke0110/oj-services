@@ -329,7 +329,7 @@
     </select>
 
     <!-- ===== 新增：统一推荐接口映射 ===== -->
-    
+
     <!-- 统一推荐题目接口 -->
     <select id="getRecommendedProblems" resultMap="BaseResultMap">
         SELECT
@@ -357,14 +357,16 @@
                 RAND() * (accepted_count / submission_count + 0.1) DESC,
                 submission_count DESC
             </when>
-            
+
             <!-- 基于相似性的推荐 -->
             <when test="criteria.type.name() == 'SIMILARITY'">
                 <if test="criteria.targetProblemId != null">
                     AND id != #{criteria.targetProblemId}
                     AND (
-                        problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0)
-                        OR difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0)
+                    problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId} AND
+                    is_deleted = 0)
+                    OR difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND
+                    is_deleted = 0)
                     )
                 </if>
                 <if test="criteria.difficulty != null">
@@ -375,7 +377,7 @@
                 </if>
                 ORDER BY submission_count DESC, accepted_count DESC
             </when>
-            
+
             <!-- 基于热门度的推荐 -->
             <when test="criteria.type.name() == 'POPULARITY'">
                 <if test="criteria.timeRange != null">
@@ -391,7 +393,7 @@
                 submission_count * 0.7 + accepted_count * 0.3 +
                 (CASE WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 10 ELSE 0 END) DESC
             </when>
-            
+
             <!-- 基于算法数据的推荐 -->
             <when test="criteria.type.name() == 'ALGORITHM_DATA'">
                 AND submission_count > 0
@@ -401,23 +403,23 @@
                 <if test="criteria.problemType != null and criteria.problemType != ''">
                     AND problem_type = #{criteria.problemType}
                 </if>
-                ORDER BY 
+                ORDER BY
                 LEAST(submission_count / 50.0, 1) * 40 +
                 (CASE
-                    WHEN submission_count = 0 THEN 0
-                    WHEN (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 70 THEN 30
-                    WHEN (accepted_count * 100.0 / submission_count) BETWEEN 10 AND 80 THEN 20
-                    ELSE 10
+                WHEN submission_count = 0 THEN 0
+                WHEN (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 70 THEN 30
+                WHEN (accepted_count * 100.0 / submission_count) BETWEEN 10 AND 80 THEN 20
+                ELSE 10
                 END) +
                 (CASE
-                    WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 20
-                    WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 90 THEN 15
-                    WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 180 THEN 10
-                    ELSE 5
+                WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 20
+                WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 90 THEN 15
+                WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 180 THEN 10
+                ELSE 5
                 END) DESC
             </when>
         </choose>
-        
+
         <if test="criteria.limit != null and criteria.limit > 0">
             LIMIT #{criteria.limit}
         </if>
@@ -434,11 +436,11 @@
         submission_count,
         accepted_count,
         ROUND(
-            CASE
-                WHEN submission_count > 0
-                    THEN (accepted_count * 100.0 / submission_count)
-                ELSE 0
-            END, 2
+        CASE
+        WHEN submission_count > 0
+        THEN (accepted_count * 100.0 / submission_count)
+        ELSE 0
+        END, 2
         ) as acceptance_rate,
         time_limit,
         memory_limit,
@@ -447,55 +449,57 @@
             <!-- 基于通过率的推荐评分 -->
             <when test="criteria.type.name() == 'ACCEPTANCE_RATE'">
                 ROUND(
-                    (accepted_count * 1.0 / GREATEST(submission_count, 1)) * 60 +
-                    LEAST(submission_count / 100.0, 1) * 40, 2
+                (accepted_count * 1.0 / GREATEST(submission_count, 1)) * 60 +
+                LEAST(submission_count / 100.0, 1) * 40, 2
                 ) as recommendation_score
             </when>
-            
+
             <!-- 基于相似性的推荐评分 -->
             <when test="criteria.type.name() == 'SIMILARITY'">
                 <if test="criteria.targetProblemId != null">
                     ROUND(
-                        (CASE WHEN problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0) THEN 30 ELSE 10 END) +
-                        (CASE WHEN difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND is_deleted = 0) THEN 25 ELSE 5 END) +
-                        LEAST(submission_count / 100.0, 1) * 25 +
-                        (CASE
-                            WHEN submission_count > 0 AND (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 80 THEN 20
-                            ELSE 10
-                        END), 2
+                    (CASE WHEN problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId}
+                    AND is_deleted = 0) THEN 30 ELSE 10 END) +
+                    (CASE WHEN difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND
+                    is_deleted = 0) THEN 25 ELSE 5 END) +
+                    LEAST(submission_count / 100.0, 1) * 25 +
+                    (CASE
+                    WHEN submission_count > 0 AND (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 80 THEN 20
+                    ELSE 10
+                    END), 2
                     ) as recommendation_score
                 </if>
                 <if test="criteria.targetProblemId == null">
                     ROUND(submission_count * 0.6 + accepted_count * 0.4, 2) as recommendation_score
                 </if>
             </when>
-            
+
             <!-- 基于热门度的推荐评分 -->
             <when test="criteria.type.name() == 'POPULARITY'">
                 ROUND(
-                    submission_count * 0.7 +
-                    accepted_count * 0.3 +
-                    (CASE WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 10 ELSE 0 END), 2
+                submission_count * 0.7 +
+                accepted_count * 0.3 +
+                (CASE WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 10 ELSE 0 END), 2
                 ) as recommendation_score
             </when>
-            
+
             <!-- 基于算法数据的推荐评分 -->
             <when test="criteria.type.name() == 'ALGORITHM_DATA'">
                 ROUND(
-                    LEAST(submission_count / 50.0, 1) * 40 +
-                    (CASE
-                        WHEN submission_count = 0 THEN 0
-                        WHEN (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 70 THEN 30
-                        WHEN (accepted_count * 100.0 / submission_count) BETWEEN 10 AND 80 THEN 20
-                        ELSE 10
-                    END) +
-                    (CASE
-                        WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 20
-                        WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 90 THEN 15
-                        WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 180 THEN 10
-                        ELSE 5
-                    END) +
-                    (CASE WHEN status = 1 AND visibility = 1 THEN 10 ELSE 0 END), 2
+                LEAST(submission_count / 50.0, 1) * 40 +
+                (CASE
+                WHEN submission_count = 0 THEN 0
+                WHEN (accepted_count * 100.0 / submission_count) BETWEEN 20 AND 70 THEN 30
+                WHEN (accepted_count * 100.0 / submission_count) BETWEEN 10 AND 80 THEN 20
+                ELSE 10
+                END) +
+                (CASE
+                WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 30 THEN 20
+                WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 90 THEN 15
+                WHEN DATEDIFF(CURRENT_DATE, created_at) &lt; 180 THEN 10
+                ELSE 5
+                END) +
+                (CASE WHEN status = 1 AND visibility = 1 THEN 10 ELSE 0 END), 2
                 ) as recommendation_score
             </when>
         </choose>
@@ -519,7 +523,7 @@
                     AND (accepted_count * 1.0 / submission_count) &lt;= #{criteria.maxAcceptanceRate}
                 </if>
             </when>
-            
+
             <!-- 基于相似性的推荐 -->
             <when test="criteria.type.name() == 'SIMILARITY'">
                 <if test="criteria.targetProblemId != null">
@@ -532,7 +536,7 @@
                     AND problem_type = #{criteria.problemType}
                 </if>
             </when>
-            
+
             <!-- 基于热门度的推荐 -->
             <when test="criteria.type.name() == 'POPULARITY'">
                 <if test="criteria.timeRange != null">
@@ -545,7 +549,7 @@
                     AND problem_type = #{criteria.problemType}
                 </if>
             </when>
-            
+
             <!-- 基于算法数据的推荐 -->
             <when test="criteria.type.name() == 'ALGORITHM_DATA'">
                 AND submission_count > 0
@@ -557,9 +561,9 @@
                 </if>
             </when>
         </choose>
-        
+
         ORDER BY recommendation_score DESC, submission_count DESC
-        
+
         <if test="criteria.limit != null and criteria.limit > 0">
             LIMIT #{criteria.limit}
         </if>
@@ -1762,84 +1766,87 @@
     </select>
 
     <!-- V2版本：分布分析聚合接口 -->
-    
+
     <!-- 获取难度-类型分布矩阵 -->
     <select id="getDifficultyTypeDistribution" resultType="java.util.HashMap">
-        SELECT
-            difficulty,
-            problem_type,
-            COUNT(*) as problem_count,
-            COUNT(CASE WHEN status = 1 THEN 1 END) as active_count,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            ROUND(
-                CASE
-                    WHEN SUM(submission_count) &gt; 0
-                        THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
-                    ELSE 0
-                END, 2
-            ) as acceptance_rate,
-            ROUND(AVG(time_limit), 2) as avg_time_limit,
-            ROUND(AVG(memory_limit), 2) as avg_memory_limit,
-            -- 分布百分比
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage
+        SELECT difficulty,
+               problem_type,
+               COUNT(*)                                                                         as problem_count,
+               COUNT(CASE WHEN status = 1 THEN 1 END)                                           as active_count,
+               SUM(submission_count)                                                            as total_submissions,
+               SUM(accepted_count)                                                              as total_accepted,
+               ROUND(
+                       CASE
+                           WHEN SUM(submission_count) &gt; 0
+                               THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                           ELSE 0
+                           END, 2
+               )                                                                                as acceptance_rate,
+               ROUND(AVG(time_limit), 2)                                                        as avg_time_limit,
+               ROUND(AVG(memory_limit), 2)                                                      as avg_memory_limit,
+               -- 分布百分比
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage
         FROM problem
         WHERE is_deleted = 0
         GROUP BY difficulty, problem_type
-        ORDER BY 
-            CASE difficulty
-                WHEN 'EASY' THEN 1
-                WHEN 'MEDIUM' THEN 2
-                WHEN 'HARD' THEN 3
-                ELSE 4
-            END,
-            problem_type
+        ORDER BY CASE difficulty
+                     WHEN 'EASY' THEN 1
+                     WHEN 'MEDIUM' THEN 2
+                     WHEN 'HARD' THEN 3
+                     ELSE 4
+                     END,
+                 problem_type
     </select>
 
     <!-- 获取通过率分布统计 -->
     <select id="getAcceptanceRateDistribution" resultType="java.util.HashMap">
         SELECT
-            <choose>
-                <when test="bucketSize != null">
-                    CONCAT(
-                        FLOOR((accepted_count * 100.0 / NULLIF(submission_count, 0)) / (#{bucketSize} * 100)) * (#{bucketSize} * 100),
-                        '-',
-                        (FLOOR((accepted_count * 100.0 / NULLIF(submission_count, 0)) / (#{bucketSize} * 100)) + 1) * (#{bucketSize} * 100)
-                    ) as acceptance_rate_range,
-                    FLOOR((accepted_count * 100.0 / NULLIF(submission_count, 0)) / (#{bucketSize} * 100)) * (#{bucketSize} * 100) as range_start
-                </when>
-                <otherwise>
-                    CASE
-                        WHEN submission_count = 0 THEN '0%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 10 THEN '0-10%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 20 THEN '10-20%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 30 THEN '20-30%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 40 THEN '30-40%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 50 THEN '40-50%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 60 THEN '50-60%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 70 THEN '60-70%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 80 THEN '70-80%'
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 90 THEN '80-90%'
-                        ELSE '90-100%'
-                    END as acceptance_rate_range,
-                    CASE
-                        WHEN submission_count = 0 THEN 0
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 10 THEN 0
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 20 THEN 10
-                       
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 30 THEN 20
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 40 THEN 30
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 50 THEN 40
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 60 THEN 50
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 70 THEN 60
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 80 THEN 70
-                        WHEN (accepted_count * 100.0 / submission_count) &lt; 90 THEN 80
-                        ELSE 90
-                    END as range_start
-                </otherwise>
-            </choose>,
-            COUNT(*) as problem_count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0 AND submission_count > 0), 2) as percentage
+        <choose>
+            <when test="bucketSize != null">
+                CONCAT(
+                FLOOR((accepted_count * 100.0 / NULLIF(submission_count, 0)) / (#{bucketSize} * 100)) * (#{bucketSize} *
+                100),
+                '-',
+                (FLOOR((accepted_count * 100.0 / NULLIF(submission_count, 0)) / (#{bucketSize} * 100)) + 1) *
+                (#{bucketSize} * 100)
+                ) as acceptance_rate_range,
+                FLOOR((accepted_count * 100.0 / NULLIF(submission_count, 0)) / (#{bucketSize} * 100)) * (#{bucketSize} *
+                100) as range_start
+            </when>
+            <otherwise>
+                CASE
+                WHEN submission_count = 0 THEN '0%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 10 THEN '0-10%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 20 THEN '10-20%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 30 THEN '20-30%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 40 THEN '30-40%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 50 THEN '40-50%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 60 THEN '50-60%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 70 THEN '60-70%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 80 THEN '70-80%'
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 90 THEN '80-90%'
+                ELSE '90-100%'
+                END as acceptance_rate_range,
+                CASE
+                WHEN submission_count = 0 THEN 0
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 10 THEN 0
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 20 THEN 10
+
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 30 THEN 20
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 40 THEN 30
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 50 THEN 40
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 60 THEN 50
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 70 THEN 60
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 80 THEN 70
+                WHEN (accepted_count * 100.0 / submission_count) &lt; 90 THEN 80
+                ELSE 90
+                END as range_start
+            </otherwise>
+        </choose>
+        ,
+        COUNT(*) as problem_count,
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0 AND submission_count > 0), 2) as
+        percentage
         FROM problem
         WHERE is_deleted = 0 AND submission_count &gt; 0
         GROUP BY acceptance_rate_range, range_start
@@ -1848,35 +1855,34 @@
 
     <!-- 获取提交量分布统计 -->
     <select id="getSubmissionCountDistribution" resultType="java.util.HashMap">
-        SELECT
-            CASE
-                WHEN submission_count = 0 THEN '0'
-                WHEN submission_count BETWEEN 1 AND 5 THEN '1-5'
-                WHEN submission_count BETWEEN 6 AND 10 THEN '6-10'
-                WHEN submission_count BETWEEN 11 AND 20 THEN '11-20'
-                WHEN submission_count BETWEEN 21 AND 50 THEN '21-50'
-                WHEN submission_count BETWEEN 51 AND 100 THEN '51-100'
-                WHEN submission_count BETWEEN 101 AND 200 THEN '101-200'
-                WHEN submission_count BETWEEN 201 AND 500 THEN '201-500'
-                WHEN submission_count BETWEEN 501 AND 1000 THEN '501-1000'
-                ELSE '1000+'
-            END as submission_range,
-            CASE
-                WHEN submission_count = 0 THEN 0
-                WHEN submission_count BETWEEN 1 AND 5 THEN 1
-                WHEN submission_count BETWEEN 6 AND 10 THEN 6
-                WHEN submission_count BETWEEN 11 AND 20 THEN 11
-                WHEN submission_count BETWEEN 21 AND 50 THEN 21
-                WHEN submission_count BETWEEN 51 AND 100 THEN 51
-                WHEN submission_count BETWEEN 101 AND 200 THEN 101
-                WHEN submission_count BETWEEN 201 AND 500 THEN 201
-                WHEN submission_count BETWEEN 501 AND 1000 THEN 501
-                ELSE 1000
-            END as range_start,
-            COUNT(*) as problem_count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
-            SUM(submission_count) as total_submissions_in_range,
-            SUM(accepted_count) as total_accepted_in_range
+        SELECT CASE
+                   WHEN submission_count = 0 THEN '0'
+                   WHEN submission_count BETWEEN 1 AND 5 THEN '1-5'
+                   WHEN submission_count BETWEEN 6 AND 10 THEN '6-10'
+                   WHEN submission_count BETWEEN 11 AND 20 THEN '11-20'
+                   WHEN submission_count BETWEEN 21 AND 50 THEN '21-50'
+                   WHEN submission_count BETWEEN 51 AND 100 THEN '51-100'
+                   WHEN submission_count BETWEEN 101 AND 200 THEN '101-200'
+                   WHEN submission_count BETWEEN 201 AND 500 THEN '201-500'
+                   WHEN submission_count BETWEEN 501 AND 1000 THEN '501-1000'
+                   ELSE '1000+'
+                   END                                                                          as submission_range,
+               CASE
+                   WHEN submission_count = 0 THEN 0
+                   WHEN submission_count BETWEEN 1 AND 5 THEN 1
+                   WHEN submission_count BETWEEN 6 AND 10 THEN 6
+                   WHEN submission_count BETWEEN 11 AND 20 THEN 11
+                   WHEN submission_count BETWEEN 21 AND 50 THEN 21
+                   WHEN submission_count BETWEEN 51 AND 100 THEN 51
+                   WHEN submission_count BETWEEN 101 AND 200 THEN 101
+                   WHEN submission_count BETWEEN 201 AND 500 THEN 201
+                   WHEN submission_count BETWEEN 501 AND 1000 THEN 501
+                   ELSE 1000
+                   END                                                                          as range_start,
+               COUNT(*)                                                                         as problem_count,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
+               SUM(submission_count)                                                            as total_submissions_in_range,
+               SUM(accepted_count)                                                              as total_accepted_in_range
         FROM problem
         WHERE is_deleted = 0
         GROUP BY submission_range, range_start
@@ -1885,85 +1891,84 @@
 
     <!-- 获取题目时间限制分布 -->
     <select id="getTimeLimitDistribution" resultType="java.util.HashMap">
-        SELECT
-            CASE
-                WHEN time_limit &lt; 1000 THEN '&lt;1s'
-                WHEN time_limit BETWEEN 1000 AND 2000 THEN '1-2s'
-                WHEN time_limit BETWEEN 2001 AND 5000 THEN '2-5s'
-                WHEN time_limit BETWEEN 5001 AND 10000 THEN '5-10s'
-                WHEN time_limit BETWEEN 10001 AND 30000 THEN '10-30s'
-                ELSE '&gt;30s'
-            END as time_limit_range,
-            CASE
-                WHEN time_limit &lt; 1000 THEN 0
-                WHEN time_limit BETWEEN 1000 AND 2000 THEN 1000
-                WHEN time_limit BETWEEN 2001 AND 5000 THEN 2001
-                WHEN time_limit BETWEEN 5001 AND 10000 THEN 5001
-                WHEN time_limit BETWEEN 10001 AND 30000 THEN 10001
-                ELSE 30001
-            END as range_start,
-            COUNT(*) as problem_count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
-            MIN(time_limit) as min_time_limit,
-            MAX(time_limit) as max_time_limit,
-            ROUND(AVG(time_limit), 2) as avg_time_limit
+        SELECT CASE
+                   WHEN time_limit &lt; 1000 THEN '&lt;1s'
+                   WHEN time_limit BETWEEN 1000 AND 2000 THEN '1-2s'
+                   WHEN time_limit BETWEEN 2001 AND 5000 THEN '2-5s'
+                   WHEN time_limit BETWEEN 5001 AND 10000 THEN '5-10s'
+                   WHEN time_limit BETWEEN 10001 AND 30000 THEN '10-30s'
+                   ELSE '&gt;30s'
+                   END                                                                          as time_limit_range,
+               CASE
+                   WHEN time_limit &lt; 1000 THEN 0
+                   WHEN time_limit BETWEEN 1000 AND 2000 THEN 1000
+                   WHEN time_limit BETWEEN 2001 AND 5000 THEN 2001
+                   WHEN time_limit BETWEEN 5001 AND 10000 THEN 5001
+                   WHEN time_limit BETWEEN 10001 AND 30000 THEN 10001
+                   ELSE 30001
+                   END                                                                          as range_start,
+               COUNT(*)                                                                         as problem_count,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
+               MIN(time_limit)                                                                  as min_time_limit,
+               MAX(time_limit)                                                                  as max_time_limit,
+               ROUND(AVG(time_limit), 2)                                                        as avg_time_limit
         FROM problem
-        WHERE is_deleted = 0 AND time_limit IS NOT NULL
+        WHERE is_deleted = 0
+          AND time_limit IS NOT NULL
         GROUP BY time_limit_range, range_start
         ORDER BY range_start
     </select>
 
     <!-- 获取题目内存限制分布 -->
     <select id="getMemoryLimitDistribution" resultType="java.util.HashMap">
-        SELECT
-            CASE
-                WHEN memory_limit &lt; 64 THEN '&lt;64MB'
-                WHEN memory_limit BETWEEN 64 AND 128 THEN '64-128MB'
-                WHEN memory_limit BETWEEN 129 AND 256 THEN '128-256MB'
-                WHEN memory_limit BETWEEN 257 AND 512 THEN '256-512MB'
-                WHEN memory_limit BETWEEN 513 AND 1024 THEN '512MB-1GB'
-                ELSE '&gt;1GB'
-            END as memory_limit_range,
-            CASE
-                WHEN memory_limit &lt; 64 THEN 0
-                WHEN memory_limit BETWEEN 64 AND 128 THEN 64
-                WHEN memory_limit BETWEEN 129 AND 256 THEN 129
-                WHEN memory_limit BETWEEN 257 AND 512 THEN 257
-                WHEN memory_limit BETWEEN 513 AND 1024 THEN 513
-                ELSE 1025
-            END as range_start,
-            COUNT(*) as problem_count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
-            MIN(memory_limit) as min_memory_limit,
-            MAX(memory_limit) as max_memory_limit,
-            ROUND(AVG(memory_limit), 2) as avg_memory_limit
+        SELECT CASE
+                   WHEN memory_limit &lt; 64 THEN '&lt;64MB'
+                   WHEN memory_limit BETWEEN 64 AND 128 THEN '64-128MB'
+                   WHEN memory_limit BETWEEN 129 AND 256 THEN '128-256MB'
+                   WHEN memory_limit BETWEEN 257 AND 512 THEN '256-512MB'
+                   WHEN memory_limit BETWEEN 513 AND 1024 THEN '512MB-1GB'
+                   ELSE '&gt;1GB'
+                   END                                                                          as memory_limit_range,
+               CASE
+                   WHEN memory_limit &lt; 64 THEN 0
+                   WHEN memory_limit BETWEEN 64 AND 128 THEN 64
+                   WHEN memory_limit BETWEEN 129 AND 256 THEN 129
+                   WHEN memory_limit BETWEEN 257 AND 512 THEN 257
+                   WHEN memory_limit BETWEEN 513 AND 1024 THEN 513
+                   ELSE 1025
+                   END                                                                          as range_start,
+               COUNT(*)                                                                         as problem_count,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
+               MIN(memory_limit)                                                                as min_memory_limit,
+               MAX(memory_limit)                                                                as max_memory_limit,
+               ROUND(AVG(memory_limit), 2)                                                      as avg_memory_limit
         FROM problem
-        WHERE is_deleted = 0 AND memory_limit IS NOT NULL
+        WHERE is_deleted = 0
+          AND memory_limit IS NOT NULL
         GROUP BY memory_limit_range, range_start
         ORDER BY range_start
     </select>
 
     <!-- 获取题目可见性分布 -->
     <select id="getVisibilityDistribution" resultType="java.util.HashMap">
-        SELECT
-            visibility,
-            CASE 
-                WHEN visibility = 1 THEN 'PUBLIC'
-                WHEN visibility = 0 THEN 'PRIVATE'
-                ELSE 'UNKNOWN'
-            END as visibility_name,
-            COUNT(*) as problem_count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
-            COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as avg_acceptance_rate
+        SELECT visibility,
+               CASE
+                   WHEN visibility = 1 THEN 'PUBLIC'
+                   WHEN visibility = 0 THEN 'PRIVATE'
+                   ELSE 'UNKNOWN'
+                   END                                                                          as visibility_name,
+               COUNT(*)                                                                         as problem_count,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0), 2) as percentage,
+               COUNT(CASE WHEN status = 1 THEN 1 END)                                           as active_problems,
+               SUM(submission_count)                                                            as total_submissions,
+               SUM(accepted_count)                                                              as total_accepted,
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ), 2)                                                                      as avg_acceptance_rate
         FROM problem
         WHERE is_deleted = 0
         GROUP BY visibility
@@ -1972,25 +1977,29 @@
 
     <!-- 获取编程语言使用分布 -->
     <select id="getLanguageUsageDistribution" resultType="java.util.HashMap">
-        SELECT
-            supported_languages,
-            COUNT(*) as problem_count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0 AND supported_languages IS NOT NULL), 2) as percentage,
-            COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as avg_acceptance_rate,
-            -- 难度分布
-            COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
-            COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
-            COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems        FROM problem
-        WHERE is_deleted = 0 AND supported_languages IS NOT NULL
+        SELECT supported_languages,
+               COUNT(*)                                          as problem_count,
+               ROUND(COUNT(*) * 100.0 /
+                     (SELECT COUNT(*) FROM problem WHERE is_deleted = 0 AND supported_languages IS NOT NULL),
+                     2)                                          as percentage,
+               COUNT(CASE WHEN status = 1 THEN 1 END)            as active_problems,
+               SUM(submission_count)                             as total_submissions,
+               SUM(accepted_count)                               as total_accepted,
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                          as avg_acceptance_rate,
+               -- 难度分布
+               COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END)   as easy_problems,
+               COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
+               COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END)   as hard_problems
+        FROM problem
+        WHERE is_deleted = 0
+          AND supported_languages IS NOT NULL
         GROUP BY supported_languages
         ORDER BY problem_count DESC
     </select>
@@ -1999,98 +2008,101 @@
 
     <!-- 获取题目生命周期分析 -->
     <select id="getProblemLifecycleAnalysis" resultType="java.util.HashMap">
-        SELECT
-            p.id as problem_id,
-            p.title,
-            p.create_time,
-            p.update_time,
-            DATEDIFF(NOW(), p.create_time) as days_since_creation,
-            p.submission_count,
-            p.accepted_count,
-            p.view_count,
-            -- 生命周期阶段
-            CASE
-                WHEN DATEDIFF(NOW(), p.create_time) &lt;= 7 THEN 'NEW'
-                WHEN DATEDIFF(NOW(), p.create_time) &lt;= 30 THEN 'GROWING'
-                WHEN DATEDIFF(NOW(), p.create_time) &lt;= 90 THEN 'MATURE'
-                WHEN DATEDIFF(NOW(), p.create_time) &lt;= 365 THEN 'STABLE'
-                ELSE 'LEGACY'
-            END as lifecycle_stage,
-            -- 活跃度评分
-            ROUND(
-                (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) / 
-                GREATEST(DATEDIFF(NOW(), p.create_time), 1), 2
-            ) as activity_score,
-            -- 健康度评分
-            ROUND(
-                CASE
-                    WHEN p.submission_count = 0 THEN 0
-                    ELSE (p.accepted_count * 100.0 / p.submission_count) * 0.6 + 
-                         LEAST(p.submission_count / 100.0, 1) * 40
-                END, 2
-            ) as health_score
+        SELECT p.id                           as problem_id,
+               p.title,
+               p.create_time,
+               p.update_time,
+               DATEDIFF(NOW(), p.create_time) as days_since_creation,
+               p.submission_count,
+               p.accepted_count,
+               p.view_count,
+               -- 生命周期阶段
+               CASE
+                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 7 THEN 'NEW'
+                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 30 THEN 'GROWING'
+                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 90 THEN 'MATURE'
+                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 365 THEN 'STABLE'
+                   ELSE 'LEGACY'
+                   END                        as lifecycle_stage,
+               -- 活跃度评分
+               ROUND(
+                       (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
+                       GREATEST(DATEDIFF(NOW(), p.create_time), 1), 2
+               )                              as activity_score,
+               -- 健康度评分
+               ROUND(
+                       CASE
+                           WHEN p.submission_count = 0 THEN 0
+                           ELSE (p.accepted_count * 100.0 / p.submission_count) * 0.6 +
+                                LEAST(p.submission_count / 100.0, 1) * 40
+                           END, 2
+               )                              as health_score
         FROM problem p
-        WHERE p.is_deleted = 0 AND p.id = #{problemId}
+        WHERE p.is_deleted = 0
+          AND p.id = #{problemId}
     </select>
 
     <!-- 获取平台增长指标 -->
     <select id="getPlatformGrowthMetrics" resultType="java.util.HashMap">
-        SELECT
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) as new_problems,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            SUM(view_count) as total_views,
-            -- 增长率计算
-            ROUND(
-                COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) * 100.0 / 
-                GREATEST(COUNT(CASE WHEN create_time &lt; DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END), 1), 2
-            ) as problem_growth_rate,
-            -- 活跃度指标
-            ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
-            ROUND(AVG(view_count), 2) as avg_views_per_problem,
-            -- 质量指标
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as platform_acceptance_rate,
-            -- 创新指标
-            COUNT(DISTINCT creator_id) as active_creators,
-            COUNT(DISTINCT supported_languages) as language_diversity
+        SELECT COUNT(*)                                                                                 as total_problems,
+               COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) as new_problems,
+               SUM(submission_count)                                                                    as total_submissions,
+               SUM(accepted_count)                                                                      as total_accepted,
+               SUM(view_count)                                                                          as total_views,
+               -- 增长率计算
+               ROUND(
+                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) *
+                       100.0 /
+                       GREATEST(COUNT(CASE WHEN create_time &lt; DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END),
+                                1), 2
+               )                                                                                        as problem_growth_rate,
+               -- 活跃度指标
+               ROUND(AVG(submission_count), 2)                                                          as avg_submissions_per_problem,
+               ROUND(AVG(view_count), 2)                                                                as avg_views_per_problem,
+               -- 质量指标
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                                                                 as platform_acceptance_rate,
+               -- 创新指标
+               COUNT(DISTINCT creator_id)                                                               as active_creators,
+               COUNT(DISTINCT supported_languages)                                                      as language_diversity
         FROM problem
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取题目集群分析 -->
     <select id="getProblemClusterAnalysis" resultType="java.util.HashMap">
-        SELECT
-            p.difficulty,
-            p.problem_type,
-            COUNT(*) as cluster_size,
-            ROUND(AVG(p.submission_count), 2) as avg_submissions,
-            ROUND(AVG(p.accepted_count), 2) as avg_accepted,
-            ROUND(AVG(p.view_count), 2) as avg_views,
-            ROUND(AVG(
-                CASE
-                    WHEN p.submission_count &gt; 0
-                        THEN (p.accepted_count * 100.0 / p.submission_count)
-                    ELSE 0
-                END
-            ), 2) as avg_acceptance_rate,
-            -- 聚类特征
-            MIN(p.time_limit) as min_time_limit,
-            MAX(p.time_limit) as max_time_limit,
-            MIN(p.memory_limit) as min_memory_limit,
-            MAX(p.memory_limit) as max_memory_limit,
-            -- 聚类健康度
-            ROUND(
-                (AVG(p.submission_count) * 0.3 + 
-                 AVG(p.view_count) * 0.2 + 
-                 AVG(CASE WHEN p.submission_count &gt; 0 THEN (p.accepted_count * 100.0 / p.submission_count) ELSE 0 END) * 0.5), 2
-            ) as cluster_health_score
+        SELECT p.difficulty,
+               p.problem_type,
+               COUNT(*)                          as cluster_size,
+               ROUND(AVG(p.submission_count), 2) as avg_submissions,
+               ROUND(AVG(p.accepted_count), 2)   as avg_accepted,
+               ROUND(AVG(p.view_count), 2)       as avg_views,
+               ROUND(AVG(
+                             CASE
+                                 WHEN p.submission_count &gt; 0
+                                     THEN (p.accepted_count * 100.0 / p.submission_count)
+                                 ELSE 0
+                                 END
+                     ), 2)                       as avg_acceptance_rate,
+               -- 聚类特征
+               MIN(p.time_limit)                 as min_time_limit,
+               MAX(p.time_limit)                 as max_time_limit,
+               MIN(p.memory_limit)               as min_memory_limit,
+               MAX(p.memory_limit)               as max_memory_limit,
+               -- 聚类健康度
+               ROUND(
+                       (AVG(p.submission_count) * 0.3 +
+                        AVG(p.view_count) * 0.2 +
+                        AVG(CASE
+                                WHEN p.submission_count &gt; 0 THEN (p.accepted_count * 100.0 / p.submission_count)
+                                ELSE 0 END) * 0.5), 2
+               )                                 as cluster_health_score
         FROM problem p
         WHERE p.is_deleted = 0
         GROUP BY p.difficulty, p.problem_type
@@ -2100,37 +2112,42 @@
 
     <!-- 获取题目异常检测分析 -->
     <select id="getProblemAnomalyDetection" resultType="java.util.HashMap">
-        SELECT
-            p.id as problem_id,
-            p.title,
-            p.difficulty,
-            p.submission_count,
-            p.accepted_count,
-            p.view_count,
-            -- 异常类型检测
-            CASE
-                WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.create_time) &gt; 30 THEN 'ZERO_SUBMISSION'
-                WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &lt; 5 THEN 'EXTREMELY_HARD'
-                WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &gt; 95 THEN 'EXTREMELY_EASY'
-                WHEN p.view_count &gt; 0 AND (p.submission_count * 100.0 / p.view_count) &lt; 1 THEN 'LOW_ENGAGEMENT'
-                WHEN p.submission_count &gt; (SELECT AVG(submission_count) * 10 FROM problem WHERE is_deleted = 0) THEN 'ABNORMALLY_POPULAR'
-                ELSE 'NORMAL'
-            END as anomaly_type,
-            -- 异常评分
-            ROUND(
-                ABS(
-                    (p.submission_count - (SELECT AVG(submission_count) FROM problem WHERE is_deleted = 0)) /
-                    GREATEST((SELECT STDDEV(submission_count) FROM problem WHERE is_deleted = 0), 1)
-                ), 2
-            ) as anomaly_score,
-            -- 建议措施
-            CASE
-                WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.create_time) &gt; 30 THEN 'PROMOTE_PROBLEM'
-                WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &lt; 5 THEN 'REVIEW_DIFFICULTY'
-                WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &gt; 95 THEN 'INCREASE_DIFFICULTY'
-                WHEN p.view_count &gt; 0 AND (p.submission_count * 100.0 / p.view_count) &lt; 1 THEN 'IMPROVE_DESCRIPTION'
-                ELSE 'NO_ACTION_NEEDED'
-            END as suggested_action
+        SELECT p.id    as problem_id,
+               p.title,
+               p.difficulty,
+               p.submission_count,
+               p.accepted_count,
+               p.view_count,
+               -- 异常类型检测
+               CASE
+                   WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.create_time) &gt; 30 THEN 'ZERO_SUBMISSION'
+                   WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &lt; 5
+                       THEN 'EXTREMELY_HARD'
+                   WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &gt; 95
+                       THEN 'EXTREMELY_EASY'
+                   WHEN p.view_count &gt; 0 AND (p.submission_count * 100.0 / p.view_count) &lt; 1 THEN 'LOW_ENGAGEMENT'
+                   WHEN p.submission_count &gt; (SELECT AVG(submission_count) * 10 FROM problem WHERE is_deleted = 0)
+                       THEN 'ABNORMALLY_POPULAR'
+                   ELSE 'NORMAL'
+                   END as anomaly_type,
+               -- 异常评分
+               ROUND(
+                       ABS(
+                               (p.submission_count - (SELECT AVG(submission_count) FROM problem WHERE is_deleted = 0)) /
+                               GREATEST((SELECT STDDEV(submission_count) FROM problem WHERE is_deleted = 0), 1)
+                       ), 2
+               )       as anomaly_score,
+               -- 建议措施
+               CASE
+                   WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.create_time) &gt; 30 THEN 'PROMOTE_PROBLEM'
+                   WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &lt; 5
+                       THEN 'REVIEW_DIFFICULTY'
+                   WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &gt; 95
+                       THEN 'INCREASE_DIFFICULTY'
+                   WHEN p.view_count &gt; 0 AND (p.submission_count * 100.0 / p.view_count) &lt; 1
+                       THEN 'IMPROVE_DESCRIPTION'
+                   ELSE 'NO_ACTION_NEEDED'
+                   END as suggested_action
         FROM problem p
         WHERE p.is_deleted = 0
         HAVING anomaly_type != 'NORMAL'
@@ -2141,161 +2158,163 @@
 
     <!-- 获取题目月度报表数据 -->
     <select id="getMonthlyReport" resultType="java.util.HashMap">
-        SELECT
-            #{year} as report_year,
-            #{month} as report_month,
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND MONTH(create_time) = #{month} THEN 1 END) as new_problems_this_month,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            SUM(view_count) as total_views,
-            -- 按难度统计
-            COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
-            COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
-            COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
-            -- 质量指标
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as avg_acceptance_rate,
-            -- 活跃度指标
-            COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as active_problems,
-            COUNT(CASE WHEN submission_count = 0 THEN 1 END) as inactive_problems,
-            -- 创建者活跃度
-            COUNT(DISTINCT creator_id) as active_creators,
-            -- 平台健康度
-            ROUND(
-                (COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) * 100.0 / COUNT(*)), 2
-            ) as platform_activity_rate
+        SELECT #{year}                                                                                    as report_year,
+               #{month}                                                                                   as report_month,
+               COUNT(*)                                                                                   as total_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND MONTH(create_time) = #{month} THEN 1 END) as new_problems_this_month,
+               SUM(submission_count)                                                                      as total_submissions,
+               SUM(accepted_count)                                                                        as total_accepted,
+               SUM(view_count)                                                                            as total_views,
+               -- 按难度统计
+               COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END)                                            as easy_problems,
+               COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END)                                          as medium_problems,
+               COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END)                                            as hard_problems,
+               -- 质量指标
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                                                                   as avg_acceptance_rate,
+               -- 活跃度指标
+               COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END)                                        as active_problems,
+               COUNT(CASE WHEN submission_count = 0 THEN 1 END)                                           as inactive_problems,
+               -- 创建者活跃度
+               COUNT(DISTINCT creator_id)                                                                 as active_creators,
+               -- 平台健康度
+               ROUND(
+                       (COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) * 100.0 / COUNT(*)), 2
+               )                                                                                          as platform_activity_rate
         FROM problem
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取题目年度报表数据 -->
     <select id="getAnnualReport" resultType="java.util.HashMap">
-        SELECT
-            #{year} as report_year,
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} THEN 1 END) as new_problems_this_year,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            SUM(view_count) as total_views,
-            -- 月度增长趋势
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = 1 THEN 1 END) as q1_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = 2 THEN 1 END) as q2_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = 3 THEN 1 END) as q3_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = 4 THEN 1 END) as q4_problems,
-            -- 年度质量指标
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as annual_acceptance_rate,
-            -- 年度创新指标
-            COUNT(DISTINCT creator_id) as total_creators,
-            COUNT(DISTINCT supported_languages) as language_diversity,
-            COUNT(DISTINCT problem_type) as type_diversity,
-            -- 年度成就
-            MAX(submission_count) as max_submissions,
-            MAX(view_count) as max_views,
-            (SELECT title FROM problem WHERE is_deleted = 0 AND submission_count = MAX(p.submission_count) LIMIT 1) as most_popular_problem
+        SELECT #{year}                                                                               as       report_year,
+               COUNT(*)                                                                              as       total_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} THEN 1 END)                              as       new_problems_this_year,
+               SUM(submission_count)                                                                 as       total_submissions,
+               SUM(accepted_count)                                                                   as       total_accepted,
+               SUM(view_count)                                                                       as       total_views,
+               -- 月度增长趋势
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 1 THEN 1 END) as       q1_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 2 THEN 1 END) as       q2_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 3 THEN 1 END) as       q3_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 4 THEN 1 END) as       q4_problems,
+               -- 年度质量指标
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                                                              as       annual_acceptance_rate,
+               -- 年度创新指标
+               COUNT(DISTINCT creator_id)                                                            as       total_creators,
+               COUNT(DISTINCT supported_languages)                                                   as       language_diversity,
+               COUNT(DISTINCT problem_type)                                                          as       type_diversity,
+               -- 年度成就
+               MAX(submission_count)                                                                 as       max_submissions,
+               MAX(view_count)                                                                       as       max_views,
+               (SELECT title FROM problem WHERE is_deleted = 0 AND submission_count = MAX(p.submission_count) LIMIT 1) as most_popular_problem
         FROM problem p
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取自定义时间范围统计报表 -->
     <select id="getCustomRangeReport" resultType="java.util.HashMap">
-        SELECT
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN create_time BETWEEN #{startDate} AND #{endDate} THEN 1 END) as problems_in_range,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            SUM(view_count) as total_views,
-            -- 时间范围内的统计
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as avg_acceptance_rate,
-            COUNT(DISTINCT creator_id) as unique_creators,
-            -- 难度分布
-            COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_count,
-            COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_count,
-            COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_count,
-            -- 活跃度分析
-            COUNT(CASE WHEN submission_count &gt; 100 THEN 1 END) as high_activity_problems,
-            COUNT(CASE WHEN submission_count BETWEEN 10 AND 100 THEN 1 END) as medium_activity_problems,
-            COUNT(CASE WHEN submission_count BETWEEN 1 AND 10 THEN 1 END) as low_activity_problems,
-            COUNT(CASE WHEN submission_count = 0 THEN 1 END) as zero_activity_problems
+        SELECT COUNT(*)                                                                    as total_problems,
+               COUNT(CASE WHEN create_time BETWEEN #{startDate} AND #{endDate} THEN 1 END) as problems_in_range,
+               SUM(submission_count)                                                       as total_submissions,
+               SUM(accepted_count)                                                         as total_accepted,
+               SUM(view_count)                                                             as total_views,
+               -- 时间范围内的统计
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ), 2)                                                                 as avg_acceptance_rate,
+               COUNT(DISTINCT creator_id)                                                  as unique_creators,
+               -- 难度分布
+               COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END)                             as easy_count,
+               COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END)                           as medium_count,
+               COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END)                             as hard_count,
+               -- 活跃度分析
+               COUNT(CASE WHEN submission_count &gt; 100 THEN 1 END)                       as high_activity_problems,
+               COUNT(CASE WHEN submission_count BETWEEN 10 AND 100 THEN 1 END)             as medium_activity_problems,
+               COUNT(CASE WHEN submission_count BETWEEN 1 AND 10 THEN 1 END)               as low_activity_problems,
+               COUNT(CASE WHEN submission_count = 0 THEN 1 END)                            as zero_activity_problems
         FROM problem
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取周度报表数据 -->
     <select id="getWeeklyReport" resultType="java.util.HashMap">
-        SELECT
-            #{year} as report_year,
-            #{week} as report_week,
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND WEEK(create_time, 1) = #{week} THEN 1 END) as new_problems_this_week,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            -- 周度活跃度
-            ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
-            ROUND(AVG(view_count), 2) as avg_views_per_problem,
-            -- 周度质量
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as weekly_acceptance_rate,
-            -- 创建者活跃度
-            COUNT(DISTINCT creator_id) as active_creators_count,
-            -- 难度分布
-            COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
-            COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
-            COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems
+        SELECT #{year}                                                                                     as report_year,
+               #{week}                                                                                     as report_week,
+               COUNT(*)                                                                                    as total_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND WEEK(create_time, 1) = #{week} THEN 1 END) as new_problems_this_week,
+               SUM(submission_count)                                                                       as total_submissions,
+               SUM(accepted_count)                                                                         as total_accepted,
+               -- 周度活跃度
+               ROUND(AVG(submission_count), 2)                                                             as avg_submissions_per_problem,
+               ROUND(AVG(view_count), 2)                                                                   as avg_views_per_problem,
+               -- 周度质量
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                                                                    as weekly_acceptance_rate,
+               -- 创建者活跃度
+               COUNT(DISTINCT creator_id)                                                                  as active_creators_count,
+               -- 难度分布
+               COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END)                                             as easy_problems,
+               COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END)                                           as medium_problems,
+               COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END)                                             as hard_problems
         FROM problem
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取季度报表数据 -->
     <select id="getQuarterlyReport" resultType="java.util.HashMap">
-        SELECT
-            #{year} as report_year,
-            #{quarter} as report_quarter,
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = #{quarter} THEN 1 END) as new_problems_this_quarter,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            SUM(view_count) as total_views,
-            -- 季度增长指标
-            ROUND(
-                COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = #{quarter} THEN 1 END) * 100.0 / 
-                GREATEST(COUNT(CASE WHEN YEAR(create_time) = #{year} AND QUARTER(create_time) = #{quarter} - 1 THEN 1 END), 1), 2
-            ) as quarter_growth_rate,
-            -- 季度质量指标
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as quarterly_acceptance_rate,
-            -- 季度创新指标
-            COUNT(DISTINCT creator_id) as quarterly_creators,
-            COUNT(DISTINCT problem_type) as quarterly_types,
-            -- 季度热门题目
-            (SELECT title FROM problem WHERE is_deleted = 0 AND YEAR(create_time) = #{year} AND QUARTER(create_time) = #{quarter} ORDER BY submission_count DESC LIMIT 1) as most_popular_problem_this_quarter
+        SELECT #{year}                                                                                        as report_year,
+               #{quarter}                                                                                     as report_quarter,
+               COUNT(*)                                                                                       as total_problems,
+               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter} THEN 1 END) as new_problems_this_quarter,
+               SUM(submission_count)                                                                          as total_submissions,
+               SUM(accepted_count)                                                                            as total_accepted,
+               SUM(view_count)                                                                                as total_views,
+               -- 季度增长指标
+               ROUND(
+                       COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter} THEN 1 END) *
+                       100.0 /
+                       GREATEST(COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter} - 1 THEN 1 END), 1),
+                       2
+               )                                                                                              as quarter_growth_rate,
+               -- 季度质量指标
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                                                                       as quarterly_acceptance_rate,
+               -- 季度创新指标
+               COUNT(DISTINCT creator_id)                                                                     as quarterly_creators,
+               COUNT(DISTINCT problem_type)                                                                   as quarterly_types,
+               -- 季度热门题目
+               (SELECT title FROM problem WHERE is_deleted = 0 AND YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter}
+        ORDER BY submission_count DESC LIMIT 1) as most_popular_problem_this_quarter
         FROM problem
         WHERE is_deleted = 0
     </select>
@@ -2304,78 +2323,90 @@
 
     <!-- 获取实时提交监控统计 -->
     <select id="getRealTimeSubmissionMonitoring" resultType="java.util.HashMap">
-        SELECT
-            COUNT(*) as total_problems,
-            SUM(submission_count) as total_submissions,
-            SUM(accepted_count) as total_accepted,
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as current_acceptance_rate,
-            -- 实时活跃度
-            COUNT(CASE WHEN update_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE) THEN 1 END) as recently_updated_problems,
-            COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as active_problems,
-            COUNT(CASE WHEN submission_count = 0 THEN 1 END) as inactive_problems,
-            -- 实时性能指标
-            ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
-            MAX(submission_count) as max_submissions,
-            MIN(submission_count) as min_submissions,
-            -- 实时健康度
-            ROUND(
-                (COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) * 100.0 / COUNT(*)), 2
-            ) as platform_health_score
+        SELECT COUNT(*)                                            as total_problems,
+               SUM(submission_count)                               as total_submissions,
+               SUM(accepted_count)                                 as total_accepted,
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                            as current_acceptance_rate,
+               -- 实时活跃度
+               COUNT(CASE
+                         WHEN update_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE)
+                             THEN 1 END)                           as recently_updated_problems,
+               COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as active_problems,
+               COUNT(CASE WHEN submission_count = 0 THEN 1 END)    as inactive_problems,
+               -- 实时性能指标
+               ROUND(AVG(submission_count), 2)                     as avg_submissions_per_problem,
+               MAX(submission_count)                               as max_submissions,
+               MIN(submission_count)                               as min_submissions,
+               -- 实时健康度
+               ROUND(
+                       (COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) * 100.0 / COUNT(*)), 2
+               )                                                   as platform_health_score
         FROM problem
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取实时错误率监控 -->
     <select id="getRealTimeErrorRateMonitoring" resultType="java.util.HashMap">
-        SELECT
-            COUNT(*) as total_problems,
-            COUNT(CASE WHEN submission_count = 0 THEN 1 END) as zero_submission_problems,
-            COUNT(CASE WHEN submission_count &gt; 0 AND accepted_count = 0 THEN 1 END) as zero_acceptance_problems,
-            COUNT(CASE WHEN submission_count &gt; 0 AND (accepted_count * 100.0 / submission_count) &lt; 10 THEN 1 END) as high_error_rate_problems,
-            -- 错误率分析
-            ROUND(
-                COUNT(CASE WHEN submission_count = 0 THEN 1 END) * 100.0 / COUNT(*), 2
-            ) as zero_submission_rate,
-            ROUND(
-                COUNT(CASE WHEN submission_count &gt; 0 AND (accepted_count * 100.0 / submission_count) &lt; 10 THEN 1 END) * 100.0 / 
-                COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END), 2
-            ) as high_error_rate,
-            -- 平台整体错误率
-            ROUND(
-                (SUM(submission_count) - SUM(accepted_count)) * 100.0 / GREATEST(SUM(submission_count), 1), 2
-            ) as platform_error_rate,
-            -- 最近更新的问题题目
-            COUNT(CASE WHEN update_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE) THEN 1 END) as recently_problematic
+        SELECT COUNT(*)                                                                   as total_problems,
+               COUNT(CASE WHEN submission_count = 0 THEN 1 END)                           as zero_submission_problems,
+               COUNT(CASE WHEN submission_count &gt; 0 AND accepted_count = 0 THEN 1 END) as zero_acceptance_problems,
+               COUNT(CASE
+                         WHEN submission_count &gt; 0 AND (accepted_count * 100.0 / submission_count) &lt; 10
+                             THEN 1 END)                                                  as high_error_rate_problems,
+               -- 错误率分析
+               ROUND(
+                       COUNT(CASE WHEN submission_count = 0 THEN 1 END) * 100.0 / COUNT(*), 2
+               )                                                                          as zero_submission_rate,
+               ROUND(
+                       COUNT(CASE
+                                 WHEN submission_count &gt; 0 AND (accepted_count * 100.0 / submission_count) &lt; 10
+                                     THEN 1 END) * 100.0 /
+                       COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END), 2
+               )                                                                          as high_error_rate,
+               -- 平台整体错误率
+               ROUND(
+                       (SUM(submission_count) - SUM(accepted_count)) * 100.0 / GREATEST(SUM(submission_count), 1), 2
+               )                                                                          as platform_error_rate,
+               -- 最近更新的问题题目
+               COUNT(CASE
+                         WHEN update_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE)
+                             THEN 1 END)                                                  as recently_problematic
         FROM problem
         WHERE is_deleted = 0
     </select>
 
     <!-- 获取实时性能监控 -->
     <select id="getRealTimePerformanceMonitoring" resultType="java.util.HashMap">
-        SELECT
-            COUNT(*) as total_problems,
-            -- 性能分布
-            COUNT(CASE WHEN time_limit &lt;= 1000 THEN 1 END) as fast_problems,
-            COUNT(CASE WHEN time_limit BETWEEN 1001 AND 3000 THEN 1 END) as medium_problems,
-            COUNT(CASE WHEN time_limit &gt; 3000 THEN 1 END) as slow_problems,
-            -- 内存分布
-            COUNT(CASE WHEN memory_limit &lt;= 128 THEN 1 END) as low_memory_problems,
-            COUNT(CASE WHEN memory_limit BETWEEN 129 AND 512 THEN 1 END) as medium_memory_problems,
-            COUNT(CASE WHEN memory_limit &gt; 512 THEN 1 END) as high_memory_problems,
-            -- 平均性能指标
-            ROUND(AVG(time_limit), 2) as avg_time_limit,
-            ROUND(AVG(memory_limit), 2) as avg_memory_limit,
-            -- 性能异常检测
-            COUNT(CASE WHEN time_limit &gt; (SELECT AVG(time_limit) * 3 FROM problem WHERE is_deleted = 0) THEN 1 END) as time_anomalies,
-            COUNT(CASE WHEN memory_limit &gt; (SELECT AVG(memory_limit) * 3 FROM problem WHERE is_deleted = 0) THEN 1 END) as memory_anomalies,
-            -- 最近性能变更
-            COUNT(CASE WHEN update_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE) THEN 1 END) as recently_updated_performance
+        SELECT COUNT(*)                                                     as total_problems,
+               -- 性能分布
+               COUNT(CASE WHEN time_limit &lt;= 1000 THEN 1 END)            as fast_problems,
+               COUNT(CASE WHEN time_limit BETWEEN 1001 AND 3000 THEN 1 END) as medium_problems,
+               COUNT(CASE WHEN time_limit &gt; 3000 THEN 1 END)             as slow_problems,
+               -- 内存分布
+               COUNT(CASE WHEN memory_limit &lt;= 128 THEN 1 END)           as low_memory_problems,
+               COUNT(CASE WHEN memory_limit BETWEEN 129 AND 512 THEN 1 END) as medium_memory_problems,
+               COUNT(CASE WHEN memory_limit &gt; 512 THEN 1 END)            as high_memory_problems,
+               -- 平均性能指标
+               ROUND(AVG(time_limit), 2)                                    as avg_time_limit,
+               ROUND(AVG(memory_limit), 2)                                  as avg_memory_limit,
+               -- 性能异常检测
+               COUNT(CASE
+                         WHEN time_limit &gt; (SELECT AVG(time_limit) * 3 FROM problem WHERE is_deleted = 0)
+                             THEN 1 END)                                    as time_anomalies,
+               COUNT(CASE
+                         WHEN memory_limit &gt; (SELECT AVG(memory_limit) * 3 FROM problem WHERE is_deleted = 0)
+                             THEN 1 END)                                    as memory_anomalies,
+               -- 最近性能变更
+               COUNT(CASE
+                         WHEN update_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeWindow} MINUTE)
+                             THEN 1 END)                                    as recently_updated_performance
         FROM problem
         WHERE is_deleted = 0
     </select>
@@ -2384,65 +2415,70 @@
 
     <!-- 获取题目提交量预测 -->
     <select id="getProblemSubmissionPrediction" resultType="java.util.HashMap">
-        SELECT
-            p.id as problem_id,
-            p.title,
-            p.submission_count as current_submissions,
-            p.view_count,
-            DATEDIFF(NOW(), p.create_time) as days_since_creation,
-            -- 提交趋势预测
-            ROUND(
-                p.submission_count * 
-                (1 + (p.submission_count / GREATEST(DATEDIFF(NOW(), p.create_time), 1) * #{predictDays} / 100)), 0
-            ) as predicted_submissions,
-            -- 预测增长率
-            ROUND(
-                (p.submission_count / GREATEST(DATEDIFF(NOW(), p.create_time), 1) * #{predictDays}), 2
-            ) as predicted_growth,
-            -- 预测置信度
-            CASE
-                WHEN DATEDIFF(NOW(), p.create_time) &gt; 30 AND p.submission_count &gt; 10 THEN 'HIGH'
-                WHEN DATEDIFF(NOW(), p.create_time) &gt; 7 AND p.submission_count &gt; 1 THEN 'MEDIUM'
-                ELSE 'LOW'
-            END as prediction_confidence,
-            -- 影响因素
-            p.difficulty,
-            p.problem_type,
-            p.visibility
+        SELECT p.id                           as problem_id,
+               p.title,
+               p.submission_count             as current_submissions,
+               p.view_count,
+               DATEDIFF(NOW(), p.create_time) as days_since_creation,
+               -- 提交趋势预测
+               ROUND(
+                       p.submission_count *
+                       (1 + (p.submission_count / GREATEST(DATEDIFF(NOW(), p.create_time), 1) * #{predictDays} / 100)),
+                       0
+               )                              as predicted_submissions,
+               -- 预测增长率
+               ROUND(
+                       (p.submission_count / GREATEST(DATEDIFF(NOW(), p.create_time), 1) * #{predictDays}), 2
+               )                              as predicted_growth,
+               -- 预测置信度
+               CASE
+                   WHEN DATEDIFF(NOW(), p.create_time) &gt; 30 AND p.submission_count &gt; 10 THEN 'HIGH'
+                   WHEN DATEDIFF(NOW(), p.create_time) &gt; 7 AND p.submission_count &gt; 1 THEN 'MEDIUM'
+                   ELSE 'LOW'
+                   END                        as prediction_confidence,
+               -- 影响因素
+               p.difficulty,
+               p.problem_type,
+               p.visibility
         FROM problem p
-        WHERE p.is_deleted = 0 AND p.id = #{problemId}
+        WHERE p.is_deleted = 0
+          AND p.id = #{problemId}
     </select>
 
     <!-- 获取平台增长预测 -->
     <select id="getPlatformGrowthPrediction" resultType="java.util.HashMap">
-        SELECT
-            COUNT(*) as current_total_problems,
-            COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_month_problems,
-            COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY) THEN 1 END) as recent_quarter_problems,
-            -- 增长率计算
-            ROUND(
-                COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 * #{predictMonths} * 30, 0
-            ) as predicted_new_problems,
-            -- 预测总数
-            COUNT(*) + ROUND(
-                COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 * #{predictMonths} * 30, 0
-            ) as predicted_total_problems,
-            -- 增长趋势
-            ROUND(
-                COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) * 100.0 / 
-                GREATEST(COUNT(CASE WHEN create_time BETWEEN DATE_SUB(NOW(), INTERVAL 60 DAY) AND DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END), 1), 2
-            ) as monthly_growth_rate,
-            -- 预测质量指标
-            ROUND(AVG(
-                CASE
-                    WHEN submission_count &gt; 0
-                        THEN (accepted_count * 100.0 / submission_count)
-                    ELSE 0
-                END
-            ), 2) as predicted_acceptance_rate,
-            -- 预测活跃度
-            COUNT(DISTINCT creator_id) as current_creators,
-            ROUND(COUNT(DISTINCT creator_id) * (1 + #{predictMonths} * 0.1), 0) as predicted_creators
+        SELECT COUNT(*)                                                                       as current_total_problems,
+               COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_month_problems,
+               COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY) THEN 1 END) as recent_quarter_problems,
+               -- 增长率计算
+               ROUND(
+                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 *
+                       #{predictMonths} * 30, 0
+               )                                                                              as predicted_new_problems,
+               -- 预测总数
+               COUNT(*) + ROUND(
+                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 *
+                       #{predictMonths} * 30, 0
+                          )                                                                   as predicted_total_problems,
+               -- 增长趋势
+               ROUND(
+                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) * 100.0 /
+                       GREATEST(COUNT(CASE
+                                          WHEN create_time BETWEEN DATE_SUB(NOW(), INTERVAL 60 DAY) AND DATE_SUB(NOW(), INTERVAL 30 DAY)
+                                              THEN 1 END), 1), 2
+               )                                                                              as monthly_growth_rate,
+               -- 预测质量指标
+               ROUND(AVG(
+                             CASE
+                                 WHEN submission_count &gt; 0
+                                     THEN (accepted_count * 100.0 / submission_count)
+                                 ELSE 0
+                                 END
+                     ),
+                     2)                                                                       as predicted_acceptance_rate,
+               -- 预测活跃度
+               COUNT(DISTINCT creator_id)                                                     as current_creators,
+               ROUND(COUNT(DISTINCT creator_id) * (1 + #{predictMonths} * 0.1), 0)            as predicted_creators
         FROM problem
         WHERE is_deleted = 0
     </select>
@@ -2937,5 +2973,237 @@
             </when>
         </choose>
     </select>
+    <!-- ===== V2新增：统一排行榜接口 ===== -->
+    <!-- 统一的排行榜查询接口 -->
+    <select id="getProblemRanking" resultType="java.util.HashMap">
+        SELECT
+        p.id,
+        p.title,
+        p.title_en,
+        p.difficulty,
+        CASE
+        WHEN p.difficulty = 'EASY' THEN '简单'
+        WHEN p.difficulty = 'MEDIUM' THEN '中等'
+        WHEN p.difficulty = 'HARD' THEN '困难'
+        ELSE '未知'
+        END as difficulty_name,
+        p.problem_type,
+        p.submission_count,
+        p.accepted_count,
+        ROUND(
+        CASE
+        WHEN p.submission_count > 0
+        THEN (p.accepted_count * 100.0 / p.submission_count)
+        ELSE 0
+        END, 2
+        ) as acceptance_rate,
+        p.creator_id,
+        p.created_at,
+        p.updated_at,
+        p.status,
+        p.time_limit,
+        p.memory_limit,
+        <if test="criteria.includeCreatorInfo != null and criteria.includeCreatorInfo">
+            p.creator_id as creator_info,
+        </if>
+        <choose>
+            <!-- 热门题目排行 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                ROUND(
+                p.submission_count * 0.7 +
+                p.accepted_count * 0.3 +
+                (CASE WHEN DATEDIFF(CURRENT_DATE, p.created_at) &lt; 30 THEN 10 ELSE 0 END)
+                , 2) as ranking_score
+            </when>
+            <!-- 最难题目排行 -->
+            <when test="criteria.type.name() == 'HARDEST'">
+                ROUND(
+                (100.0 - CASE
+                WHEN p.submission_count > 0
+                THEN (p.accepted_count * 100.0 / p.submission_count)
+                ELSE 100
+                END) +
+                (p.time_limit / 1000.0 * 0.1) +
+                (p.memory_limit / 256.0 * 0.1)
+                , 2) as difficulty_score
+            </when>
+            <!-- 高质量题目排行 -->
+            <when test="criteria.type.name() == 'QUALITY'">
+                ROUND(
+                (CASE
+                WHEN p.submission_count > 0
+                THEN (p.accepted_count * 100.0 / p.submission_count)
+                ELSE 0
+                END) * 0.3 +
+                (CASE WHEN p.submission_count BETWEEN 10 AND 1000 THEN 50 ELSE 0 END) +
+                (CASE WHEN p.submission_count > 0 THEN 20 ELSE 0 END) +
+                (CASE WHEN p.status = 1 THEN 10 ELSE 0 END) * 1
+                , 2) as quality_score
+            </when>
+            <!-- 最新题目排行 -->
+            <when test="criteria.type.name() == 'NEWEST'">
+                UNIX_TIMESTAMP(p.created_at) as creation_timestamp,
+                CASE
+                WHEN DATEDIFF(CURRENT_DATE, p.created_at) = 0 THEN 100
+                ELSE ROUND(p.submission_count / DATEDIFF(CURRENT_DATE, p.created_at), 2)
+                END as daily_submission_rate
+            </when>
+            <!-- 零提交题目排行 -->
+            <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
+                DATEDIFF(CURRENT_DATE, p.created_at) as days_since_creation,
+                CASE
+                WHEN p.status = 0 THEN 'DISABLED'
+                WHEN p.status = 1 THEN 'ACTIVE'
+                ELSE 'UNKNOWN'
+                END as status_name
+            </when>
+            <!-- 创建者贡献排行 -->
+            <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
+                COUNT(*) as problems_created,
+                COUNT(CASE WHEN p.status = 1 THEN 1 END) as active_problems,
+                SUM(p.submission_count) as total_submissions_received,
+                SUM(p.accepted_count) as total_accepted_received,
+                ROUND(AVG(
+                CASE
+                WHEN p.submission_count > 0
+                THEN (p.accepted_count * 100.0 / p.submission_count)
+                ELSE 0
+                END
+                ), 2) as avg_acceptance_rate,
+                ROUND(
+                COUNT(*) * 10 +
+                SUM(p.submission_count) * 0.1 +
+                SUM(p.accepted_count) * 0.2 +
+                COUNT(CASE WHEN p.difficulty = 'EASY' THEN 1 END) * 5 +
+                COUNT(CASE WHEN p.difficulty = 'MEDIUM' THEN 1 END) * 10 +
+                COUNT(CASE WHEN p.difficulty = 'HARD' THEN 1 END) * 15
+                , 2) as contribution_score
+            </when>
+        </choose>
+        FROM problem p
+        WHERE p.is_deleted = 0
+        <choose>
+            <!-- 热门题目排行条件 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                AND p.status = 1
+                <if test="criteria.timeRange != null">
+                    AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.timeRange} DAY)
+                </if>
+            </when>
+            <!-- 最难题目排行条件 -->
+            <when test="criteria.type.name() == 'HARDEST'">
+                AND p.status = 1
+                <if test="criteria.minSubmissions != null">
+                    AND p.submission_count >= #{criteria.minSubmissions}
+                </if>
+            </when>
+            <!-- 高质量题目排行条件 -->
+            <when test="criteria.type.name() == 'QUALITY'">
+                <!-- 质量排行无特殊条件 -->
+            </when>
+            <!-- 最新题目排行条件 -->
+            <when test="criteria.type.name() == 'NEWEST'">
+                AND p.status = 1
+                <if test="criteria.dayRange != null">
+                    AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.dayRange} DAY)
+                </if>
+            </when>
+            <!-- 零提交题目排行条件 -->
+            <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
+                AND p.submission_count = 0
+            </when>
+            <!-- 创建者贡献排行条件 -->
+            <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
+                AND p.creator_id IS NOT NULL
+                <if test="criteria.timeRange != null">
+                    AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.timeRange} DAY)
+                </if>
+            </when>
+        </choose>
+        <choose>
+            <!-- 创建者贡献排行需要分组 -->
+            <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
+                GROUP BY p.creator_id
+            </when>
+        </choose>
+        <choose>
+            <!-- 不同排行榜的排序规则 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                ORDER BY ranking_score DESC, p.submission_count DESC, p.accepted_count DESC
+            </when>
+            <when test="criteria.type.name() == 'HARDEST'">
+                ORDER BY acceptance_rate ASC, difficulty_score DESC, p.submission_count DESC
+            </when>
+            <when test="criteria.type.name() == 'QUALITY'">
+                ORDER BY quality_score DESC, p.submission_count DESC
+            </when>
+            <when test="criteria.type.name() == 'NEWEST'">
+                ORDER BY p.created_at DESC, daily_submission_rate DESC
+            </when>
+            <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
+                ORDER BY days_since_creation DESC, p.created_at DESC
+            </when>
+            <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
+                ORDER BY contribution_score DESC, problems_created DESC
+            </when>
+        </choose>
+        <if test="criteria.limit != null and criteria.limit > 0">
+            LIMIT #{criteria.limit}
+        </if>
+    </select>
+
+    <!-- 统一的排行榜查询接口（实体版本） -->
+    <select id="getProblemRankingEntities" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem p
+        WHERE p.is_deleted = 0
+        <choose>
+            <!-- 热门题目排行条件 -->
+            <when test="criteria.type.name() == 'POPULARITY'">
+                AND p.status = 1
+                <if test="criteria.timeRange != null">
+                    AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.timeRange} DAY)
+                </if>
+                ORDER BY p.submission_count DESC, p.accepted_count DESC
+            </when>
+            <!-- 最难题目排行条件 -->
+            <when test="criteria.type.name() == 'HARDEST'">
+                AND p.status = 1
+                <if test="criteria.minSubmissions != null">
+                    AND p.submission_count >= #{criteria.minSubmissions}
+                </if>
+                ORDER BY (CASE WHEN p.submission_count > 0 THEN (p.accepted_count * 100.0 / p.submission_count) ELSE 100
+                END) ASC, p.submission_count DESC
+            </when>
+            <!-- 高质量题目排行条件 -->
+            <when test="criteria.type.name() == 'QUALITY'">
+                ORDER BY (
+                (CASE WHEN p.submission_count > 0 THEN (p.accepted_count * 100.0 / p.submission_count) ELSE 0 END) * 0.3
+                +
+                (CASE WHEN p.submission_count BETWEEN 10 AND 1000 THEN 50 ELSE 0 END) +
+                (CASE WHEN p.submission_count > 0 THEN 20 ELSE 0 END) +
+                (CASE WHEN p.status = 1 THEN 10 ELSE 0 END)
+                ) DESC, p.submission_count DESC
+            </when>
+            <!-- 最新题目排行条件 -->
+            <when test="criteria.type.name() == 'NEWEST'">
+                AND p.status = 1
+                <if test="criteria.dayRange != null">
+                    AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.dayRange} DAY)
+                </if>
+                ORDER BY p.created_at DESC, p.submission_count DESC
+            </when>
+            <!-- 零提交题目排行条件 -->
+            <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
+                AND p.submission_count = 0
+                ORDER BY p.created_at DESC
+            </when>
+        </choose>
+        <if test="criteria.limit != null and criteria.limit > 0">
+            LIMIT #{criteria.limit}
+        </if>
+    </select>
+
 
 </mapper>

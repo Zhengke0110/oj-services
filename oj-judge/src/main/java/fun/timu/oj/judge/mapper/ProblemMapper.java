@@ -2,6 +2,7 @@ package fun.timu.oj.judge.mapper;
 
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
+import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -55,7 +56,25 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      */
     List<HashMap<String, Object>> getRecommendedProblemsWithScore(@Param("criteria") RecommendationCriteria criteria);
 
-    // ===== 原有推荐接口（已标记为过时）=====
+    // ===== 新增：统一排行榜接口 =====
+
+    /**
+     * 统一的排行榜接口
+     * 根据不同的排行榜类型返回相应的排行榜数据
+     *
+     * @param criteria 排行榜条件
+     * @return 排行榜数据列表
+     */
+    List<HashMap<String, Object>> getProblemRanking(@Param("criteria") RankingCriteria criteria);
+
+    /**
+     * 统一的排行榜接口（题目实体版本）
+     * 返回ProblemDO实体列表，用于需要完整题目信息的场景
+     *
+     * @param criteria 排行榜条件
+     * @return 题目实体列表
+     */
+    List<ProblemDO> getProblemRankingEntities(@Param("criteria") RankingCriteria criteria);
 
     /**
      * 查询推荐题目（通过率适中的题目）
@@ -247,7 +266,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param limit          限制数量
      * @param minSubmissions 最小提交数要求
      * @return 最难题目列表
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forHardest(limit, minSubmissions);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getHardestProblemsRanking(@Param("limit") Integer limit, @Param("minSubmissions") Integer minSubmissions);
 
     /**
@@ -256,7 +282,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param limit     限制数量
      * @param timeRange 时间范围（天数）
      * @return 创建者排行榜
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forCreatorContribution(limit, timeRange);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getCreatorContributionRanking(@Param("limit") Integer limit, @Param("timeRange") Integer timeRange);
 
     /**
@@ -264,7 +297,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      *
      * @param limit 限制数量
      * @return 高质量题目列表
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forQuality(limit);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getQualityProblemsRanking(@Param("limit") Integer limit);
 
     /**
@@ -273,7 +313,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param limit    限制数量
      * @param dayRange 天数范围
      * @return 最新题目列表
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forNewest(limit, dayRange);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getNewestProblemsRanking(@Param("limit") Integer limit, @Param("dayRange") Integer dayRange);
 
     /**
@@ -281,7 +328,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      *
      * @param limit 限制数量
      * @return 零提交题目列表
+     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * RankingCriteria criteria = RankingCriteria.forZeroSubmission(limit);
+     * getProblemRanking(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getZeroSubmissionProblemsRanking(@Param("limit") Integer limit);
 
     // ===== V2新增：分布分析聚合接口 =====
