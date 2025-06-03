@@ -12,6 +12,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
@@ -1755,6 +1756,33 @@ public class ProblemManagerImpl implements ProblemManager {
         } catch (Exception e) {
             log.error("获取趋势分析失败", e);
             throw new RuntimeException("获取趋势分析失败", e);
+        }
+    }
+
+    /**
+     * 统一的分布统计信息接口
+     * 根据不同的分布维度返回相应的统计数据
+     *
+     * @param criteria 分布统计条件
+     * @return 分布统计数据列表
+     */
+    @Override
+    public List<Map<String, Object>> getDistributionStatistics(DistributionCriteria criteria) {
+        try {
+            log.info("获取分布统计信息，维度: {}", criteria.getDimension());
+
+            List<HashMap<String, Object>> result = problemMapper.getDistributionStatistics(criteria);
+
+            log.info("成功获取分布统计信息，维度: {}, 数据量: {}", criteria.getDimension(), result.size());
+
+            return result.stream()
+                    .map(map -> (Map<String, Object>) map)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("获取分布统计信息失败，维度: {}, 错误: {}",
+                    criteria.getDimension(), e.getMessage(), e);
+            throw new RuntimeException("获取分布统计信息失败: " + e.getMessage(), e);
         }
     }
 }

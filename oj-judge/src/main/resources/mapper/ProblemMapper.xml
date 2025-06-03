@@ -50,6 +50,7 @@
 
 
     <!-- 按难度统计题目数量和通过率 -->
+    <!-- @deprecated 请使用统一的分布分析接口 getDistributionStatistics -->
     <select id="getStatisticsByDifficulty" resultType="java.util.HashMap">
         SELECT difficulty,
                COUNT(*)                                         as total_problems,
@@ -81,6 +82,7 @@
     </select>
 
     <!-- 按题目类型统计题目数量和提交情况 -->
+    <!-- @deprecated 请使用统一的分布分析接口 getDistributionStatistics -->
     <select id="getStatisticsByType" resultType="java.util.HashMap">
         SELECT problem_type,
                COUNT(*)                                          as total_problems,
@@ -111,6 +113,7 @@
     </select>
 
     <!-- 按语言支持统计题目分布 -->
+    <!-- @deprecated 请使用统一的分布分析接口 getDistributionStatistics -->
     <select id="getStatisticsByLanguage" resultType="java.util.HashMap">
         SELECT supported_languages,
                COUNT(*)                                          as total_problems,
@@ -141,6 +144,7 @@
     </select>
 
     <!-- 获取题目状态分布统计 -->
+    <!-- @deprecated 请使用统一的分布分析接口 getDistributionStatistics -->
     <select id="getStatisticsByStatus" resultType="java.util.HashMap">
         SELECT status,
                CASE
@@ -173,6 +177,395 @@
         WHERE is_deleted = 0
         GROUP BY status
         ORDER BY status
+    </select>
+
+    <!-- ===== 新增：统一分布分析接口 ===== -->
+    
+    <!-- 统一的分布分析接口 -->
+    <select id="getDistributionStatistics" resultType="java.util.HashMap">
+        <choose>
+            <!-- 按难度分布 -->
+            <when test="criteria.dimension.name() == 'DIFFICULTY'">
+                SELECT difficulty as dimension_value,
+                       difficulty as dimension_name,
+                       COUNT(*) as total_problems,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       <if test="criteria.includeDetails">
+                       ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
+                       ROUND(AVG(time_limit), 2) as avg_time_limit,
+                       ROUND(AVG(memory_limit), 2) as avg_memory_limit,
+                       COUNT(CASE WHEN submission_count = 0 THEN 1 END) as zero_submission_problems,
+                       MIN(created_at) as earliest_problem_date,
+                       MAX(created_at) as latest_problem_date,
+                       </if>
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="criteria.onlyNonEmpty">
+                    AND difficulty IS NOT NULL
+                </if>
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY difficulty
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">
+                        CASE difficulty
+                            WHEN 'EASY' THEN 1
+                            WHEN 'MEDIUM' THEN 2
+                            WHEN 'HARD' THEN 3
+                            ELSE 4
+                        END ${criteria.orderDirection}
+                    </when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按题目类型分布 -->
+            <when test="criteria.dimension.name() == 'TYPE'">
+                SELECT problem_type as dimension_value,
+                       problem_type as dimension_name,
+                       COUNT(*) as total_problems,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       <if test="criteria.includeDetails">
+                       ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
+                       COUNT(DISTINCT creator_id) as unique_creators,
+                       ROUND(AVG(time_limit), 2) as avg_time_limit,
+                       ROUND(AVG(memory_limit), 2) as avg_memory_limit,
+                       COUNT(CASE WHEN submission_count = 0 THEN 1 END) as zero_submission_problems,
+                       COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
+                       COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
+                       COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
+                       </if>
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                  AND problem_type IS NOT NULL
+                <if test="criteria.onlyNonEmpty">
+                    AND problem_type != ''
+                </if>
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY problem_type
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">problem_type ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按语言支持分布 -->
+            <when test="criteria.dimension.name() == 'LANGUAGE'">
+                SELECT supported_languages as dimension_value,
+                       supported_languages as dimension_name,
+                       COUNT(*) as total_problems,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       <if test="criteria.includeDetails">
+                       ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
+                       COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
+                       COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
+                       COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
+                       COUNT(DISTINCT problem_type) as unique_types,
+                       MIN(created_at) as earliest_problem_date,
+                       MAX(created_at) as latest_problem_date,
+                       </if>
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                  AND supported_languages IS NOT NULL
+                <if test="criteria.onlyNonEmpty">
+                    AND supported_languages != ''
+                </if>
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY supported_languages
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">supported_languages ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按状态分布 -->
+            <when test="criteria.dimension.name() == 'STATUS'">
+                SELECT status as dimension_value,
+                       CASE
+                           WHEN status = 0 THEN 'DISABLED'
+                           WHEN status = 1 THEN 'ACTIVE'
+                           WHEN status = 2 THEN 'DRAFT'
+                           ELSE 'UNKNOWN'
+                       END as dimension_name,
+                       COUNT(*) as total_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       <if test="criteria.includeDetails">
+                       ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
+                       COUNT(DISTINCT creator_id) as unique_creators,
+                       COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
+                       COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
+                       COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
+                       MIN(created_at) as earliest_problem_date,
+                       MAX(created_at) as latest_problem_date,
+                       ROUND(AVG(DATEDIFF(CURRENT_DATE, created_at)), 2) as avg_age_days,
+                       </if>
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY status
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">status ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按创建者分布 -->
+            <when test="criteria.dimension.name() == 'CREATOR'">
+                SELECT creator_id as dimension_value,
+                       creator_id as dimension_name,
+                       COUNT(*) as total_problems,
+                       SUM(submission_count) as total_submissions_received,
+                       SUM(accepted_count) as total_accepted_received,
+                       ROUND(AVG(
+                           CASE
+                               WHEN submission_count > 0
+                                   THEN (accepted_count * 100.0 / submission_count)
+                               ELSE 0
+                           END
+                       ), 2) as avg_acceptance_rate,
+                       <if test="criteria.includeDetails">
+                       MIN(created_at) as first_problem_date,
+                       MAX(created_at) as latest_problem_date,
+                       DATEDIFF(MAX(created_at), MIN(created_at)) as creation_span_days,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       COUNT(CASE WHEN DATEDIFF(CURRENT_DATE, created_at) &lt;= 7 THEN 1 END) as recent_problems,
+                       ROUND(COUNT(*) / GREATEST(DATEDIFF(CURRENT_DATE, MIN(created_at)), 1) * 365, 2) as problems_per_year,
+                       </if>
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0 AND creator_id IS NOT NULL)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                  AND creator_id IS NOT NULL
+                <if test="criteria.timeRange != null">
+                    AND created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.timeRange} DAY)
+                </if>
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY creator_id
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">creator_id ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">avg_acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按时间限制分布 -->
+            <when test="criteria.dimension.name() == 'TIME_LIMIT'">
+                SELECT time_limit as dimension_value,
+                       CONCAT(time_limit, 'ms') as dimension_name,
+                       COUNT(*) as total_problems,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                  AND time_limit IS NOT NULL
+                <if test="criteria.onlyNonEmpty">
+                    AND time_limit > 0
+                </if>
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY time_limit
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">time_limit ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按内存限制分布 -->
+            <when test="criteria.dimension.name() == 'MEMORY_LIMIT'">
+                SELECT memory_limit as dimension_value,
+                       CONCAT(memory_limit, 'MB') as dimension_name,
+                       COUNT(*) as total_problems,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                  AND memory_limit IS NOT NULL
+                <if test="criteria.onlyNonEmpty">
+                    AND memory_limit > 0
+                </if>
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY memory_limit
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">memory_limit ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+            
+            <!-- 按可见性分布 -->
+            <when test="criteria.dimension.name() == 'VISIBILITY'">
+                SELECT visibility as dimension_value,
+                       CASE
+                           WHEN visibility = 0 THEN 'PRIVATE'
+                           WHEN visibility = 1 THEN 'PUBLIC'
+                           ELSE 'UNKNOWN'
+                       END as dimension_name,
+                       COUNT(*) as total_problems,
+                       COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                       SUM(submission_count) as total_submissions,
+                       SUM(accepted_count) as total_accepted,
+                       ROUND(
+                           CASE
+                               WHEN SUM(submission_count) > 0
+                                   THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                               ELSE 0
+                           END, 2
+                       ) as acceptance_rate,
+                       ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM problem WHERE is_deleted = 0)), 2) as percentage
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="criteria.startTime != null">
+                    AND created_at >= #{criteria.startTime}
+                </if>
+                <if test="criteria.endTime != null">
+                    AND created_at &lt;= #{criteria.endTime}
+                </if>
+                GROUP BY visibility
+                <if test="criteria.onlyNonEmpty">
+                    HAVING COUNT(*) > 0
+                </if>
+                ORDER BY 
+                <choose>
+                    <when test="criteria.orderBy == 'name'">visibility ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'percentage'">percentage ${criteria.orderDirection}</when>
+                    <when test="criteria.orderBy == 'acceptance_rate'">acceptance_rate ${criteria.orderDirection}</when>
+                    <otherwise>total_problems ${criteria.orderDirection}</otherwise>
+                </choose>
+            </when>
+        </choose>
+        
+        <if test="criteria.limit != null">
+            LIMIT #{criteria.limit}
+        </if>
     </select>
 
     <!-- ===== V2新增：时间趋势分析聚合接口 ===== -->
@@ -710,6 +1103,7 @@
     </select>
 
     <!-- 获取创建者活跃度统计 -->
+    <!-- @deprecated 请使用统一的分布分析接口 getDistributionStatistics -->
     <select id="getCreatorActivityStatistics" resultType="java.util.HashMap">
         SELECT
         creator_id,

@@ -1,12 +1,12 @@
 package fun.timu.oj.judge.manager;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
@@ -325,31 +325,68 @@ public interface ProblemManager {
     Map<String, Object> getOverallStatistics();
 
     /**
+     * 获取统一的分布统计信息
+     * 此接口替代了多个按不同维度统计的方法，提供更灵活的分布分析功能
+     *
+     * @param criteria 分布统计条件，包含统计维度、过滤条件等参数
+     * @return 分布统计数据列表
+     */
+    List<Map<String, Object>> getDistributionStatistics(DistributionCriteria criteria);
+
+    /**
      * 按难度获取统计信息
      *
      * @return 难度统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forDifficulty();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getStatisticsByDifficulty();
 
     /**
      * 按类型获取统计信息
      *
      * @return 类型统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forType();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getStatisticsByType();
 
     /**
      * 按语言获取统计信息
      *
      * @return 语言统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forLanguage();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getStatisticsByLanguage();
 
     /**
      * 按状态获取统计信息
      *
      * @return 状态统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forStatus();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getStatisticsByStatus();
 
     /**
@@ -480,7 +517,14 @@ public interface ProblemManager {
      * 获取难度-类型分布矩阵
      *
      * @return 分布矩阵数据
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forDimension(DistributionDimension.DIFFICULTY_TYPE_MATRIX);
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getDifficultyTypeDistribution();
 
     /**
@@ -488,14 +532,29 @@ public interface ProblemManager {
      *
      * @param bucketSize 区间大小
      * @return 通过率分布数据
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forDimension(DistributionDimension.ACCEPTANCE_RATE)
+     *     .bucketSize(bucketSize);
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getAcceptanceRateDistribution(Double bucketSize);
 
     /**
      * 获取提交量分布统计
      *
      * @return 提交量分布数据
+     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forDimension(DistributionDimension.SUBMISSION_COUNT);
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<Map<String, Object>> getSubmissionCountDistribution();
 
     /**

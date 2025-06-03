@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.mapper;
 
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
@@ -162,32 +163,71 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
     @Deprecated
     HashMap<String, Object> getOverallStatistics();
 
+    // ===== 新增：统一分布分析接口 =====
+
+    /**
+     * 统一的分布分析接口
+     * 根据不同的维度返回相应的分布统计数据
+     *
+     * @param criteria 分布分析条件
+     * @return 分布统计数据列表
+     */
+    List<HashMap<String, Object>> getDistributionStatistics(@Param("criteria") DistributionCriteria criteria);
+
     /**
      * 按难度统计题目数量和通过率
      *
      * @return 难度统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics(DistributionCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forDifficulty();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getStatisticsByDifficulty();
 
     /**
      * 按题目类型统计题目数量和提交情况
      *
      * @return 类型统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics(DistributionCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forType();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getStatisticsByType();
 
     /**
      * 按语言支持统计题目分布
      *
      * @return 语言统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics(DistributionCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forLanguage();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getStatisticsByLanguage();
 
     /**
      * 获取题目状态分布统计
      *
      * @return 状态统计列表
+     * @deprecated 请使用 {@link #getDistributionStatistics(DistributionCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forStatus();
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getStatisticsByStatus();
 
     /**
@@ -195,7 +235,14 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      *
      * @param timeRange 时间范围（天数）
      * @return 创建者活跃度统计
+     * @deprecated 请使用 {@link #getDistributionStatistics(DistributionCriteria)} 替代
+     * <pre>
+     * 建议用法:
+     * DistributionCriteria criteria = DistributionCriteria.forCreator(timeRange);
+     * getDistributionStatistics(criteria);
+     * </pre>
      */
+    @Deprecated
     List<HashMap<String, Object>> getCreatorActivityStatistics(@Param("timeRange") Integer timeRange);
 
     // ===== V2新增：时间趋势分析聚合接口 =====
