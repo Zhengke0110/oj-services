@@ -3,13 +3,11 @@ package fun.timu.oj.judge.manager.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import fun.timu.oj.judge.manager.ProblemRecommendationManager;
+import fun.timu.oj.judge.manager.Problem.ProblemRecommendationManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
-import fun.timu.oj.judge.model.Enums.RecommendationType;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;

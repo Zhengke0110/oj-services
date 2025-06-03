@@ -1,20 +1,13 @@
 package fun.timu.oj.judge.manager.impl;
 
 import fun.timu.oj.judge.controller.request.BatchProblemRequest;
-import fun.timu.oj.judge.manager.ProblemStatisticsManager;
+import fun.timu.oj.judge.manager.Problem.ProblemStatisticsManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
-import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
-import fun.timu.oj.judge.model.Enums.DistributionDimension;
-import fun.timu.oj.judge.model.Enums.RankingType;
-import fun.timu.oj.judge.model.Enums.TrendType;
 import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
 import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
-import fun.timu.oj.judge.model.enums.StatisticsScope;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.manager;
+package fun.timu.oj.judge.manager.Problem;
 
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;

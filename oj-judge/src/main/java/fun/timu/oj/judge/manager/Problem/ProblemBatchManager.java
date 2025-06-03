@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.manager;
+package fun.timu.oj.judge.manager.Problem;
 
 import java.util.List;
 

@@ -1,8 +1,6 @@
-package fun.timu.oj.judge.manager;
+package fun.timu.oj.judge.manager.Problem;
 
 import fun.timu.oj.judge.controller.request.BatchProblemRequest;
-import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
-import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
 import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;

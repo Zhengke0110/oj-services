@@ -1,14 +1,12 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import fun.timu.oj.judge.manager.ProblemBatchManager;
+import fun.timu.oj.judge.manager.Problem.ProblemBatchManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**

@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.manager;
+package fun.timu.oj.judge.manager.Problem;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.model.LoginUser;
