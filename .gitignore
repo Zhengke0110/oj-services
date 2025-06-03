@@ -38,3 +38,7 @@ build/
 data/
 **/src/main/**/application-dev.yaml
 !**/src/**/data
+/temp
+
+*.backup
+*.temp
