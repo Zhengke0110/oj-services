@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.model.criteria;
+package fun.timu.oj.judge.model.Enums;
 
 /**
  * 排行榜类型枚举

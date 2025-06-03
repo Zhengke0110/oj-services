@@ -1,5 +1,6 @@
 package fun.timu.oj.judge.model.criteria;
 
+import fun.timu.oj.judge.model.Enums.RankingType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,6 +1,6 @@
 package fun.timu.oj.judge.controller.request;
 
-import fun.timu.oj.judge.model.criteria.RecommendationType;
+import fun.timu.oj.judge.model.Enums.RecommendationType;
 import lombok.Data;
 
 import javax.validation.constraints.*;

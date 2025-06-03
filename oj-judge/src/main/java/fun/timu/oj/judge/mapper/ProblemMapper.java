@@ -1,12 +1,12 @@
 package fun.timu.oj.judge.mapper;
 
+import fun.timu.oj.judge.controller.request.BatchProblemRequest;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
-import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
-import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
+import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -24,7 +24,7 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param request 统一统计请求参数
      * @return 统一统计响应数据
      */
-    UnifiedStatisticsResponse getUnifiedStatistics(@Param("request") UnifiedStatisticsRequest request);
+    UnifiedStatisticsVTO getUnifiedStatistics(@Param("request") BatchProblemRequest.UnifiedStatisticsRequest request);
 
     /**
      * 统一的统计信息接口（原始数据版本）
@@ -33,7 +33,7 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param request 统一统计请求参数
      * @return 统计数据的原始HashMap
      */
-    HashMap<String, Object> getUnifiedStatisticsRaw(@Param("request") UnifiedStatisticsRequest request);
+    HashMap<String, Object> getUnifiedStatisticsRaw(@Param("request") BatchProblemRequest.UnifiedStatisticsRequest request);
 
     /**
      * 统一的推荐题目接口

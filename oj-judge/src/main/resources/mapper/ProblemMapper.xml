@@ -2242,7 +2242,7 @@
     </select>
 
     <!-- 统一的统计信息接口 -->
-    <select id="getUnifiedStatistics" resultType="fun.timu.oj.judge.model.response.UnifiedStatisticsResponse">
+    <select id="getUnifiedStatistics" resultType="fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO">
         <choose>
             <!-- 基础统计 -->
             <when test="request.scope.name() == 'BASIC'">

@@ -6,18 +6,20 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
 import fun.timu.oj.common.model.LoginUser;
+import fun.timu.oj.judge.controller.request.BatchProblemRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
-import fun.timu.oj.judge.model.criteria.DistributionCriteria;
-import fun.timu.oj.judge.model.criteria.RankingCriteria;
-import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
-import fun.timu.oj.judge.model.criteria.TrendCriteria;
-import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
-import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
+import fun.timu.oj.judge.model.Enums.RankingType;
+import fun.timu.oj.judge.model.Enums.RecommendationType;
+import fun.timu.oj.judge.model.Enums.TrendType;
+import fun.timu.oj.judge.model.criteria.*;
+import fun.timu.oj.judge.model.Enums.DistributionDimension;
+import fun.timu.oj.judge.model.enums.StatisticsScope;
+import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -409,20 +411,34 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<ProblemDO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit) {
-        // 如果limit为null或小于等于0，设置默认值为10
-        if (limit == null || limit <= 0) {
-            limit = 10;
+        try {
+            log.info("开始获取推荐题目（使用统一接口）");
+
+            // 参数校验和默认值设置
+            if (limit == null || limit <= 0) {
+                limit = 10;
+            }
+            if (minAcceptanceRate == null) {
+                minAcceptanceRate = 0.0;
+            }
+            if (maxAcceptanceRate == null) {
+                maxAcceptanceRate = 1.0;
+            }
+
+            // 使用统一推荐接口替代旧的实现
+            RecommendationCriteria criteria = RecommendationCriteria.builder()
+                    .type(RecommendationType.ACCEPTANCE_RATE)
+                    .difficulty(difficulty)
+                    .minAcceptanceRate(minAcceptanceRate)
+                    .maxAcceptanceRate(maxAcceptanceRate)
+                    .limit(limit)
+                    .build();
+
+            return getRecommendedProblems(criteria);
+        } catch (Exception e) {
+            log.error("获取推荐题目失败", e);
+            throw new RuntimeException("获取推荐题目失败", e);
         }
-        // 如果minAcceptanceRate为null，设置默认值为0.0
-        if (minAcceptanceRate == null) {
-            minAcceptanceRate = 0.0;
-        }
-        // 如果maxAcceptanceRate为null，设置默认值为1.0
-        if (maxAcceptanceRate == null) {
-            maxAcceptanceRate = 1.0;
-        }
-        // 调用problemMapper的方法来选择推荐的问题
-        return problemMapper.selectRecommendedProblems(minAcceptanceRate, maxAcceptanceRate, difficulty, limit);
     }
 
     /**
@@ -431,19 +447,28 @@ public class ProblemManagerImpl implements ProblemManager {
      * 总提交次数、总通过次数以及平均通过率等信息
      *
      * @return 统计信息列表
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请参照统一接口迁移指南
      */
     @Override
-    @Deprecated
     public List<ProblemStatisticsDTO> getProblemStatistics() {
         try {
-            log.info("开始获取题目统计信息");
-            List<Object> rawStatistics = problemMapper.getProblemStatistics();
+            log.info("开始获取题目统计信息（使用统一接口）");
 
-            if (rawStatistics == null) {
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.BASIC)
+                    .build();
+
+            Map<String, Object> rawData = getUnifiedStatisticsRaw(request);
+
+            // 转换数据格式以保持向后兼容
+            List<Map<String, Object>> statisticsList = (List<Map<String, Object>>) rawData.get("categoryStatistics");
+            if (statisticsList == null) {
                 return Collections.emptyList();
             }
-            return rawStatistics.stream().map(item -> ProblemStatisticsDTO.fromMap((Map<String, Object>) item)).collect(Collectors.toList());
+
+            return statisticsList.stream()
+                    .map(ProblemStatisticsDTO::fromMap)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("获取题目统计信息失败: {}", e.getMessage(), e);
             throw new RuntimeException("获取题目统计信息失败", e);
@@ -738,16 +763,27 @@ public class ProblemManagerImpl implements ProblemManager {
      * 该方法通过调用Mapper层获取包含题目各维度的统计数据
      *
      * @return 包含详细统计数据的HashMap
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用DETAILED范围
      */
     @Override
-    @Deprecated
     public ProblemDetailStatisticsDTO getProblemDetailStatistics() {
-        HashMap<String, Object> statistics = problemMapper.getProblemDetailStatistics();
-        if (statistics == null) {
-            throw new RuntimeException("获取题目详细统计信息失败");
+        try {
+            log.info("开始获取题目详细统计信息（使用统一接口）");
+
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.DETAILED)
+                    .build();
+
+            Map<String, Object> rawData = getUnifiedStatisticsRaw(request);
+            if (rawData == null || rawData.isEmpty()) {
+                throw new RuntimeException("获取题目详细统计信息失败");
+            }
+
+            return ProblemDetailStatisticsDTO.fromMap(rawData);
+        } catch (Exception e) {
+            log.error("获取题目详细统计信息失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取题目详细统计信息失败", e);
         }
-        return ProblemDetailStatisticsDTO.fromMap(statistics);
     }
 
     /**
@@ -822,6 +858,9 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<ProblemDO> findSimilarProblems(Long problemId, Integer difficulty, String problemType, Integer limit) {
         try {
+            log.info("开始查找相似题目（使用统一推荐接口）, 目标题目ID: {}, 难度: {}, 类型: {}, 限制: {}",
+                    problemId, difficulty, problemType, limit);
+
             // 参数校验
             if (problemId == null || problemId <= 0) {
                 return Collections.emptyList();
@@ -832,11 +871,21 @@ public class ProblemManagerImpl implements ProblemManager {
                 limit = 10; // 默认返回10条记录
             }
 
-            // 调用Mapper层方法获取相似题目
-            List<ProblemDO> problemList = problemMapper.findSimilarProblems(problemId, difficulty, problemType, limit);
+            // 使用统一推荐接口替代旧的实现
+            RecommendationCriteria criteria = RecommendationCriteria.builder()
+                    .type(RecommendationType.SIMILARITY)
+                    .baseProblemId(problemId)
+                    .difficulty(difficulty)
+                    .problemType(problemType)
+                    .limit(limit)
+                    .build();
 
-            return problemList;
+            List<ProblemDO> result = getRecommendedProblems(criteria);
+            log.info("查找相似题目完成（使用统一推荐接口）, 返回数量: {}", result.size());
+
+            return result;
         } catch (Exception e) {
+            log.error("查找相似题目失败", e);
             return Collections.emptyList();
         }
     }
@@ -986,13 +1035,18 @@ public class ProblemManagerImpl implements ProblemManager {
      * 获取题目总体统计信息（增强版）
      *
      * @return 统计信息
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用OVERALL范围
      */
     @Override
-    @Deprecated
     public Map<String, Object> getOverallStatistics() {
         try {
-            return problemMapper.getOverallStatistics();
+            log.info("开始获取总体统计信息（使用统一接口）");
+
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.OVERALL)
+                    .build();
+
+            return getUnifiedStatisticsRaw(request);
         } catch (Exception e) {
             log.error("获取总体统计信息失败", e);
             throw new RuntimeException("获取总体统计信息失败", e);
@@ -1007,8 +1061,14 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getStatisticsByDifficulty() {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getStatisticsByDifficulty();
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取按难度统计信息（使用统一接口）");
+
+            // 使用统一分布统计接口替代旧的实现
+            DistributionCriteria criteria = DistributionCriteria.builder()
+                    .dimension(DistributionDimension.DIFFICULTY)
+                    .build();
+
+            return getDistributionStatistics(criteria);
         } catch (Exception e) {
             log.error("按难度获取统计信息失败", e);
             throw new RuntimeException("按难度获取统计信息失败", e);
@@ -1023,8 +1083,14 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getStatisticsByType() {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getStatisticsByType();
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取按类型统计信息（使用统一接口）");
+
+            // 使用统一分布统计接口替代旧的实现
+            DistributionCriteria criteria = DistributionCriteria.builder()
+                    .dimension(DistributionDimension.TYPE)
+                    .build();
+
+            return getDistributionStatistics(criteria);
         } catch (Exception e) {
             log.error("按类型获取统计信息失败", e);
             throw new RuntimeException("按类型获取统计信息失败", e);
@@ -1039,8 +1105,14 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getStatisticsByLanguage() {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getStatisticsByLanguage();
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取按语言统计信息（使用统一接口）");
+
+            // 使用统一分布统计接口替代旧的实现
+            DistributionCriteria criteria = DistributionCriteria.builder()
+                    .dimension(DistributionDimension.LANGUAGE)
+                    .build();
+
+            return getDistributionStatistics(criteria);
         } catch (Exception e) {
             log.error("按语言获取统计信息失败", e);
             throw new RuntimeException("按语言获取统计信息失败", e);
@@ -1055,8 +1127,14 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getStatisticsByStatus() {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getStatisticsByStatus();
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取按状态统计信息（使用统一接口）");
+
+            // 使用统一分布统计接口替代旧的实现
+            DistributionCriteria criteria = DistributionCriteria.builder()
+                    .dimension(DistributionDimension.STATUS)
+                    .build();
+
+            return getDistributionStatistics(criteria);
         } catch (Exception e) {
             log.error("按状态获取统计信息失败", e);
             throw new RuntimeException("按状态获取统计信息失败", e);
@@ -1070,14 +1148,21 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 创建趋势数据
-     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
      */
-    @Deprecated
     @Override
     public List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getProblemCreationTrend(startDate, endDate, granularity);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取题目创建趋势（使用统一接口）");
+
+            // 使用统一接口替代旧的实现
+            TrendCriteria criteria = TrendCriteria.builder()
+                    .type(TrendType.PROBLEM_CREATION)
+                    .startTime(startDate)
+                    .endTime(endDate)
+                    .timeGranularity(granularity)
+                    .build();
+
+            return getTrendAnalysis(criteria);
         } catch (Exception e) {
             log.error("获取题目创建趋势失败", e);
             throw new RuntimeException("获取题目创建趋势失败", e);
@@ -1091,14 +1176,21 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 提交趋势数据
-     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
      */
-    @Deprecated
     @Override
     public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getSubmissionTrendAnalysis(startDate, endDate, granularity);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取提交趋势分析（使用统一接口）");
+
+            // 使用统一接口替代旧的实现
+            TrendCriteria criteria = TrendCriteria.builder()
+                    .type(TrendType.SUBMISSION_TREND)
+                    .startTime(startDate)
+                    .endTime(endDate)
+                    .timeGranularity(granularity)
+                    .build();
+
+            return getTrendAnalysis(criteria);
         } catch (Exception e) {
             log.error("获取提交趋势分析失败", e);
             throw new RuntimeException("获取提交趋势分析失败", e);
@@ -1112,14 +1204,21 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 通过率趋势数据
-     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
      */
-    @Deprecated
     @Override
     public List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getAcceptanceRateTrend(startDate, endDate, granularity);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取通过率趋势分析（使用统一接口）");
+
+            // 使用统一接口替代旧的实现
+            TrendCriteria criteria = TrendCriteria.builder()
+                    .type(TrendType.ACCEPTANCE_RATE_TREND)
+                    .startTime(startDate)
+                    .endTime(endDate)
+                    .timeGranularity(granularity)
+                    .build();
+
+            return getTrendAnalysis(criteria);
         } catch (Exception e) {
             log.error("获取通过率趋势分析失败", e);
             throw new RuntimeException("获取通过率趋势分析失败", e);
@@ -1136,8 +1235,16 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getPopularProblemsRanking(limit, timeRange);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取热门题目排行榜（使用统一接口）");
+
+            // 使用统一排行榜接口替代旧的实现
+            RankingCriteria criteria = RankingCriteria.builder()
+                    .type(RankingType.POPULARITY)
+                    .limit(limit != null ? limit : 10)
+                    .timeRange(timeRange)
+                    .build();
+
+            return getProblemRanking(criteria);
         } catch (Exception e) {
             log.error("获取热门题目排行榜失败", e);
             throw new RuntimeException("获取热门题目排行榜失败", e);
@@ -1154,8 +1261,16 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getHardestProblemsRanking(limit, minSubmissions);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取最难题目排行榜（使用统一接口）");
+
+            // 使用统一排行榜接口替代旧的实现
+            RankingCriteria criteria = RankingCriteria.builder()
+                    .type(RankingType.HARDEST)
+                    .limit(limit != null ? limit : 10)
+                    .minSubmissions(minSubmissions)
+                    .build();
+
+            return getProblemRanking(criteria);
         } catch (Exception e) {
             log.error("获取最难题目排行榜失败", e);
             throw new RuntimeException("获取最难题目排行榜失败", e);
@@ -1172,8 +1287,16 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getCreatorContributionRanking(Integer limit, Integer timeRange) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getCreatorContributionRanking(limit, timeRange);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取创建者贡献排行榜（使用统一接口）");
+
+            // 使用统一排行榜接口替代旧的实现
+            RankingCriteria criteria = RankingCriteria.builder()
+                    .type(RankingType.CREATOR_CONTRIBUTION)
+                    .limit(limit != null ? limit : 10)
+                    .timeRange(timeRange)
+                    .build();
+
+            return getProblemRanking(criteria);
         } catch (Exception e) {
             log.error("获取创建者贡献排行榜失败", e);
             throw new RuntimeException("获取创建者贡献排行榜失败", e);
@@ -1189,8 +1312,15 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getQualityProblemsRanking(Integer limit) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getQualityProblemsRanking(limit);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取题目质量排行榜（使用统一接口）");
+
+            // 使用统一排行榜接口替代旧的实现
+            RankingCriteria criteria = RankingCriteria.builder()
+                    .type(RankingType.QUALITY)
+                    .limit(limit != null ? limit : 10)
+                    .build();
+
+            return getProblemRanking(criteria);
         } catch (Exception e) {
             log.error("获取高质量题目排名失败", e);
             throw new RuntimeException("获取高质量题目排名失败", e);
@@ -1265,13 +1395,18 @@ public class ProblemManagerImpl implements ProblemManager {
      * 获取平台数据大屏统计
      *
      * @return 大屏统计数据
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用DASHBOARD范围
      */
     @Override
-    @Deprecated
     public Map<String, Object> getDashboardStatistics() {
         try {
-            return problemMapper.getDashboardStatistics();
+            log.info("开始获取仪表盘统计数据（使用统一接口）");
+
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.DASHBOARD)
+                    .build();
+
+            return getUnifiedStatisticsRaw(request);
         } catch (Exception e) {
             log.error("获取仪表盘统计数据失败", e);
             throw new RuntimeException("获取仪表盘统计数据失败", e);
@@ -1289,8 +1424,17 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getRecommendationData(Integer difficulty, String problemType, Integer limit) {
         try {
-            List<HashMap<String, Object>> result = problemMapper.getRecommendationData(difficulty, problemType, limit);
-            return result.stream().map(map -> (Map<String, Object>) map).collect(Collectors.toList());
+            log.info("开始获取题目推荐数据（使用统一接口）");
+
+            // 使用统一推荐接口替代旧的实现
+            RecommendationCriteria criteria = RecommendationCriteria.builder()
+                    .type(RecommendationType.ALGORITHM_DATA)
+                    .difficulty(difficulty)
+                    .problemType(problemType)
+                    .limit(limit != null ? limit : 10)
+                    .build();
+
+            return getRecommendedProblemsWithScore(criteria);
         } catch (Exception e) {
             log.error("获取题目推荐数据失败", e);
             throw new RuntimeException("获取题目推荐数据失败", e);
@@ -1490,8 +1634,6 @@ public class ProblemManagerImpl implements ProblemManager {
         }
     }
 
-    // ===== 新增：统一推荐接口实现 =====
-
     /**
      * 统一的推荐题目接口实现
      * 支持多种推荐算法：通过率推荐、相似性推荐、热门推荐、算法数据推荐
@@ -1569,7 +1711,7 @@ public class ProblemManagerImpl implements ProblemManager {
      * @return 结构化的统计响应，包含元数据和版本信息
      */
     @Override
-    public UnifiedStatisticsResponse getUnifiedStatistics(UnifiedStatisticsRequest request) {
+    public UnifiedStatisticsVTO getUnifiedStatistics(BatchProblemRequest.UnifiedStatisticsRequest request) {
         try {
             log.info("Manager层获取统一统计信息，范围: {}, 过滤条件: {}",
                     request.getScope(), request);
@@ -1590,7 +1732,7 @@ public class ProblemManagerImpl implements ProblemManager {
             }
 
             // 构建结构化响应
-            UnifiedStatisticsResponse response = UnifiedStatisticsResponse.builder()
+            UnifiedStatisticsVTO response = UnifiedStatisticsVTO.builder()
                     .scope(request.getScope())
                     .timestamp(LocalDateTime.now())
                     .version("1.0")
@@ -1617,7 +1759,7 @@ public class ProblemManagerImpl implements ProblemManager {
      * @return 原始统计数据Map
      */
     @Override
-    public Map<String, Object> getUnifiedStatisticsRaw(UnifiedStatisticsRequest request) {
+    public Map<String, Object> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request) {
         try {
             log.info("Manager层获取统一统计原始数据，范围: {}, 过滤条件: {}",
                     request.getScope(), request);
@@ -1648,9 +1790,9 @@ public class ProblemManagerImpl implements ProblemManager {
         }
     }
 
-    private UnifiedStatisticsResponse.StatisticsMetadata buildMetadata(UnifiedStatisticsRequest request, Map<String, Object> rawData) {
+    private UnifiedStatisticsVTO.StatisticsMetadata buildMetadata(BatchProblemRequest.UnifiedStatisticsRequest request, Map<String, Object> rawData) {
         // 创建 StatisticsMetadata 对象
-        UnifiedStatisticsResponse.StatisticsMetadata metadata = new UnifiedStatisticsResponse.StatisticsMetadata();
+        UnifiedStatisticsVTO.StatisticsMetadata metadata = new UnifiedStatisticsVTO.StatisticsMetadata();
 
         // 设置基本统计信息
         metadata.setTotalCount(rawData.size() > 0 ? Long.valueOf(rawData.size()) : 0L);
@@ -1696,7 +1838,6 @@ public class ProblemManagerImpl implements ProblemManager {
         return metadata;
     }
 
-    // ===== 新增：统一排行榜接口实现 =====
 
     /**
      * 统一的排行榜接口

@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.model.criteria;
+package fun.timu.oj.judge.model.Enums;
 
 /**
  * 趋势分析类型枚举

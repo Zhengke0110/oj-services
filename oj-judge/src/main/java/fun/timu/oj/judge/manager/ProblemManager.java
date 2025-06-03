@@ -2,6 +2,7 @@ package fun.timu.oj.judge.manager;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.model.LoginUser;
+import fun.timu.oj.judge.controller.request.BatchProblemRequest;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
@@ -10,11 +11,9 @@ import fun.timu.oj.judge.model.criteria.DistributionCriteria;
 import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
-import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
-import fun.timu.oj.judge.model.response.UnifiedStatisticsResponse;
+import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -104,8 +103,6 @@ public interface ProblemManager {
      */
     List<ProblemDO> selectHotProblems(String problemType, Integer difficulty, Integer limit);
 
-    // ===== 新增：统一推荐接口 =====
-
     /**
      * 统一的推荐题目接口
      * 支持多种推荐算法：通过率推荐、相似性推荐、热门推荐、算法数据推荐
@@ -124,7 +121,6 @@ public interface ProblemManager {
      */
     List<Map<String, Object>> getRecommendedProblemsWithScore(RecommendationCriteria criteria);
 
-    // ===== 原有推荐接口（保持向后兼容）=====
 
     /**
      * 查询推荐题目（通过率适中的题目）
@@ -134,19 +130,7 @@ public interface ProblemManager {
      * @param difficulty        难度限制
      * @param limit             限制数量
      * @return 分页结果
-     * @deprecated 请使用 {@link #getRecommendedProblems(RecommendationCriteria)} 替代
-     * <p>示例用法：</p>
-     * <pre>
-     * RecommendationCriteria criteria = RecommendationCriteria.forAcceptanceRate()
-     *     .minAcceptanceRate(minAcceptanceRate)
-     *     .maxAcceptanceRate(maxAcceptanceRate)
-     *     .difficulty(difficulty)
-     *     .limit(limit)
-     *     .build();
-     * getRecommendedProblems(criteria);
-     * </pre>
      */
-    @Deprecated
     List<ProblemDO> selectRecommendedProblems(Double minAcceptanceRate, Double maxAcceptanceRate, Integer difficulty, Integer limit);
 
 
@@ -154,9 +138,7 @@ public interface ProblemManager {
      * 获取题目统计信息
      *
      * @return 统计信息列表（包含各难度级别的题目数量等）
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请参照统一接口迁移指南
      */
-    @Deprecated
     List<ProblemStatisticsDTO> getProblemStatistics();
 
     /**
@@ -232,9 +214,7 @@ public interface ProblemManager {
      * 获取题目详细统计信息
      *
      * @return 包含各种维度统计数据的HashMap，包括题目总数、难度分布、类型分布、提交情况等
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用DETAILED范围
      */
-    @Deprecated
     ProblemDetailStatisticsDTO getProblemDetailStatistics();
 
     /**
@@ -319,9 +299,7 @@ public interface ProblemManager {
      * 获取题目总体统计信息（增强版）
      *
      * @return 统计信息
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用OVERALL范围
      */
-    @Deprecated
     Map<String, Object> getOverallStatistics();
 
     /**
@@ -337,56 +315,28 @@ public interface ProblemManager {
      * 按难度获取统计信息
      *
      * @return 难度统计列表
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forDifficulty();
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getStatisticsByDifficulty();
 
     /**
      * 按类型获取统计信息
      *
      * @return 类型统计列表
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forType();
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getStatisticsByType();
 
     /**
      * 按语言获取统计信息
      *
      * @return 语言统计列表
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forLanguage();
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getStatisticsByLanguage();
 
     /**
      * 按状态获取统计信息
      *
      * @return 状态统计列表
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forStatus();
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getStatisticsByStatus();
 
     /**
@@ -404,19 +354,7 @@ public interface ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 创建趋势数据
-     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
-     * <pre>
-     * 建议用法:
-     * TrendCriteria criteria = TrendCriteria.builder()
-     *     .type(TrendType.PROBLEM_CREATION)
-     *     .timeGranularity(granularity)
-     *     .startTime(startDate)
-     *     .endTime(endDate)
-     *     .build();
-     * getTrendAnalysis(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
 
     /**
@@ -426,19 +364,7 @@ public interface ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 提交趋势数据
-     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
-     * <pre>
-     * 建议用法:
-     * TrendCriteria criteria = TrendCriteria.builder()
-     *     .type(TrendType.SUBMISSION_TREND)
-     *     .timeGranularity(granularity)
-     *     .startTime(startDate)
-     *     .endTime(endDate)
-     *     .build();
-     * getTrendAnalysis(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity);
 
     /**
@@ -448,19 +374,7 @@ public interface ProblemManager {
      * @param endDate     结束日期
      * @param granularity 时间粒度
      * @return 通过率趋势数据
-     * @deprecated 请使用 {@link #getTrendAnalysis(TrendCriteria)} 替代
-     * <pre>
-     * 建议用法:
-     * TrendCriteria criteria = TrendCriteria.builder()
-     *     .type(TrendType.ACCEPTANCE_RATE_TREND)
-     *     .timeGranularity(granularity)
-     *     .startTime(startDate)
-     *     .endTime(endDate)
-     *     .build();
-     * getTrendAnalysis(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity);
 
 
@@ -470,14 +384,7 @@ public interface ProblemManager {
      * @param limit     限制数量
      * @param timeRange 时间范围
      * @return 热门题目排行榜
-     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
-     * <pre>
-     * 建议用法:
-     * RankingCriteria criteria = RankingCriteria.forPopularity(limit, timeRange);
-     * getProblemRanking(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
 
     /**
@@ -486,14 +393,7 @@ public interface ProblemManager {
      * @param limit          限制数量
      * @param minSubmissions 最小提交数
      * @return 最难题目排行榜
-     * @deprecated 请使用 {@link #getProblemRanking(RankingCriteria)} 替代
-     * <pre>
-     * 建议用法:
-     * RankingCriteria criteria = RankingCriteria.forHardest(limit, minSubmissions);
-     * getProblemRanking(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions);
 
     /**
@@ -517,14 +417,7 @@ public interface ProblemManager {
      * 获取难度-类型分布矩阵
      *
      * @return 分布矩阵数据
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forDimension(DistributionDimension.DIFFICULTY_TYPE_MATRIX);
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getDifficultyTypeDistribution();
 
     /**
@@ -532,29 +425,14 @@ public interface ProblemManager {
      *
      * @param bucketSize 区间大小
      * @return 通过率分布数据
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forDimension(DistributionDimension.ACCEPTANCE_RATE)
-     *     .bucketSize(bucketSize);
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getAcceptanceRateDistribution(Double bucketSize);
 
     /**
      * 获取提交量分布统计
      *
      * @return 提交量分布数据
-     * @deprecated 请使用 {@link #getDistributionStatistics} 替代
-     * <pre>
-     * 建议用法:
-     * DistributionCriteria criteria = DistributionCriteria.forDimension(DistributionDimension.SUBMISSION_COUNT);
-     * getDistributionStatistics(criteria);
-     * </pre>
      */
-    @Deprecated
     List<Map<String, Object>> getSubmissionCountDistribution();
 
     /**
@@ -568,9 +446,7 @@ public interface ProblemManager {
      * 获取平台数据大屏统计
      *
      * @return 大屏统计数据
-     * @deprecated 使用 {@link #getUnifiedStatistics(UnifiedStatisticsRequest)} 替代，请使用DASHBOARD范围
      */
-    @Deprecated
     Map<String, Object> getDashboardStatistics();
 
     /**
@@ -662,7 +538,6 @@ public interface ProblemManager {
      */
     public List<ProblemDO> recommendProblems(RecommendationCriteria criteria);
 
-    // ===== 新增：统一统计信息接口 =====
 
     /**
      * 统一的统计信息接口
@@ -671,7 +546,7 @@ public interface ProblemManager {
      * @param request 统一统计请求参数
      * @return 统一统计响应数据
      */
-    UnifiedStatisticsResponse getUnifiedStatistics(UnifiedStatisticsRequest request);
+    UnifiedStatisticsVTO getUnifiedStatistics(BatchProblemRequest.UnifiedStatisticsRequest request);
 
     /**
      * 统一的统计信息接口（原始数据版本）
@@ -680,9 +555,8 @@ public interface ProblemManager {
      * @param request 统一统计请求参数
      * @return 统计数据的原始HashMap
      */
-    Map<String, Object> getUnifiedStatisticsRaw(UnifiedStatisticsRequest request);
+    Map<String, Object> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request);
 
-    // ===== 新增：统一排行榜接口 =====
 
     /**
      * 统一的排行榜接口

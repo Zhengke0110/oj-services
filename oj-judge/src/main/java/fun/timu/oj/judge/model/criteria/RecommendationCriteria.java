@@ -1,5 +1,6 @@
 package fun.timu.oj.judge.model.criteria;
 
+import fun.timu.oj.judge.model.Enums.RecommendationType;
 import lombok.Data;
 import lombok.Builder;
 import lombok.NoArgsConstructor;

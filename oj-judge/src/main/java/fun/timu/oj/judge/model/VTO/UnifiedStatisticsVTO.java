@@ -1,14 +1,12 @@
-package fun.timu.oj.judge.model.response;
+package fun.timu.oj.judge.model.VTO;
 
 import fun.timu.oj.judge.model.enums.StatisticsScope;
-import fun.timu.oj.judge.model.request.UnifiedStatisticsRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -21,7 +19,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UnifiedStatisticsResponse {
+public class UnifiedStatisticsVTO {
 
     /**
      * 统计范围
