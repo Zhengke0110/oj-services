@@ -18,7 +18,6 @@ import java.util.List;
  * @author zhengke
  * @since 2025-06-03
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProblemBatchManagerImpl implements ProblemBatchManager {

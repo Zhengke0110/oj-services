@@ -19,7 +19,6 @@ import java.util.List;
  * 题目核心管理器实现类
  * 负责题目的基础CRUD操作和核心业务逻辑
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProblemCoreManagerImpl implements ProblemCoreManager {
