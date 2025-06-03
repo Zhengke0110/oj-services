@@ -585,16 +585,54 @@ public class ProblemManagerImpl implements ProblemManager {
     /**
      * 获取最难题目排行榜
      *
-     * @param limit          限制数量
-     * @param minSubmissions 最小提交数
+     * @param limit 限制数量
      * @return 最难题目排行榜
      */
     @Override
-    public List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions) {
+    public List<Map<String, Object>> getHardestProblemsRanking(Integer limit) {
 
         // 使用统一排行榜接口替代旧的实现
-        RankingCriteria criteria = RankingCriteria.builder().type(RankingType.HARDEST).limit(limit != null ? limit : 10).minSubmissions(minSubmissions).build();
+        RankingCriteria criteria = RankingCriteria.builder().type(RankingType.HARDEST).limit(limit != null ? limit : 10).build();
+        return getProblemRanking(criteria);
+    }
 
+    /**
+     * 获取简单题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最易题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getEasiestProblemsRanking(Integer limit) {
+
+        // 使用统一排行榜接口替代旧的实现
+        RankingCriteria criteria = RankingCriteria.builder().type(RankingType.EASIEST).limit(limit != null ? limit : 10).build();
+        return getProblemRanking(criteria);
+    }
+
+    /**
+     * 获取最多提交题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最易题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getMaxSubmissionProblemsRanking(Integer limit, Integer timeRange) {
+        // 使用统一排行榜接口替代旧的实现
+        RankingCriteria criteria = RankingCriteria.builder().type(RankingType.MAX_SUBMISSION).limit(limit != null ? limit : 10).timeRange(timeRange).build();
+        return getProblemRanking(criteria);
+    }
+
+    /**
+     * 获取零提交题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最易题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getZeroSubmissionProblemsRanking(Integer limit, Integer timeRange) {
+        // 使用统一排行榜接口替代旧的实现
+        RankingCriteria criteria = RankingCriteria.builder().type(RankingType.ZERO_SUBMISSION).limit(limit != null ? limit : 10).timeRange(timeRange).build();
         return getProblemRanking(criteria);
     }
 

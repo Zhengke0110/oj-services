@@ -17,13 +17,19 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
 import fun.timu.oj.judge.model.DTO.ProblemDetailStatisticsDTO;
 import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
+import fun.timu.oj.judge.model.Enums.DistributionDimension;
+import fun.timu.oj.judge.model.Enums.RankingType;
 import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
 import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
+import fun.timu.oj.judge.model.criteria.DistributionCriteria;
+import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
+import fun.timu.oj.judge.model.criteria.TrendCriteria;
 import fun.timu.oj.judge.service.ProblemService;
+import fun.timu.oj.judge.service.ProblemTagRelationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -44,6 +50,7 @@ import java.util.stream.Collectors;
 public class ProblemServiceImpl implements ProblemService {
 
     private final ProblemManager problemManager;
+    private final ProblemTagRelationService problemTagRelationService;
 
     /**
      * 根据题目ID获取题目详细信息
@@ -80,7 +87,11 @@ public class ProblemServiceImpl implements ProblemService {
 
             // 将题目数据对象转换为视图对象
             ProblemVO problemVO = convertToVO(problemDO);
-            // TODO 调用ProblemTagService获取题目标签
+
+            // 获取题目标签
+            List<Long> tagIds = problemTagRelationService.getTagIdsByProblemId(id);
+//            problemVO.setTags(tagIds);
+
             return problemVO;
         } catch (Exception e) {
             // 记录获取题目时发生的错误
@@ -235,8 +246,9 @@ public class ProblemServiceImpl implements ProblemService {
 
             // 处理标签关联
             if (row > 0 && request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-                // TODO: 关联题目和标签，可能需要调用ProblemTagService
-                // problemTagService.associateProblemWithTags(problemId, request.getTagIds());
+                // 关联题目和标签
+                Long problemId = problemDO.getId();
+                problemTagRelationService.batchAddTagsToProblem(problemId, request.getTagIds());
             }
             Long problemId = problemDO.getId();
             log.info("ProblemService--->创建题目成功，题目ID: {}, 标题: {}", problemId, request.getTitle());
@@ -311,9 +323,8 @@ public class ProblemServiceImpl implements ProblemService {
 
             // 更新标签关联（如果有）
             if (row > 0 && request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-                // TODO: 更新题目和标签的关联
-                // 这里需要调用ProblemTagService的方法来更新关联
-                // problemTagService.updateProblemTags(request.getId(), request.getTagIds());
+                // 更新题目和标签的关联
+                problemTagRelationService.replaceAllTagsForProblem(request.getId(), request.getTagIds());
             }
 
             log.info("ProblemService--->更新题目成功，题目ID: {}", request.getId());
@@ -958,6 +969,403 @@ public class ProblemServiceImpl implements ProblemService {
         } catch (Exception e) {
             log.error("ProblemService--->下线题目: {}", e.getMessage(), e);
             return false;
+        }
+    }
+
+    // ==================== 分布统计类方法实现 ====================
+
+
+    /**
+     * 按难度获取统计信息
+     *
+     * @return 各难度级别的题目统计信息
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByDifficulty() {
+        try {
+            log.info("ProblemService--->按难度获取统计信息开始");
+
+            List<Map<String, Object>> result = problemManager.getStatisticsByDifficulty();
+
+            log.info("ProblemService--->按难度获取统计信息成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->按难度获取统计信息失败: {}", e.getMessage(), e);
+            throw new RuntimeException("按难度获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按题目类型获取统计信息
+     *
+     * @return 各题目类型的统计信息
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByType() {
+        try {
+            log.info("ProblemService--->按题目类型获取统计信息开始");
+
+            List<Map<String, Object>> result = problemManager.getStatisticsByType();
+
+            log.info("ProblemService--->按题目类型获取统计信息成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->按题目类型获取统计信息失败: {}", e.getMessage(), e);
+            throw new RuntimeException("按题目类型获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按编程语言获取统计信息
+     *
+     * @return 各编程语言的统计信息
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByLanguage() {
+        try {
+            log.info("ProblemService--->按编程语言获取统计信息开始");
+
+            List<Map<String, Object>> result = problemManager.getStatisticsByLanguage();
+
+            log.info("ProblemService--->按编程语言获取统计信息成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->按编程语言获取统计信息失败: {}", e.getMessage(), e);
+            throw new RuntimeException("按编程语言获取统计信息失败", e);
+        }
+    }
+
+    /**
+     * 按状态获取统计信息
+     *
+     * @return 各状态的统计信息
+     */
+    @Override
+    public List<Map<String, Object>> getStatisticsByStatus() {
+        try {
+            log.info("ProblemService--->按状态获取统计信息");
+            List<Map<String, Object>> result = problemManager.getStatisticsByStatus();
+            log.info("ProblemService--->按状态获取统计信息成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->按状态获取统计信息失败: {}", e.getMessage(), e);
+            throw new RuntimeException("按状态获取统计信息失败", e);
+        }
+    }
+
+    // ==================== 趋势分析类方法实现 ====================
+
+
+    /**
+     * 获取题目创建趋势
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 创建趋势数据
+     */
+    @Override
+    public List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity) {
+        try {
+            log.info("ProblemService--->获取题目创建趋势, 开始日期: {}, 结束日期: {}, 粒度: {}", startDate, endDate, granularity);
+            List<Map<String, Object>> result = problemManager.getProblemCreationTrend(startDate, endDate, granularity);
+            log.info("ProblemService--->获取题目创建趋势成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取题目创建趋势失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取题目创建趋势失败", e);
+        }
+    }
+
+
+    /**
+     * 获取提交趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 提交趋势数据
+     */
+    @Override
+    public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
+        try {
+            log.info("ProblemService--->获取提交趋势分析, 开始日期: {}, 结束日期: {}, 粒度: {}", startDate, endDate, granularity);
+            List<Map<String, Object>> result = problemManager.getSubmissionTrendAnalysis(startDate, endDate, granularity);
+            log.info("ProblemService--->获取提交趋势分析成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取提交趋势分析失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取提交趋势分析失败", e);
+        }
+    }
+
+
+    // ==================== 排名类方法实现 ====================
+
+    /**
+     * 获取热门题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 热门题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange) {
+        try {
+            log.info("ProblemService--->获取热门题目排行榜, 限制数量: {}, 时间范围: {}", limit, timeRange);
+            List<Map<String, Object>> result = problemManager.getPopularProblemsRanking(limit, timeRange);
+            log.info("ProblemService--->获取热门题目排行榜成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取热门题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取热门题目排行榜失败", e);
+        }
+    }
+
+    /**
+     * 获取最难题目排行榜
+     *
+     * @param limit          限制数量
+     * @return 最难题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getHardestProblemsRanking(Integer limit) {
+        try {
+            log.info("ProblemService--->获取最难题目排行榜, 限制数量: {}", limit);
+            List<Map<String, Object>> result = problemManager.getHardestProblemsRanking(limit);
+            log.info("ProblemService--->获取最难题目排行榜成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取最难题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取最难题目排行榜失败", e);
+        }
+    }
+
+
+    /**
+     * 获取最简单题目排行榜
+     *
+     * @param limit          限制数量
+     * @return 最简单题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getEasiestProblemsRanking(Integer limit) {
+        try {
+            log.info("ProblemService--->获取最简单题目排行榜, 限制数量: {}", limit );
+            List<Map<String, Object>> result = problemManager.getEasiestProblemsRanking(limit);
+            log.info("ProblemService--->获取最简单题目排行榜成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取最简单题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取最简单题目排行榜失败", e);
+        }
+    }
+
+
+    /**
+     * 获取提交最多题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 提交最多题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getMostSubmittedProblemsRanking(Integer limit, Integer timeRange) {
+        try {
+            log.info("ProblemService--->获取提交最多题目排行榜, 限制数量: {}, 时间范围: {}", limit, timeRange);
+
+            List<Map<String, Object>> result = problemManager.getMaxSubmissionProblemsRanking(limit, timeRange);
+
+            log.info("ProblemService--->获取提交最多题目排行榜成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取提交最多题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取提交最多题目排行榜失败", e);
+        }
+    }
+
+    /**
+     * 获取提交零提交题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 提交最多题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getZeroSubmittedProblemsRanking(Integer limit, Integer timeRange) {
+        try {
+            log.info("ProblemService--->获取提交最多题目排行榜, 限制数量: {}, 时间范围: {}", limit, timeRange);
+
+            List<Map<String, Object>> result = problemManager.getZeroSubmissionProblemsRanking(limit, timeRange);
+
+            log.info("ProblemService--->获取提交最多题目排行榜成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取提交最多题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取提交最多题目排行榜失败", e);
+        }
+    }
+
+
+
+    /**
+     * 获取最近热门题目排行榜
+     *
+     * @param limit 限制数量
+     * @param days  最近天数
+     * @return 最近热门题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getRecentPopularProblemsRanking(Integer limit, Integer days) {
+        try {
+            log.info("ProblemService--->获取最近热门题目排行榜, 限制数量: {}, 最近天数: {}", limit, days);
+
+            // 使用RankingCriteria
+            RankingCriteria criteria = RankingCriteria.builder()
+                    .type(RankingType.POPULARITY)
+                    .limit(limit != null ? limit : 10)
+                    .dayRange(days)
+                    .build();
+
+            List<Map<String, Object>> result = problemManager.getProblemRanking(criteria);
+
+            log.info("ProblemService--->获取最近热门题目排行榜成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取最近热门题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取最近热门题目排行榜失败", e);
+        }
+    }
+
+    /**
+     * 统一的排行榜接口
+     *
+     * @param type 排行榜类型
+     * @return 排行榜数据列表
+     */
+    @Override
+    public List<Map<String, Object>> getProblemRanking(RankingType type, Integer limit) {
+        try {
+            log.info("ProblemService--->获取题目排行榜, 类型: {}", type);
+
+            // 构建排行榜条件
+            RankingCriteria criteria = RankingCriteria.fromRankingType(type, limit, null, null, null);
+
+            // 调用管理器方法获取排行榜数据
+            List<Map<String, Object>> result = problemManager.getProblemRanking(criteria);
+
+            log.info("ProblemService--->获取题目排行榜成功, 数量: {}", result.size());
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取题目排行榜失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取题目排行榜失败: " + e.getMessage(), e);
+        }
+    }
+
+    // ==================== 统一统计接口实现 ====================
+
+
+    /**
+     * 获取题目排名
+     *
+     * @param rankingType 排名类型
+     * @param criteria    排名条件
+     * @return 题目排名结果
+     */
+    @Override
+    public List<Map<String, Object>> getProblemRanking(String rankingType, Map<String, Object> criteria) {
+        try {
+            log.info("ProblemService--->获取题目排名开始, 排名类型: {}, 条件: {}", rankingType, criteria);
+
+            // 创建RankingCriteria对象并设置参数
+            RankingCriteria rankingCriteria = new RankingCriteria();
+            rankingCriteria.setType(RankingType.valueOf(rankingType));
+            // 将Map中的参数设置到RankingCriteria对象中
+            if (criteria != null) {
+                if (criteria.containsKey("limit")) {
+                    rankingCriteria.setLimit((Integer) criteria.get("limit"));
+                }
+                if (criteria.containsKey("timeRange")) {
+                    rankingCriteria.setTimeRange((Integer) criteria.get("timeRange"));
+                }
+                if (criteria.containsKey("minSubmissions")) {
+                    rankingCriteria.setMinSubmissions((Integer) criteria.get("minSubmissions"));
+                }
+            }
+
+            List<Map<String, Object>> result = problemManager.getProblemRanking(rankingCriteria);
+
+            log.info("ProblemService--->获取题目排名成功, 排名类型: {}, 返回数量: {}", rankingType, result.size());
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取题目排名失败, 排名类型: {}, 错误: {}", rankingType, e.getMessage(), e);
+            throw new RuntimeException("获取题目排名失败", e);
+        }
+    }
+
+    // ==================== 报告类方法实现 ====================
+
+    /**
+     * 获取月度报告
+     *
+     * @param year  年份
+     * @param month 月份
+     * @return 月度报告数据
+     */
+    @Override
+    public Map<String, Object> getMonthlyReport(int year, int month) {
+        try {
+            log.info("ProblemService--->获取月度报告开始, 年份: {}, 月份: {}", year, month);
+
+            Map<String, Object> result = problemManager.getMonthlyReport(year, month);
+
+            log.info("ProblemService--->获取月度报告成功, 年份: {}, 月份: {}", year, month);
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取月度报告失败, 年份: {}, 月份: {}, 错误: {}", year, month, e.getMessage(), e);
+            throw new RuntimeException("获取月度报告失败", e);
+        }
+    }
+
+    /**
+     * 获取年度报告
+     *
+     * @param year 年份
+     * @return 年度报告数据
+     */
+    @Override
+    public Map<String, Object> getAnnualReport(int year) {
+        try {
+            log.info("ProblemService--->获取年度报告开始, 年份: {}", year);
+
+            Map<String, Object> result = problemManager.getAnnualReport(year);
+
+            log.info("ProblemService--->获取年度报告成功, 年份: {}", year);
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取年度报告失败, 年份: {}, 错误: {}", year, e.getMessage(), e);
+            throw new RuntimeException("获取年度报告失败", e);
+        }
+    }
+
+    /**
+     * 获取自定义报表
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param metrics   指标列表
+     * @return 自定义报表数据
+     */
+    @Override
+    public Map<String, Object> getCustomReport(Date startDate, Date endDate, List<String> metrics) {
+        try {
+            log.info("ProblemService--->获取自定义报表, 开始日期: {}, 结束日期: {}, 指标: {}", startDate, endDate, metrics);
+            Map<String, Object> result = problemManager.getCustomRangeReport(startDate, endDate, metrics);
+            log.info("ProblemService--->获取自定义报表成功");
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemService--->获取自定义报表失败: {}", e.getMessage(), e);
+            throw new RuntimeException("获取自定义报表失败", e);
         }
     }
 

@@ -2554,6 +2554,18 @@
                 (p.memory_limit / 256.0 * 0.1)
                 , 2) as difficulty_score
             </when>
+            <!-- 最简单题目排行 -->
+            <when test="criteria.type.name() == 'EASIEST'">
+                ROUND(
+                (CASE
+                WHEN p.submission_count > 0
+                THEN (p.accepted_count * 100.0 / p.submission_count)
+                ELSE 0
+                END) -
+                (p.time_limit / 1000.0 * 0.1) -
+                (p.memory_limit / 256.0 * 0.1)
+                , 2) as easiness_score
+            </when>
             <!-- 高质量题目排行 -->
             <when test="criteria.type.name() == 'QUALITY'">
                 ROUND(
@@ -2583,6 +2595,23 @@
                 WHEN p.status = 1 THEN 'ACTIVE'
                 ELSE 'UNKNOWN'
                 END as status_name
+            </when>
+             <!-- 最多提交题目排行 -->
+            <when test="criteria.type.name() == 'MAX_SUBMISSION'">
+                DATEDIFF(CURRENT_DATE, p.created_at) as days_since_creation,
+                ROUND(p.submission_count / GREATEST(DATEDIFF(CURRENT_DATE, p.created_at), 1), 2) as daily_submission_rate,
+                CASE
+                WHEN p.status = 0 THEN 'DISABLED'
+                WHEN p.status = 1 THEN 'ACTIVE'
+                ELSE 'UNKNOWN'
+                END as status_name,
+                CASE
+                WHEN p.submission_count > 1000 THEN 'EXTREMELY_POPULAR'
+                WHEN p.submission_count > 500 THEN 'VERY_POPULAR'
+                WHEN p.submission_count > 100 THEN 'POPULAR'
+                WHEN p.submission_count > 50 THEN 'MODERATE'
+                ELSE 'LOW'
+                END as popularity_level
             </when>
             <!-- 创建者贡献排行 -->
             <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
@@ -2624,6 +2653,13 @@
                     AND p.submission_count >= #{criteria.minSubmissions}
                 </if>
             </when>
+            <!-- 最简单题目排行条件 -->
+            <when test="criteria.type.name() == 'EASIEST'">
+                AND p.status = 1
+                <if test="criteria.minSubmissions != null">
+                    AND p.submission_count >= #{criteria.minSubmissions}
+                </if>
+            </when>
             <!-- 高质量题目排行条件 -->
             <when test="criteria.type.name() == 'QUALITY'">
                 <!-- 质量排行无特殊条件 -->
@@ -2635,9 +2671,16 @@
                     AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.dayRange} DAY)
                 </if>
             </when>
-            <!-- 零提交题目排行条件 -->
+             <!-- 零提交题目排行条件 -->
             <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
                 AND p.submission_count = 0
+            </when>
+            <!-- 最多提交题目排行条件 -->
+            <when test="criteria.type.name() == 'MAX_SUBMISSION'">
+                AND p.submission_count > 0
+                <if test="criteria.minSubmissions != null">
+                    AND p.submission_count >= #{criteria.minSubmissions}
+                </if>
             </when>
             <!-- 创建者贡献排行条件 -->
             <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
@@ -2661,14 +2704,20 @@
             <when test="criteria.type.name() == 'HARDEST'">
                 ORDER BY acceptance_rate ASC, difficulty_score DESC, p.submission_count DESC
             </when>
+            <when test="criteria.type.name() == 'EASIEST'">
+                ORDER BY acceptance_rate DESC, easiness_score DESC, p.submission_count DESC
+            </when>
             <when test="criteria.type.name() == 'QUALITY'">
                 ORDER BY quality_score DESC, p.submission_count DESC
             </when>
             <when test="criteria.type.name() == 'NEWEST'">
                 ORDER BY p.created_at DESC, daily_submission_rate DESC
             </when>
-            <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
+             <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
                 ORDER BY days_since_creation DESC, p.created_at DESC
+            </when>
+            <when test="criteria.type.name() == 'MAX_SUBMISSION'">
+                ORDER BY p.submission_count DESC, daily_submission_rate DESC, p.accepted_count DESC
             </when>
             <when test="criteria.type.name() == 'CREATOR_CONTRIBUTION'">
                 ORDER BY contribution_score DESC, problems_created DESC
@@ -2703,6 +2752,15 @@
                 ORDER BY (CASE WHEN p.submission_count > 0 THEN (p.accepted_count * 100.0 / p.submission_count) ELSE 100
                 END) ASC, p.submission_count DESC
             </when>
+            <!-- 最简单题目排行条件 -->
+            <when test="criteria.type.name() == 'EASIEST'">
+                AND p.status = 1
+                <if test="criteria.minSubmissions != null">
+                    AND p.submission_count >= #{criteria.minSubmissions}
+                </if>
+                ORDER BY (CASE WHEN p.submission_count > 0 THEN (p.accepted_count * 100.0 / p.submission_count) ELSE 0
+                END) DESC, p.submission_count DESC
+            </when>
             <!-- 高质量题目排行条件 -->
             <when test="criteria.type.name() == 'QUALITY'">
                 ORDER BY (
@@ -2725,6 +2783,14 @@
             <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
                 AND p.submission_count = 0
                 ORDER BY p.created_at DESC
+            </when>
+            <!-- 最多提交题目排行条件 -->
+            <when test="criteria.type.name() == 'MAX_SUBMISSION'">
+                AND p.submission_count > 0
+                <if test="criteria.minSubmissions != null">
+                    AND p.submission_count >= #{criteria.minSubmissions}
+                </if>
+                ORDER BY p.submission_count DESC, p.accepted_count DESC
             </when>
         </choose>
         <if test="criteria.limit != null and criteria.limit > 0">

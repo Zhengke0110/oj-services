@@ -4,10 +4,12 @@ import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
+import fun.timu.oj.judge.model.Enums.RankingType;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
 import fun.timu.oj.judge.model.VTO.ProblemStatisticsVTO;
+import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 
 import java.util.Date;
@@ -284,4 +286,159 @@ public interface ProblemService {
      * 下线问题
      */
     boolean unpublishProblem(Long id);
+
+    // ==================== 分布统计类方法 ====================
+
+    /**
+     * 按难度获取统计信息
+     *
+     * @return 各难度级别的题目统计信息
+     */
+    List<Map<String, Object>> getStatisticsByDifficulty();
+
+    /**
+     * 按题目类型获取统计信息
+     *
+     * @return 各题目类型的统计信息
+     */
+    List<Map<String, Object>> getStatisticsByType();
+
+    /**
+     * 按编程语言获取统计信息
+     *
+     * @return 各编程语言的统计信息
+     */
+    List<Map<String, Object>> getStatisticsByLanguage();
+
+    /**
+     * 按状态获取统计信息
+     *
+     * @return 各状态的统计信息
+     */
+    List<Map<String, Object>> getStatisticsByStatus();
+
+    // ==================== 趋势分析类方法 ====================
+
+    /**
+     * 获取题目创建趋势
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @return 题目创建趋势数据
+     */
+    List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
+
+
+    /**
+     * 获取提交趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度
+     * @return 提交趋势数据
+     */
+    List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity);
+
+
+    // ==================== 排名类方法 ====================
+
+    /**
+     * 获取热门题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 热门题目排行榜
+     */
+    List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取最难题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最难题目排行榜
+     */
+    List<Map<String, Object>> getHardestProblemsRanking(Integer limit);
+
+    /**
+     * 获取最容易题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最容易题目排行榜
+     */
+    List<Map<String, Object>> getEasiestProblemsRanking(Integer limit);
+
+    /**
+     * 获取最常提交题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 最常提交题目排行榜
+     */
+    List<Map<String, Object>> getMostSubmittedProblemsRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取提交零提交题目排行榜
+     *
+     * @param limit     限制数量
+     * @param timeRange 时间范围
+     * @return 提交最多题目排行榜
+     */
+    public List<Map<String, Object>> getZeroSubmittedProblemsRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取最近热门题目排行榜
+     *
+     * @param limit 限制数量
+     * @param days  最近天数
+     * @return 最近热门题目排行榜
+     */
+
+    List<Map<String, Object>> getRecentPopularProblemsRanking(Integer limit, Integer days);
+
+    /**
+     * 统一的排行榜接口
+     *
+     * @param type 排行榜类型
+     * @return 排行榜数据列表
+     */
+    List<Map<String, Object>> getProblemRanking(RankingType type, Integer limit);
+    // ==================== 统一统计接口 ====================
+
+    /**
+     * 获取题目排名
+     *
+     * @param rankingType 排名类型
+     * @param criteria    排名条件
+     * @return 题目排名结果
+     */
+    List<Map<String, Object>> getProblemRanking(String rankingType, Map<String, Object> criteria);
+
+    // ==================== 报告类方法 ====================
+
+    /**
+     * 获取月度报告
+     *
+     * @param year  年份
+     * @param month 月份
+     * @return 月度报告数据
+     */
+    Map<String, Object> getMonthlyReport(int year, int month);
+
+    /**
+     * 获取年度报告
+     *
+     * @param year 年份
+     * @return 年度报告数据
+     */
+    Map<String, Object> getAnnualReport(int year);
+
+    /**
+     * 获取自定义报告
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param metrics   指标列表
+     * @return 自定义报告数据
+     */
+    Map<String, Object> getCustomReport(Date startDate, Date endDate, List<String> metrics);
 }

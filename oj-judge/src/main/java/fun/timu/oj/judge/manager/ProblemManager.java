@@ -382,11 +382,34 @@ public interface ProblemManager {
     /**
      * 获取最难题目排行榜
      *
-     * @param limit          限制数量
-     * @param minSubmissions 最小提交数
+     * @param limit 限制数量
      * @return 最难题目排行榜
      */
-    List<Map<String, Object>> getHardestProblemsRanking(Integer limit, Integer minSubmissions);
+    List<Map<String, Object>> getHardestProblemsRanking(Integer limit);
+
+    /**
+     * 获取简单题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最易题目排行榜
+     */
+    List<Map<String, Object>> getEasiestProblemsRanking(Integer limit);
+
+    /**
+     * 获取最多提交题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最易题目排行榜
+     */
+    List<Map<String, Object>> getMaxSubmissionProblemsRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取零提交题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 最易题目排行榜
+     */
+    List<Map<String, Object>> getZeroSubmissionProblemsRanking(Integer limit, Integer timeRange);
 
     /**
      * 获取创建者贡献排行榜

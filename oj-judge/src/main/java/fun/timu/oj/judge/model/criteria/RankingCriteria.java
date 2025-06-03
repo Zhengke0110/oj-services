@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 排行榜查询条件
- * 
+ *
  * @author zhengke
  */
 @Data
@@ -16,42 +16,42 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RankingCriteria {
-    
+
     /**
      * 排行榜类型
      */
     private RankingType type;
-    
+
     /**
      * 限制数量
      */
     private Integer limit;
-    
+
     /**
      * 时间范围（天数）
      */
     private Integer timeRange;
-    
+
     /**
      * 天数范围（用于最新题目排行）
      */
     private Integer dayRange;
-    
+
     /**
      * 最小提交数要求（用于最难题目排行）
      */
     private Integer minSubmissions;
-    
+
     /**
      * 是否包含质量评分
      */
     private Boolean includeQualityScore;
-    
+
     /**
      * 是否包含创建者信息
      */
     private Boolean includeCreatorInfo;
-    
+
     /**
      * 创建热门题目排行条件
      */
@@ -62,7 +62,7 @@ public class RankingCriteria {
                 .timeRange(timeRange)
                 .build();
     }
-    
+
     /**
      * 创建最难题目排行条件
      */
@@ -73,7 +73,7 @@ public class RankingCriteria {
                 .minSubmissions(minSubmissions)
                 .build();
     }
-    
+
     /**
      * 创建高质量题目排行条件
      */
@@ -84,7 +84,7 @@ public class RankingCriteria {
                 .includeQualityScore(true)
                 .build();
     }
-    
+
     /**
      * 创建最新题目排行条件
      */
@@ -95,7 +95,7 @@ public class RankingCriteria {
                 .dayRange(dayRange)
                 .build();
     }
-    
+
     /**
      * 创建零提交题目排行条件
      */
@@ -105,7 +105,7 @@ public class RankingCriteria {
                 .limit(limit)
                 .build();
     }
-    
+
     /**
      * 创建创建者贡献排行条件
      */
@@ -117,4 +117,61 @@ public class RankingCriteria {
                 .includeCreatorInfo(true)
                 .build();
     }
+
+    /**
+     * 根据排行榜类型获取预设的排行榜条件（扩展版）
+     *
+     * @param type           排行榜类型
+     * @param limit          结果数量限制
+     * @param timeRange      时间范围（可选）
+     * @param dayRange       天数范围（可选）
+     * @param minSubmissions 最小提交次数（可选）
+     * @return 对应类型的排行榜条件
+     */
+    public static RankingCriteria fromRankingType(RankingType type, Integer limit,
+                                                  Integer timeRange, Integer dayRange, Integer minSubmissions) {
+        if (type == null) {
+            throw new IllegalArgumentException("排行榜类型不能为空");
+        }
+
+        RankingCriteria criteria;
+
+        switch (type) {
+            case POPULARITY:
+                criteria = forPopularity(limit, timeRange);
+                if (timeRange != null) {
+                    criteria.setTimeRange(timeRange);
+                }
+                break;
+            case HARDEST:
+                criteria = forHardest(limit, minSubmissions);
+                if (minSubmissions != null) {
+                    criteria.setMinSubmissions(minSubmissions);
+                }
+                break;
+            case QUALITY:
+                criteria = forQuality(limit);
+                break;
+            case NEWEST:
+                criteria = forNewest(limit, dayRange);
+                if (dayRange != null) {
+                    criteria.setDayRange(dayRange);
+                }
+                break;
+            case ZERO_SUBMISSION:
+                criteria = forZeroSubmission(limit);
+                break;
+            case CREATOR_CONTRIBUTION:
+                criteria = forCreatorContribution(limit, timeRange);
+                if (timeRange != null) {
+                    criteria.setTimeRange(timeRange);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的排行榜类型: " + type);
+        }
+
+        return criteria;
+    }
+
 }
