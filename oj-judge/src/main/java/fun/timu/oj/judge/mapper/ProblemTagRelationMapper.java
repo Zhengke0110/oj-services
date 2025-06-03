@@ -7,14 +7,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-/**
- * @author zhengke
- * @description 针对表【problem_tag_relation(题目标签关联表)】的数据库操作Mapper
- * @createDate 2025-05-30 18:41:57
- * @Entity generator.domain.ProblemTagRelation
- */
 @Mapper
 public interface ProblemTagRelationMapper extends BaseMapper<ProblemTagRelationDO> {
 
