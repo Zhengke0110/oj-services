@@ -1,5 +1,6 @@
 package fun.timu.oj.judge.controller.request;
 
+import fun.timu.oj.judge.model.Enums.StatisticsScope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,7 +35,7 @@ public class BatchProblemRequest {
          * 统计范围 - 必填
          */
         @NotNull(message = "统计范围不能为空")
-        private fun.timu.oj.judge.model.enums.StatisticsScope scope;
+        private StatisticsScope scope;
 
         /**
          * 可选的时间范围过滤 - 开始时间

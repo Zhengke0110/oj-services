@@ -1,6 +1,6 @@
 package fun.timu.oj.judge.model.VTO;
 
-import fun.timu.oj.judge.model.enums.StatisticsScope;
+import fun.timu.oj.judge.model.Enums.StatisticsScope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

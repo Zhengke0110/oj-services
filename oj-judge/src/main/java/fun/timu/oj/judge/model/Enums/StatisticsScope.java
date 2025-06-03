@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.model.enums;
+package fun.timu.oj.judge.model.Enums;
 
 /**
  * 统计信息范围枚举

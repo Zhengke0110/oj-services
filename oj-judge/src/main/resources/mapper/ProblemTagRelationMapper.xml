@@ -12,7 +12,7 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <resultMap id="TagStatisticsResultMap" type="fun.timu.oj.judge.manager.ProblemTagRelationManager$TagStatistics">
+    <resultMap id="TagStatisticsResultMap" type="fun.timu.oj.judge.model.criteria.TagStatistics">
         <result property="tagId" column="tag_id"/>
         <result property="tagName" column="tag_name"/>
         <result property="problemCount" column="problem_count"/>
@@ -20,7 +20,8 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,problem_id,tag_id,is_deleted,created_at
+        id
+        ,problem_id,tag_id,is_deleted,created_at
     </sql>
 
     <!-- 查询没有任何标签的题目ID列表 -->
@@ -164,33 +165,28 @@
 
     <!-- 获取热门标签统计 -->
     <select id="getPopularTags" resultMap="TagStatisticsResultMap">
-        SELECT 
-            ptr.tag_id,
-            pt.name as tag_name,
-            COUNT(ptr.problem_id) as problem_count,
-            COUNT(ptr.problem_id) * 1.0 as score
+        SELECT ptr.tag_id,
+               pt.name                     as tag_name,
+               COUNT(ptr.problem_id)       as problem_count,
+               COUNT(ptr.problem_id) * 1.0 as score
         FROM problem_tag_relation ptr
-        LEFT JOIN problem_tag pt ON ptr.tag_id = pt.id
+                 LEFT JOIN problem_tag pt ON ptr.tag_id = pt.id
         WHERE ptr.is_deleted = 0
-        AND pt.is_deleted = 0
+          AND pt.is_deleted = 0
         GROUP BY ptr.tag_id, pt.name
         ORDER BY problem_count DESC
-        LIMIT #{limit}
+            LIMIT #{limit}
     </select>
 
     <!-- 获取题目标签分布统计 -->
     <select id="getTagDistributionStats" resultType="java.util.HashMap">
-        SELECT 
-            tag_count,
-            COUNT(*) as problem_count
-        FROM (
-            SELECT 
-                problem_id,
-                COUNT(tag_id) as tag_count
-            FROM problem_tag_relation
-            WHERE is_deleted = 0
-            GROUP BY problem_id
-        ) t
+        SELECT tag_count,
+               COUNT(*) as problem_count
+        FROM (SELECT problem_id,
+                     COUNT(tag_id) as tag_count
+              FROM problem_tag_relation
+              WHERE is_deleted = 0
+              GROUP BY problem_id) t
         GROUP BY tag_count
         ORDER BY tag_count
     </select>
@@ -208,50 +204,53 @@
 
     <!-- 获取基础统计数据 -->
     <select id="getBasicStatistics" resultType="java.util.HashMap">
-        SELECT 
-            (SELECT COUNT(DISTINCT problem_id) FROM problem_tag_relation WHERE is_deleted = 0) as totalProblems,
-            (SELECT COUNT(DISTINCT tag_id) FROM problem_tag_relation WHERE is_deleted = 0) as totalTags,
-            (SELECT COUNT(*) / COUNT(DISTINCT problem_id) FROM problem_tag_relation WHERE is_deleted = 0) as avgTagsPerProblem,
-            (SELECT COUNT(*) / COUNT(DISTINCT tag_id) FROM problem_tag_relation WHERE is_deleted = 0) as avgProblemsPerTag
+        SELECT (SELECT COUNT(DISTINCT problem_id) FROM problem_tag_relation WHERE is_deleted = 0) as totalProblems,
+               (SELECT COUNT(DISTINCT tag_id)
+                FROM problem_tag_relation
+                WHERE is_deleted = 0)                                                             as totalTags,
+               (SELECT COUNT(*) / COUNT(DISTINCT problem_id)
+                FROM problem_tag_relation
+                WHERE is_deleted = 0)                                                             as avgTagsPerProblem,
+               (SELECT COUNT(*) / COUNT(DISTINCT tag_id)
+                FROM problem_tag_relation
+                WHERE is_deleted = 0)                                                             as avgProblemsPerTag
     </select>
 
     <!-- 查询相似题目（基于共同标签） -->
     <select id="findSimilarProblems" resultType="java.lang.Long">
-        SELECT 
-            ptr2.problem_id
+        SELECT ptr2.problem_id
         FROM problem_tag_relation ptr1
-        JOIN problem_tag_relation ptr2 ON ptr1.tag_id = ptr2.tag_id
+                 JOIN problem_tag_relation ptr2 ON ptr1.tag_id = ptr2.tag_id
         WHERE ptr1.problem_id = #{problemId}
-        AND ptr2.problem_id != #{problemId}
-        AND ptr1.is_deleted = 0
-        AND ptr2.is_deleted = 0
+          AND ptr2.problem_id != #{problemId}
+          AND ptr1.is_deleted = 0
+          AND ptr2.is_deleted = 0
         GROUP BY ptr2.problem_id
-        HAVING COUNT(DISTINCT ptr1.tag_id) <![CDATA[>=]]> #{minCommonTags}
-        ORDER BY COUNT(DISTINCT ptr1.tag_id) DESC
-        LIMIT #{limit}
+        HAVING COUNT (DISTINCT ptr1.tag_id) <![CDATA[>=]]> #{minCommonTags}
+        ORDER BY COUNT (DISTINCT ptr1.tag_id) DESC
+            LIMIT #{limit}
     </select>
 
     <!-- 查询标签的相关标签 -->
     <select id="findRelatedTags" resultType="java.lang.Long">
-        SELECT 
-            ptr2.tag_id,
-            COUNT(*) as co_occurrence
+        SELECT ptr2.tag_id,
+               COUNT(*) as co_occurrence
         FROM problem_tag_relation ptr1
-        JOIN problem_tag_relation ptr2 ON ptr1.problem_id = ptr2.problem_id
+                 JOIN problem_tag_relation ptr2 ON ptr1.problem_id = ptr2.problem_id
         WHERE ptr1.tag_id = #{tagId}
-        AND ptr2.tag_id != #{tagId}
-        AND ptr1.is_deleted = 0
-        AND ptr2.is_deleted = 0
+          AND ptr2.tag_id != #{tagId}
+          AND ptr1.is_deleted = 0
+          AND ptr2.is_deleted = 0
         GROUP BY ptr2.tag_id
         ORDER BY co_occurrence DESC
-        LIMIT #{limit}
+            LIMIT #{limit}
     </select>
 
     <!-- 批量查询题目的标签名称 -->
     <select id="getTagNamesByProblemIds" resultType="java.util.HashMap">
-        SELECT 
-            ptr.problem_id as problemId,
-            pt.name as tagName
+        SELECT
+        ptr.problem_id as problemId,
+        pt.name as tagName
         FROM problem_tag_relation ptr
         LEFT JOIN problem_tag pt ON ptr.tag_id = pt.id
         WHERE ptr.problem_id IN
@@ -269,13 +268,13 @@
         <include refid="Base_Column_List"/>
         FROM problem_tag_relation ptr1
         WHERE EXISTS (
-            SELECT 1
-            FROM problem_tag_relation ptr2
-            WHERE ptr1.problem_id = ptr2.problem_id
-            AND ptr1.tag_id = ptr2.tag_id
-            AND ptr1.id != ptr2.id
-            AND ptr1.is_deleted = 0
-            AND ptr2.is_deleted = 0
+        SELECT 1
+        FROM problem_tag_relation ptr2
+        WHERE ptr1.problem_id = ptr2.problem_id
+        AND ptr1.tag_id = ptr2.tag_id
+        AND ptr1.id != ptr2.id
+        AND ptr1.is_deleted = 0
+        AND ptr2.is_deleted = 0
         )
         ORDER BY problem_id, tag_id, created_at DESC
     </select>
@@ -284,20 +283,16 @@
     <update id="mergeDuplicateRelations">
         UPDATE problem_tag_relation ptr1
         SET is_deleted = 1
-        WHERE EXISTS (
-            SELECT 1
-            FROM (
-                SELECT problem_id, tag_id, MIN(id) as min_id
-                FROM problem_tag_relation
-                WHERE is_deleted = 0
-                GROUP BY problem_id, tag_id
-                HAVING COUNT(*) > 1
-            ) duplicates
-            WHERE ptr1.problem_id = duplicates.problem_id
-            AND ptr1.tag_id = duplicates.tag_id
-            AND ptr1.id != duplicates.min_id
-            AND ptr1.is_deleted = 0
-        )
+        WHERE EXISTS (SELECT 1
+                      FROM (SELECT problem_id, tag_id, MIN(id) as min_id
+                            FROM problem_tag_relation
+                            WHERE is_deleted = 0
+                            GROUP BY problem_id, tag_id
+                            HAVING COUNT(*) > 1) duplicates
+                      WHERE ptr1.problem_id = duplicates.problem_id
+                        AND ptr1.tag_id = duplicates.tag_id
+                        AND ptr1.id != duplicates.min_id
+            AND ptr1.is_deleted = 0)
     </update>
 
     <!-- 清理孤立的关联记录 -->
@@ -305,10 +300,10 @@
         UPDATE problem_tag_relation
         SET is_deleted = 1
         WHERE is_deleted = 0
-        AND (
+          AND (
             problem_id NOT IN (SELECT id FROM problem WHERE is_deleted = 0)
-            OR tag_id NOT IN (SELECT id FROM problem_tag WHERE is_deleted = 0)
-        )
+                OR tag_id NOT IN (SELECT id FROM problem_tag WHERE is_deleted = 0)
+            )
     </update>
 
     <!-- 修复软删除状态不一致的记录 -->
@@ -316,16 +311,16 @@
         UPDATE problem_tag_relation ptr
         SET is_deleted = 1
         WHERE ptr.is_deleted = 0
-        AND (
-            EXISTS (
-                SELECT 1 FROM problem p
-                WHERE p.id = ptr.problem_id AND p.is_deleted = 1
+          AND (
+            EXISTS (SELECT 1
+                    FROM problem p
+                    WHERE p.id = ptr.problem_id
+                      AND p.is_deleted = 1)
+                OR EXISTS (SELECT 1
+                           FROM problem_tag pt
+                           WHERE pt.id = ptr.tag_id
+                             AND pt.is_deleted = 1)
             )
-            OR EXISTS (
-                SELECT 1 FROM problem_tag pt
-                WHERE pt.id = ptr.tag_id AND pt.is_deleted = 1
-            )
-        )
     </update>
 
 </mapper>

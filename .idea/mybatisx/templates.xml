@@ -69,8 +69,28 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
+                  <option name="className" value="Account" />
+                  <option name="tableName" value="account" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="CodeExecutionRecord" />
+                  <option name="tableName" value="code_execution_record" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="Problem" />
+                  <option name="tableName" value="problem" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="ProblemTag" />
+                  <option name="tableName" value="problem_tag" />
+                </TableUIInfo>
+                <TableUIInfo>
                   <option name="className" value="ProblemTagRelation" />
                   <option name="tableName" value="problem_tag_relation" />
+                </TableUIInfo>
+                <TableUIInfo>
+                  <option name="className" value="TestCase" />
+                  <option name="tableName" value="test_case" />
                 </TableUIInfo>
               </list>
             </option>
