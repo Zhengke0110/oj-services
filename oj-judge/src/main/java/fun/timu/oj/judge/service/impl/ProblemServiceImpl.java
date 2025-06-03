@@ -855,7 +855,7 @@ public class ProblemServiceImpl implements ProblemService {
             }
 
             // 调用manager层执行重置操作
-            int resetCount = problemManager.resetProblemStats(problemIds);
+            int resetCount = problemManager.batchResetStats(problemIds);
 
             log.info("批量重置题目统计数据成功, 成功重置数量: {}", resetCount);
             return resetCount;

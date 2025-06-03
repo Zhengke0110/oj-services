@@ -9,6 +9,7 @@ import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.controller.request.BatchProblemRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.manager.ProblemCoreManager;
+import fun.timu.oj.judge.manager.ProblemBatchManager;
 import fun.timu.oj.judge.mapper.ProblemMapper;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.DTO.PopularProblemCategoryDTO;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 public class ProblemManagerImpl implements ProblemManager {
     private final ProblemMapper problemMapper;
     private final ProblemCoreManager problemCoreManager;
+    private final ProblemBatchManager problemBatchManager;
 
     /**
      * 根据id查询题目
@@ -282,23 +284,7 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public int batchUpdateStatus(List<Long> problemIds, Integer status) {
-        // 参数校验
-        if (problemIds == null || problemIds.isEmpty() || status == null) {
-            throw new RuntimeException("批量更新题目状态失败:参数无效，题目ID列表为空或状态值为null");
-        }
-
-        // 创建更新条件
-        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-
-        // 只更新未删除的题目
-        updateWrapper.eq(ProblemDO::getIsDeleted, 0);
-        // 限定要更新的ID列表
-        updateWrapper.in(ProblemDO::getId, problemIds);
-        // 设置要更新的字段
-        updateWrapper.set(ProblemDO::getStatus, status);
-
-        // 执行批量更新并返回影响的行数
-        return problemMapper.update(null, updateWrapper);
+        return problemBatchManager.batchUpdateStatus(problemIds, status);
     }
 
     /**
@@ -356,23 +342,7 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public int batchSoftDelete(List<Long> problemIds) {
-        // 参数校验
-        if (problemIds == null || problemIds.isEmpty()) {
-            return 0;
-        }
-
-        // 创建更新条件
-        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-
-        // 只更新未删除的题目
-        updateWrapper.eq(ProblemDO::getIsDeleted, 0);
-        // 限定要更新的ID列表
-        updateWrapper.in(ProblemDO::getId, problemIds);
-        // 设置要更新的字段
-        updateWrapper.set(ProblemDO::getIsDeleted, 1);
-
-        // 执行批量更新并返回影响的行数
-        return problemMapper.update(null, updateWrapper);
+        return problemBatchManager.batchSoftDelete(problemIds);
     }
 
     /**
@@ -383,23 +353,7 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public int batchRestore(List<Long> problemIds) {
-        // 参数校验
-        if (problemIds == null || problemIds.isEmpty()) {
-            return 0;
-        }
-
-        // 创建更新条件
-        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-
-        // 只更新已删除的题目
-        updateWrapper.eq(ProblemDO::getIsDeleted, 1);
-        // 限定要更新的ID列表
-        updateWrapper.in(ProblemDO::getId, problemIds);
-        // 设置要更新的字段
-        updateWrapper.set(ProblemDO::getIsDeleted, 0);
-
-        // 执行批量更新并返回影响的行数
-        return problemMapper.update(null, updateWrapper);
+        return problemBatchManager.batchRestore(problemIds);
     }
 
     /**
@@ -543,20 +497,9 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param visibility 可见性值
      * @return 更新的记录数
      */
+    @Override
     public int batchUpdateVisibility(List<Long> problemIds, Integer visibility) {
-        // 参数校验
-        if (problemIds == null || problemIds.isEmpty() || visibility == null) {
-            throw new IllegalArgumentException("参数错误");
-        }
-
-        // 使用LambdaUpdateWrapper构建更新条件
-        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(ProblemDO::getId, problemIds).set(ProblemDO::getVisibility, visibility);
-
-        // 执行更新操作
-        int updatedCount = problemMapper.update(null, updateWrapper);
-        if (updatedCount <= 0) throw new RuntimeException("更新失败");
-        return updatedCount;
+        return problemBatchManager.batchUpdateVisibility(problemIds, visibility);
     }
 
     /**
@@ -567,36 +510,9 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param memoryLimit 新的内存限制值（MB）
      * @return 成功更新的记录数
      */
+    @Override
     public int batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit) {
-        // 参数校验
-        if (problemIds == null || problemIds.isEmpty()) {
-            throw new IllegalArgumentException("参数错误");
-        }
-
-        if (timeLimit == null && memoryLimit == null) {
-            throw new IllegalArgumentException("参数错误");
-        }
-
-        // 创建更新构造器
-        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-
-        // 设置更新条件：ID在指定列表中且未删除
-        updateWrapper.in(ProblemDO::getId, problemIds).eq(ProblemDO::getIsDeleted, 0);
-
-        // 设置更新字段：如果参数不为空，则更新对应字段
-        if (timeLimit != null) {
-            updateWrapper.set(ProblemDO::getTimeLimit, timeLimit);
-        }
-
-        if (memoryLimit != null) {
-            updateWrapper.set(ProblemDO::getMemoryLimit, memoryLimit);
-        }
-
-        // 执行更新操作
-        int updatedRows = problemMapper.update(null, updateWrapper);
-        if (updatedRows <= 0) throw new RuntimeException("更新失败,请检查题目ID是否存在或未被删除");
-        return updatedRows;
-
+        return problemBatchManager.batchUpdateLimits(problemIds, timeLimit, memoryLimit);
     }
 
     /**
@@ -605,17 +521,9 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param problemIds 需要重置统计数据的题目ID列表
      * @return 更新成功的记录数
      */
-    public int resetProblemStats(List<Long> problemIds) {
-        if (problemIds == null || problemIds.isEmpty()) {
-            throw new IllegalArgumentException("参数错误");
-        }
-
-        // 使用MyBatis-Plus的LambdaUpdateWrapper构建更新操作
-        LambdaUpdateWrapper<ProblemDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(ProblemDO::getId, problemIds).eq(ProblemDO::getIsDeleted, 0)  // 只重置未删除的题目
-                .set(ProblemDO::getSubmissionCount, 0).set(ProblemDO::getAcceptedCount, 0);
-
-        return problemMapper.update(null, updateWrapper);
+    @Override
+    public int batchResetStats(List<Long> problemIds) {
+        return problemBatchManager.batchResetStats(problemIds);
     }
 
     /**
@@ -626,6 +534,7 @@ public class ProblemManagerImpl implements ProblemManager {
      * @param pageSize         每页大小
      * @return 分页结果，包含符合条件的题目列表
      */
+    @Override
     public IPage<ProblemDO> selectStaleProblems(Date lastUpdateBefore, int pageNum, int pageSize) {
         return problemCoreManager.selectStaleProblems(lastUpdateBefore, pageNum, pageSize);
     }
@@ -1169,16 +1078,6 @@ public class ProblemManagerImpl implements ProblemManager {
         }
     }
 
-    /**
-     * 批量重置题目统计
-     *
-     * @param problemIds 题目ID列表
-     * @return 重置记录数
-     */
-    @Override
-    public int batchResetStats(List<Long> problemIds) {
-        return 0;
-    }
 
     /**
      * 统一推荐方法

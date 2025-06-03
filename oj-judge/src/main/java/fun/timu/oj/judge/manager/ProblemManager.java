@@ -267,14 +267,6 @@ public interface ProblemManager {
      */
     public int batchUpdateLimits(List<Long> problemIds, Integer timeLimit, Integer memoryLimit);
 
-    /**
-     * 重置题目统计数据（将提交次数和通过次数重置为0）
-     *
-     * @param problemIds 需要重置统计数据的题目ID列表
-     * @return 更新成功的记录数
-     */
-    public int resetProblemStats(List<Long> problemIds);
-
 
     /**
      * 查询长时间未更新的题目
