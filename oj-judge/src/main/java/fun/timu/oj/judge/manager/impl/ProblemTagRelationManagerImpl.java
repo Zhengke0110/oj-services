@@ -21,9 +21,9 @@ import java.util.Map;
  *
  * @author zhengke
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager {
     private final ProblemTagRelationMapper problemTagRelationMapper;
 
