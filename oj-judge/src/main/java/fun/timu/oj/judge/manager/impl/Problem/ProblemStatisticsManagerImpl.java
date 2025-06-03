@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.manager.impl;
+package fun.timu.oj.judge.manager.impl.Problem;
 
 import fun.timu.oj.judge.controller.request.BatchProblemRequest;
 import fun.timu.oj.judge.manager.Problem.ProblemStatisticsManager;

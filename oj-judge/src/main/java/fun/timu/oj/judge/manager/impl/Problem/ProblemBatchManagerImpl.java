@@ -1,4 +1,4 @@
-package fun.timu.oj.judge.manager.impl;
+package fun.timu.oj.judge.manager.impl.Problem;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import fun.timu.oj.judge.manager.Problem.ProblemBatchManager;

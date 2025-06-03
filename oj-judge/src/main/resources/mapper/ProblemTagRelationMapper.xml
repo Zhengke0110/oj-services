@@ -12,9 +12,15 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
+    <resultMap id="TagStatisticsResultMap" type="fun.timu.oj.judge.manager.ProblemTagRelationManager$TagStatistics">
+        <result property="tagId" column="tag_id"/>
+        <result property="tagName" column="tag_name"/>
+        <result property="problemCount" column="problem_count"/>
+        <result property="score" column="score"/>
+    </resultMap>
+
     <sql id="Base_Column_List">
-        id
-        ,problem_id,tag_id,is_deleted,created_at
+        id,problem_id,tag_id,is_deleted,created_at
     </sql>
 
     <!-- 查询没有任何标签的题目ID列表 -->
@@ -93,5 +99,233 @@
         AND is_deleted = 0
         GROUP BY tag_id
     </select>
+
+    <!-- ==================== 扩展功能SQL实现 ==================== -->
+
+    <!-- 批量保存问题标签关系（优化版本） -->
+    <insert id="batchInsertOptimized" parameterType="java.util.List">
+        INSERT INTO problem_tag_relation (problem_id, tag_id, is_deleted, created_at)
+        VALUES
+        <foreach collection="relations" item="relation" separator=",">
+            (#{relation.problemId}, #{relation.tagId}, #{relation.isDeleted}, #{relation.createdAt})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        is_deleted = VALUES(is_deleted),
+        created_at = VALUES(created_at)
+    </insert>
+
+    <!-- 批量检查问题标签关系是否存在 -->
+    <select id="findExistingTagIds" resultType="java.lang.Long">
+        SELECT DISTINCT tag_id
+        FROM problem_tag_relation
+        WHERE problem_id = #{problemId}
+        AND tag_id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+        AND is_deleted = 0
+    </select>
+
+    <!-- 根据多个条件查询关联关系 -->
+    <select id="findByConditions" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem_tag_relation
+        <where>
+            <if test="condition.problemIds != null and condition.problemIds.size() > 0">
+                AND problem_id IN
+                <foreach collection="condition.problemIds" item="problemId" open="(" separator="," close=")">
+                    #{problemId}
+                </foreach>
+            </if>
+            <if test="condition.tagIds != null and condition.tagIds.size() > 0">
+                AND tag_id IN
+                <foreach collection="condition.tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+            <if test="condition.createTimeStart != null">
+                AND created_at <![CDATA[>=]]> #{condition.createTimeStart}
+            </if>
+            <if test="condition.createTimeEnd != null">
+                AND created_at <![CDATA[<=]]> #{condition.createTimeEnd}
+            </if>
+            <if test="condition.isDeleted != null">
+                AND is_deleted = #{condition.isDeleted}
+            </if>
+        </where>
+        <if test="condition.orderBy != null and condition.orderBy != ''">
+            ORDER BY ${condition.orderBy}
+            <if test="condition.orderDirection != null and condition.orderDirection != ''">
+                ${condition.orderDirection}
+            </if>
+        </if>
+    </select>
+
+    <!-- 获取热门标签统计 -->
+    <select id="getPopularTags" resultMap="TagStatisticsResultMap">
+        SELECT 
+            ptr.tag_id,
+            pt.name as tag_name,
+            COUNT(ptr.problem_id) as problem_count,
+            COUNT(ptr.problem_id) * 1.0 as score
+        FROM problem_tag_relation ptr
+        LEFT JOIN problem_tag pt ON ptr.tag_id = pt.id
+        WHERE ptr.is_deleted = 0
+        AND pt.is_deleted = 0
+        GROUP BY ptr.tag_id, pt.name
+        ORDER BY problem_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取题目标签分布统计 -->
+    <select id="getTagDistributionStats" resultType="java.util.HashMap">
+        SELECT 
+            tag_count,
+            COUNT(*) as problem_count
+        FROM (
+            SELECT 
+                problem_id,
+                COUNT(tag_id) as tag_count
+            FROM problem_tag_relation
+            WHERE is_deleted = 0
+            GROUP BY problem_id
+        ) t
+        GROUP BY tag_count
+        ORDER BY tag_count
+    </select>
+
+    <!-- 获取最近活跃的关联关系 -->
+    <select id="getRecentActiveRelations" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem_tag_relation
+        WHERE created_at <![CDATA[>=]]> #{startTime}
+        AND is_deleted = 0
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取基础统计数据 -->
+    <select id="getBasicStatistics" resultType="java.util.HashMap">
+        SELECT 
+            (SELECT COUNT(DISTINCT problem_id) FROM problem_tag_relation WHERE is_deleted = 0) as totalProblems,
+            (SELECT COUNT(DISTINCT tag_id) FROM problem_tag_relation WHERE is_deleted = 0) as totalTags,
+            (SELECT COUNT(*) / COUNT(DISTINCT problem_id) FROM problem_tag_relation WHERE is_deleted = 0) as avgTagsPerProblem,
+            (SELECT COUNT(*) / COUNT(DISTINCT tag_id) FROM problem_tag_relation WHERE is_deleted = 0) as avgProblemsPerTag
+    </select>
+
+    <!-- 查询相似题目（基于共同标签） -->
+    <select id="findSimilarProblems" resultType="java.lang.Long">
+        SELECT 
+            ptr2.problem_id
+        FROM problem_tag_relation ptr1
+        JOIN problem_tag_relation ptr2 ON ptr1.tag_id = ptr2.tag_id
+        WHERE ptr1.problem_id = #{problemId}
+        AND ptr2.problem_id != #{problemId}
+        AND ptr1.is_deleted = 0
+        AND ptr2.is_deleted = 0
+        GROUP BY ptr2.problem_id
+        HAVING COUNT(DISTINCT ptr1.tag_id) <![CDATA[>=]]> #{minCommonTags}
+        ORDER BY COUNT(DISTINCT ptr1.tag_id) DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询标签的相关标签 -->
+    <select id="findRelatedTags" resultType="java.lang.Long">
+        SELECT 
+            ptr2.tag_id,
+            COUNT(*) as co_occurrence
+        FROM problem_tag_relation ptr1
+        JOIN problem_tag_relation ptr2 ON ptr1.problem_id = ptr2.problem_id
+        WHERE ptr1.tag_id = #{tagId}
+        AND ptr2.tag_id != #{tagId}
+        AND ptr1.is_deleted = 0
+        AND ptr2.is_deleted = 0
+        GROUP BY ptr2.tag_id
+        ORDER BY co_occurrence DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 批量查询题目的标签名称 -->
+    <select id="getTagNamesByProblemIds" resultType="java.util.HashMap">
+        SELECT 
+            ptr.problem_id as problemId,
+            pt.name as tagName
+        FROM problem_tag_relation ptr
+        LEFT JOIN problem_tag pt ON ptr.tag_id = pt.id
+        WHERE ptr.problem_id IN
+        <foreach collection="problemIds" item="problemId" open="(" separator="," close=")">
+            #{problemId}
+        </foreach>
+        AND ptr.is_deleted = 0
+        AND pt.is_deleted = 0
+        ORDER BY ptr.problem_id, pt.name
+    </select>
+
+    <!-- 查找重复的关联记录 -->
+    <select id="findDuplicateRelations" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM problem_tag_relation ptr1
+        WHERE EXISTS (
+            SELECT 1
+            FROM problem_tag_relation ptr2
+            WHERE ptr1.problem_id = ptr2.problem_id
+            AND ptr1.tag_id = ptr2.tag_id
+            AND ptr1.id != ptr2.id
+            AND ptr1.is_deleted = 0
+            AND ptr2.is_deleted = 0
+        )
+        ORDER BY problem_id, tag_id, created_at DESC
+    </select>
+
+    <!-- 合并重复的关联记录 -->
+    <update id="mergeDuplicateRelations">
+        UPDATE problem_tag_relation ptr1
+        SET is_deleted = 1
+        WHERE EXISTS (
+            SELECT 1
+            FROM (
+                SELECT problem_id, tag_id, MIN(id) as min_id
+                FROM problem_tag_relation
+                WHERE is_deleted = 0
+                GROUP BY problem_id, tag_id
+                HAVING COUNT(*) > 1
+            ) duplicates
+            WHERE ptr1.problem_id = duplicates.problem_id
+            AND ptr1.tag_id = duplicates.tag_id
+            AND ptr1.id != duplicates.min_id
+            AND ptr1.is_deleted = 0
+        )
+    </update>
+
+    <!-- 清理孤立的关联记录 -->
+    <update id="cleanOrphanedRelations">
+        UPDATE problem_tag_relation
+        SET is_deleted = 1
+        WHERE is_deleted = 0
+        AND (
+            problem_id NOT IN (SELECT id FROM problem WHERE is_deleted = 0)
+            OR tag_id NOT IN (SELECT id FROM problem_tag WHERE is_deleted = 0)
+        )
+    </update>
+
+    <!-- 修复软删除状态不一致的记录 -->
+    <update id="fixInconsistentDeleteStatus">
+        UPDATE problem_tag_relation ptr
+        SET is_deleted = 1
+        WHERE ptr.is_deleted = 0
+        AND (
+            EXISTS (
+                SELECT 1 FROM problem p
+                WHERE p.id = ptr.problem_id AND p.is_deleted = 1
+            )
+            OR EXISTS (
+                SELECT 1 FROM problem_tag pt
+                WHERE pt.id = ptr.tag_id AND pt.is_deleted = 1
+            )
+        )
+    </update>
 
 </mapper>

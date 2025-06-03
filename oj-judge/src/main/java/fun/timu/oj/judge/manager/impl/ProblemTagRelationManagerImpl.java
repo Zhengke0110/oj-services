@@ -2,18 +2,23 @@ package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import fun.timu.oj.judge.manager.ProblemTagRelationManager;
 import fun.timu.oj.judge.mapper.ProblemTagRelationMapper;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
+import fun.timu.oj.judge.model.criteria.ProblemTagRelationQueryCondition;
+import fun.timu.oj.judge.model.criteria.RelationStatisticsReport;
+import fun.timu.oj.judge.model.criteria.TagStatistics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 题目标签关联管理器实现类
@@ -46,10 +51,6 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
      */
     @Override
     public int save(ProblemTagRelationDO problemTagRelationDO) {
-        // 设置创建时间
-        if (problemTagRelationDO.getCreatedAt() == null) {
-            problemTagRelationDO.setCreatedAt(new Date());
-        }
         // 设置默认软删除状态
         if (problemTagRelationDO.getIsDeleted() == null) {
             problemTagRelationDO.setIsDeleted(0);
@@ -172,14 +173,12 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         }
 
         // 构建批量插入的关联列表
-        Date now = new Date();
         List<ProblemTagRelationDO> relations = validTagIds.stream()
                 .map(tagId -> {
                     ProblemTagRelationDO relation = new ProblemTagRelationDO();
                     relation.setProblemId(problemId);
                     relation.setTagId(tagId);
                     relation.setIsDeleted(0);
-                    relation.setCreatedAt(now);
                     return relation;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -188,8 +187,7 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         try {
             return batchInsertRelations(relations);
         } catch (Exception e) {
-            log.error("Failed to batch add tags {} to problem {}: {}", validTagIds, problemId, e.getMessage(), e);
-            return 0;
+            throw new RuntimeException("Error batch inserting problem tags: " + e.getMessage(), e);
         }
     }
 
@@ -218,14 +216,12 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         }
 
         // 构建批量插入的关联列表
-        Date now = new Date();
         List<ProblemTagRelationDO> relations = validProblemIds.stream()
                 .map(problemId -> {
                     ProblemTagRelationDO relation = new ProblemTagRelationDO();
                     relation.setProblemId(problemId);
                     relation.setTagId(tagId);
                     relation.setIsDeleted(0);
-                    relation.setCreatedAt(now);
                     return relation;
                 })
                 .collect(java.util.stream.Collectors.toList());
@@ -234,8 +230,7 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         try {
             return batchInsertRelations(relations);
         } catch (Exception e) {
-            log.error("Failed to batch add problems {} to tag {}: {}", validProblemIds, tagId, e.getMessage(), e);
-            return 0;
+            throw new RuntimeException("Error batch inserting tag problems: " + e.getMessage(), e);
         }
     }
 
@@ -428,11 +423,7 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         }
 
         // 设置默认值
-        Date now = new Date();
         for (ProblemTagRelationDO relation : relations) {
-            if (relation.getCreatedAt() == null) {
-                relation.setCreatedAt(now);
-            }
             if (relation.getIsDeleted() == null) {
                 relation.setIsDeleted(0);
             }
@@ -462,8 +453,7 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
 
             return true;
         } catch (Exception e) {
-            log.error("Failed to replace all tags for problem {}: {}", problemId, e.getMessage(), e);
-            return false;
+            throw new RuntimeException("Failed to replace all tags for problem " + problemId + ": " + e.getMessage(), e);
         }
     }
 
@@ -488,8 +478,7 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
 
             return true;
         } catch (Exception e) {
-            log.error("Failed to replace all problems for tag {}: {}", tagId, e.getMessage(), e);
-            return false;
+            throw new RuntimeException("Failed to replace all problems for tag " + tagId + ": " + e.getMessage(), e);
         }
     }
 
@@ -557,7 +546,6 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         relation.setProblemId(problemId);
         relation.setTagId(tagId);
         relation.setIsDeleted(0);
-        relation.setCreatedAt(new Date());
 
         return problemTagRelationMapper.insert(relation) > 0;
     }
@@ -652,121 +640,345 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         return countProblemsByTagId(tagId) > 0;
     }
 
+    // ==================== 扩展功能实现 ====================
+
+    /**
+     * 批量保存问题标签关系（使用批量插入SQL提高性能）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchSaveOptimized(List<ProblemTagRelationDO> relations) {
+        if (CollectionUtils.isEmpty(relations)) {
+            return 0;
+        }
+
+        // 设置创建时间
+        LocalDateTime now = LocalDateTime.now();
+        relations.forEach(relation -> {
+            if (relation.getIsDeleted() == null) {
+                relation.setIsDeleted(relation.getIsDeleted());
+            }
+        });
+
+        return problemTagRelationMapper.batchInsertOptimized(relations);
+    }
+
+    /**
+     * 批量检查问题标签关系是否存在
+     */
+    @Override
+    public List<Long> findExistingTagIds(Long problemId, List<Long> tagIds) {
+        if (problemId == null || CollectionUtils.isEmpty(tagIds)) {
+            return new ArrayList<>();
+        }
+
+        return problemTagRelationMapper.findExistingTagIds(problemId, tagIds);
+    }
+
+    /**
+     * 为问题设置标签（先删除旧的，再添加新的）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int setProblemTags(Long problemId, List<Long> tagIds) {
+        if (problemId == null) {
+            return 0;
+        }
+
+        // 先删除所有现有关联
+        int deletedCount = removeAllTagsFromProblem(problemId);
+
+        // 如果标签列表为空，只删除不添加
+        if (CollectionUtils.isEmpty(tagIds)) {
+            return deletedCount;
+        }
+
+        // 创建新的关联关系
+        List<ProblemTagRelationDO> relations = tagIds.stream()
+                .map(tagId -> {
+                    ProblemTagRelationDO relation = new ProblemTagRelationDO();
+                    relation.setProblemId(problemId);
+                    relation.setTagId(tagId);
+                    relation.setIsDeleted(0);
+                    return relation;
+                })
+                .collect(Collectors.toList());
+
+        int insertedCount = batchSaveOptimized(relations);
+        return deletedCount + insertedCount;
+    }
+
+    /**
+     * 为标签关联问题（先删除旧的，再添加新的）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int setTagProblems(Long tagId, List<Long> problemIds) {
+        if (tagId == null) {
+            return 0;
+        }
+
+
+        // 先删除所有现有关联
+        int deletedCount = removeAllProblemsFromTag(tagId);
+
+        // 如果题目列表为空，只删除不添加
+        if (CollectionUtils.isEmpty(problemIds)) {
+            return deletedCount;
+        }
+
+        // 创建新的关联关系
+        List<ProblemTagRelationDO> relations = problemIds.stream()
+                .map(problemId -> {
+                    ProblemTagRelationDO relation = new ProblemTagRelationDO();
+                    relation.setProblemId(problemId);
+                    relation.setTagId(tagId);
+                    relation.setIsDeleted(0);
+                    return relation;
+                })
+                .collect(Collectors.toList());
+
+        int insertedCount = batchSaveOptimized(relations);
+        return deletedCount + insertedCount;
+    }
+
+    /**
+     * 分页查询题目的标签关联
+     */
+    @Override
+    public IPage<ProblemTagRelationDO> findByProblemIdWithPage(Long problemId, int page, int size) {
+        if (problemId == null || page < 1 || size < 1) {
+            return new Page<>();
+        }
+
+        Page<ProblemTagRelationDO> pageObj = new Page<>(page, size);
+        LambdaQueryWrapper<ProblemTagRelationDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProblemTagRelationDO::getProblemId, problemId)
+                .eq(ProblemTagRelationDO::getIsDeleted, false)
+                .orderByDesc(ProblemTagRelationDO::getCreatedAt);
+
+        Page<ProblemTagRelationDO> result = problemTagRelationMapper.selectPage(pageObj, wrapper);
+        return result;
+    }
+
+    /**
+     * 分页查询标签的题目关联
+     */
+    @Override
+    public IPage<ProblemTagRelationDO> findByTagIdWithPage(Long tagId, int page, int size) {
+        if (tagId == null || page < 1 || size < 1) {
+            return new Page<>();
+        }
+
+        Page<ProblemTagRelationDO> pageObj = new Page<>(page, size);
+        LambdaQueryWrapper<ProblemTagRelationDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProblemTagRelationDO::getTagId, tagId)
+                .eq(ProblemTagRelationDO::getIsDeleted, false)
+                .orderByDesc(ProblemTagRelationDO::getCreatedAt);
+
+        Page<ProblemTagRelationDO> result = problemTagRelationMapper.selectPage(pageObj, wrapper);
+        return result;
+    }
+
+    /**
+     * 根据多个条件查询关联关系
+     */
+    @Override
+    public List<ProblemTagRelationDO> findByConditions(ProblemTagRelationQueryCondition queryCondition) {
+        if (queryCondition == null) {
+            return new ArrayList<>();
+        }
+
+        return problemTagRelationMapper.findByConditions(queryCondition);
+    }
+
+    /**
+     * 查询指定时间范围内创建的关联关系
+     */
+    @Override
+    public List<ProblemTagRelationDO> findByCreateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            return new ArrayList<>();
+        }
+
+        LambdaQueryWrapper<ProblemTagRelationDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.between(ProblemTagRelationDO::getCreatedAt, startTime, endTime)
+                .eq(ProblemTagRelationDO::getIsDeleted, false)
+                .orderByDesc(ProblemTagRelationDO::getCreatedAt);
+
+        return problemTagRelationMapper.selectList(wrapper);
+    }
+
+    /**
+     * 获取热门标签统计（按关联题目数量排序）
+     */
+    @Override
+    public List<TagStatistics> getPopularTags(int limit) {
+        if (limit <= 0) {
+            return new ArrayList<>();
+        }
+
+        return problemTagRelationMapper.getPopularTags(limit);
+    }
+
+    /**
+     * 获取题目标签分布统计
+     */
+    @Override
+    public Map<Integer, Long> getTagDistributionStats() {
+        List<HashMap<String, Object>> results = problemTagRelationMapper.getTagDistributionStats();
+        return results.stream()
+                .collect(Collectors.toMap(
+                        map -> ((Number) map.get("tagCount")).intValue(),
+                        map -> ((Number) map.get("problemCount")).longValue()
+                ));
+    }
+
+    /**
+     * 获取最近活跃的关联关系
+     */
+    @Override
+    public List<ProblemTagRelationDO> getRecentActiveRelations(int days, int limit) {
+        if (days <= 0 || limit <= 0) {
+            return new ArrayList<>();
+        }
+
+        LocalDateTime startTime = LocalDateTime.now().minusDays(days);
+        return problemTagRelationMapper.getRecentActiveRelations(startTime, limit);
+    }
+
+    /**
+     * 批量修复关联关系的创建时间（如果为空）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int fixMissingCreateTime() {
+
+        LambdaUpdateWrapper<ProblemTagRelationDO> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.set(ProblemTagRelationDO::getCreatedAt, LocalDateTime.now())
+                .isNull(ProblemTagRelationDO::getCreatedAt);
+
+        int count = problemTagRelationMapper.update(null, wrapper);
+        return count;
+    }
+
+    /**
+     * 获取关联关系统计报告
+     */
+    @Override
+    public RelationStatisticsReport getStatisticsReport() {
+        RelationStatisticsReport report = new RelationStatisticsReport();
+
+        // 总关联数
+        LambdaQueryWrapper<ProblemTagRelationDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProblemTagRelationDO::getIsDeleted, false);
+        report.setTotalRelations(problemTagRelationMapper.selectCount(wrapper));
+
+        // 无标签题目数和无题目标签数
+        report.setProblemsWithoutTags(findProblemsWithoutTags().size());
+        report.setTagsWithoutProblems(findTagsWithoutProblems().size());
+
+        // 其他统计数据通过Mapper获取
+        Map<String, Object> stats = problemTagRelationMapper.getBasicStatistics();
+        if (stats != null) {
+            report.setTotalProblems(((Number) stats.getOrDefault("totalProblems", 0)).longValue());
+            report.setTotalTags(((Number) stats.getOrDefault("totalTags", 0)).longValue());
+            report.setAverageTagsPerProblem(((Number) stats.getOrDefault("avgTagsPerProblem", 0.0)).doubleValue());
+            report.setAverageProblemsPerTag(((Number) stats.getOrDefault("avgProblemsPerTag", 0.0)).doubleValue());
+        }
+
+        return report;
+    }
+
+    /**
+     * 查询相似题目（基于共同标签）
+     */
+    @Override
+    public List<Long> findSimilarProblems(Long problemId, int minCommonTags, int limit) {
+        if (problemId == null || minCommonTags <= 0 || limit <= 0) {
+            return new ArrayList<>();
+        }
+
+        return problemTagRelationMapper.findSimilarProblems(problemId, minCommonTags, limit);
+    }
+
+    /**
+     * 查询标签的相关标签（经常一起出现的标签）
+     */
+    @Override
+    public List<Long> findRelatedTags(Long tagId, int limit) {
+        if (tagId == null || limit <= 0) {
+            return new ArrayList<>();
+        }
+
+        return problemTagRelationMapper.findRelatedTags(tagId, limit);
+    }
+
+    /**
+     * 批量查询题目的标签名称
+     */
+    @Override
+    public Map<Long, List<String>> getTagNamesByProblemIds(List<Long> problemIds) {
+        if (CollectionUtils.isEmpty(problemIds)) {
+            return new HashMap<>();
+        }
+
+        List<HashMap<String, Object>> results = problemTagRelationMapper.getTagNamesByProblemIds(problemIds);
+        Map<Long, List<String>> resultMap = new HashMap<>();
+
+        for (Map<String, Object> result : results) {
+            Long problemId = ((Number) result.get("problemId")).longValue();
+            String tagName = (String) result.get("tagName");
+
+            resultMap.computeIfAbsent(problemId, k -> new ArrayList<>()).add(tagName);
+        }
+
+        return resultMap;
+    }
+
     // ==================== 数据一致性检查方法实现 ====================
 
     /**
      * 清理孤立的关联记录（题目或标签已不存在）
-     * 注意：此方法需要配合题目表和标签表的数据进行清理
-     *
-     * @return 清理的记录数量
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int cleanOrphanedRelations() {
-        try {
-            // 这里需要根据实际的题目表和标签表来清理孤立记录
-            // 由于我们无法访问这些表，先返回0，具体实现需要业务层提供
-            log.info("Cleaning orphaned relations - this method needs to be implemented with actual problem and tag table access");
-            return 0;
-        } catch (Exception e) {
-            log.error("Failed to clean orphaned relations: {}", e.getMessage(), e);
-            return 0;
-        }
+        log.info("开始清理孤立的关联记录");
+        int count = problemTagRelationMapper.cleanOrphanedRelations();
+        log.info("清理孤立关联记录数: {}", count);
+        return count;
     }
 
     /**
      * 修复软删除状态不一致的记录
-     *
-     * @return 修复的记录数量
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int fixInconsistentDeleteStatus() {
-        try {
-            // 查找可能存在的不一致状态并修复
-            // 这里可以添加具体的修复逻辑
-            log.info("Fixing inconsistent delete status - implementation depends on specific business rules");
-            return 0;
-        } catch (Exception e) {
-            log.error("Failed to fix inconsistent delete status: {}", e.getMessage(), e);
-            return 0;
-        }
+        log.info("开始修复软删除状态不一致的记录");
+        int count = problemTagRelationMapper.fixInconsistentDeleteStatus();
+        log.info("修复不一致删除状态的记录数: {}", count);
+        return count;
     }
 
     /**
-     * 获取重复的关联记录（同一题目-标签对有多条记录）
-     *
-     * @return 重复的关联记录列表
+     * 获取重复的关联记录
      */
     @Override
     public List<ProblemTagRelationDO> findDuplicateRelations() {
-        try {
-            // 查找重复记录的逻辑可以通过SQL实现
-            // 这里提供一个基本的查询逻辑
-            LambdaQueryWrapper<ProblemTagRelationDO> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(ProblemTagRelationDO::getIsDeleted, 0)
-                    .orderByAsc(ProblemTagRelationDO::getProblemId)
-                    .orderByAsc(ProblemTagRelationDO::getTagId)
-                    .orderByDesc(ProblemTagRelationDO::getCreatedAt);
-
-            List<ProblemTagRelationDO> allRelations = problemTagRelationMapper.selectList(queryWrapper);
-            List<ProblemTagRelationDO> duplicates = new java.util.ArrayList<>();
-
-            // 检查重复
-            java.util.Set<String> seen = new java.util.HashSet<>();
-            for (ProblemTagRelationDO relation : allRelations) {
-                String key = relation.getProblemId() + ":" + relation.getTagId();
-                if (!seen.add(key)) {
-                    duplicates.add(relation);
-                }
-            }
-
-            return duplicates;
-        } catch (Exception e) {
-            log.error("Failed to find duplicate relations: {}", e.getMessage(), e);
-            return List.of();
-        }
+        return problemTagRelationMapper.findDuplicateRelations();
     }
 
     /**
      * 合并重复的关联记录，保留最新的一条
-     *
-     * @return 合并的记录数量
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int mergeDuplicateRelations() {
-        try {
-            List<ProblemTagRelationDO> duplicates = findDuplicateRelations();
-            if (duplicates.isEmpty()) {
-                return 0;
-            }
-
-            int mergedCount = 0;
-            // 按problem_id和tag_id分组，保留最新的记录，删除其他的
-            java.util.Map<String, List<ProblemTagRelationDO>> groupedRelations = duplicates.stream()
-                    .collect(java.util.stream.Collectors.groupingBy(
-                            relation -> relation.getProblemId() + ":" + relation.getTagId()
-                    ));
-
-            for (List<ProblemTagRelationDO> group : groupedRelations.values()) {
-                if (group.size() > 1) {
-                    // 按创建时间排序，保留最新的
-                    group.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
-
-                    // 删除除第一个以外的所有记录
-                    for (int i = 1; i < group.size(); i++) {
-                        if (deleteById(group.get(i).getId()) > 0) {
-                            mergedCount++;
-                        }
-                    }
-                }
-            }
-
-            return mergedCount;
-        } catch (Exception e) {
-            log.error("Failed to merge duplicate relations: {}", e.getMessage(), e);
-            return 0;
-        }
+        log.info("开始合并重复的关联记录");
+        int count = problemTagRelationMapper.mergeDuplicateRelations();
+        log.info("合并重复关联记录数: {}", count);
+        return count;
     }
 }

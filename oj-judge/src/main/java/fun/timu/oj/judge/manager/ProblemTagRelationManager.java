@@ -1,7 +1,12 @@
 package fun.timu.oj.judge.manager;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
+import fun.timu.oj.judge.model.criteria.ProblemTagRelationQueryCondition;
+import fun.timu.oj.judge.model.criteria.RelationStatisticsReport;
+import fun.timu.oj.judge.model.criteria.TagStatistics;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -301,4 +306,157 @@ public interface ProblemTagRelationManager {
      * @return 合并的记录数量
      */
     int mergeDuplicateRelations();
+
+    // ==================== 性能优化功能扩展 ====================
+
+    /**
+     * 批量保存问题标签关系（使用批量插入SQL提高性能）
+     * 相比普通批量保存，该方法针对大量数据插入进行了优化
+     *
+     * @param relations 关联关系列表
+     * @return 插入的行数
+     */
+    int batchSaveOptimized(List<ProblemTagRelationDO> relations);
+
+    /**
+     * 批量检查问题标签关系是否存在
+     * 用于在批量操作前检查已存在的关联，避免重复插入
+     *
+     * @param problemId 问题ID
+     * @param tagIds    标签ID列表
+     * @return 已存在的标签ID列表
+     */
+    List<Long> findExistingTagIds(Long problemId, List<Long> tagIds);
+
+    /**
+     * 为问题设置标签（先删除旧的，再添加新的）
+     * 这是一个事务性操作，确保数据一致性
+     *
+     * @param problemId 题目ID
+     * @param tagIds    新的标签ID列表
+     * @return 操作影响的行数
+     */
+    int setProblemTags(Long problemId, List<Long> tagIds);
+
+    /**
+     * 为标签关联问题（先删除旧的，再添加新的）
+     * 这是一个事务性操作，确保数据一致性
+     *
+     * @param tagId      标签ID
+     * @param problemIds 新的问题ID列表
+     * @return 操作影响的行数
+     */
+    int setTagProblems(Long tagId, List<Long> problemIds);
+
+    // ==================== 分页查询功能 ====================
+
+    /**
+     * 分页查询题目的标签关联
+     *
+     * @param problemId 题目ID
+     * @param page      页码（从1开始）
+     * @param size      每页大小
+     * @return 分页结果
+     */
+    IPage<ProblemTagRelationDO> findByProblemIdWithPage(Long problemId, int page, int size);
+
+    /**
+     * 分页查询标签的题目关联
+     *
+     * @param tagId 标签ID
+     * @param page  页码（从1开始）
+     * @param size  每页大小
+     * @return 分页结果
+     */
+    IPage<ProblemTagRelationDO> findByTagIdWithPage(Long tagId, int page, int size);
+
+    // ==================== 条件查询功能 ====================
+
+    /**
+     * 根据多个条件查询关联关系
+     *
+     * @param queryCondition 查询条件对象
+     * @return 符合条件的关联列表
+     */
+    List<ProblemTagRelationDO> findByConditions(ProblemTagRelationQueryCondition queryCondition);
+
+    /**
+     * 查询指定时间范围内创建的关联关系
+     *
+     * @param startTime 开始时间
+     * @param endTime   结束时间
+     * @return 关联关系列表
+     */
+    List<ProblemTagRelationDO> findByCreateTimeRange(LocalDateTime startTime, LocalDateTime endTime);
+
+    // ==================== 统计分析功能 ====================
+
+    /**
+     * 获取热门标签统计（按关联题目数量排序）
+     *
+     * @param limit 返回数量限制
+     * @return 标签统计列表（按数量降序）
+     */
+    List<TagStatistics> getPopularTags(int limit);
+
+    /**
+     * 获取题目标签分布统计
+     *
+     * @return 标签数量分布统计
+     */
+    Map<Integer, Long> getTagDistributionStats();
+
+    /**
+     * 获取最近活跃的关联关系
+     *
+     * @param days  最近天数
+     * @param limit 返回数量限制
+     * @return 最近活跃的关联关系列表
+     */
+    List<ProblemTagRelationDO> getRecentActiveRelations(int days, int limit);
+
+    // ==================== 数据维护功能 ====================
+
+    /**
+     * 批量修复关联关系的创建时间（如果为空）
+     *
+     * @return 修复的关联关系数量
+     */
+    int fixMissingCreateTime();
+
+    /**
+     * 获取关联关系统计报告
+     *
+     * @return 统计报告对象
+     */
+    RelationStatisticsReport getStatisticsReport();
+
+    // ==================== 便捷查询方法 ====================
+
+    /**
+     * 查询相似题目（基于共同标签）
+     *
+     * @param problemId     题目ID
+     * @param minCommonTags 最少共同标签数
+     * @param limit         返回数量限制
+     * @return 相似题目ID列表
+     */
+    List<Long> findSimilarProblems(Long problemId, int minCommonTags, int limit);
+
+    /**
+     * 查询标签的相关标签（经常一起出现的标签）
+     *
+     * @param tagId 标签ID
+     * @param limit 返回数量限制
+     * @return 相关标签ID列表
+     */
+    List<Long> findRelatedTags(Long tagId, int limit);
+
+    /**
+     * 批量查询题目的标签名称
+     *
+     * @param problemIds 题目ID列表
+     * @return 题目ID到标签名称列表的映射
+     */
+    Map<Long, List<String>> getTagNamesByProblemIds(List<Long> problemIds);
 }
