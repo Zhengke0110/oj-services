@@ -132,8 +132,22 @@ public class ProblemStatisticsManagerImpl implements ProblemStatisticsManager {
 
     @Override
     public Map<String, Object> getCustomRangeReport(Date startDate, Date endDate, List<String> metrics) {
-        Map<String, Object> result = problemMapper.getCustomRangeReport(startDate, endDate, metrics);
-        return result;
+        Map<String, Object> result = problemMapper.getCustomRangeReport(startDate, endDate);
+
+        // 如果metrics为null或为空，则返回完整的报告
+        if (metrics == null || metrics.isEmpty()) {
+            return result;
+        }
+
+        // 创建一个新的Map，只包含metrics中指定的字段
+        Map<String, Object> filteredResult = new HashMap<>();
+        for (String metric : metrics) {
+            if (result.containsKey(metric)) {
+                filteredResult.put(metric, result.get(metric));
+            }
+        }
+
+        return filteredResult;
     }
 
 

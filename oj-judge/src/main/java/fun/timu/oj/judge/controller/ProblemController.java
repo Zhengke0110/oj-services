@@ -20,10 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 题目控制器
@@ -1056,6 +1053,38 @@ public class ProblemController {
             return JsonData.buildSuccess(report);
         } catch (Exception e) {
             log.error("ProblemController--->获取自定义报告失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取自定义报告列表
+     *
+     * @return 自定义报告列表
+     * @links {getCustomReport} 结合使用
+     */
+    @GetMapping("/report/custom/list")
+    public JsonData getCustomReportList() {
+        try {
+            log.info("ProblemController--->获取自定义报告列表");
+            ArrayList<String> strs = new ArrayList<>();
+            strs.add("low_activity_problems");
+            strs.add("problems_in_range");
+            strs.add("total_accepted");
+            strs.add("hard_count");
+            strs.add("total_views");
+            strs.add("total_problems");
+            strs.add("medium_count");
+            strs.add("zero_activity_problems");
+            strs.add("avg_acceptance_rate");
+            strs.add("unique_creators");
+            strs.add("medium_activity_problems");
+            strs.add("easy_count");
+            strs.add("high_activity_problems");
+            strs.add("total_submissions");
+            return JsonData.buildSuccess(strs);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取自定义报告列表失败: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.SYSTEM_ERROR);
         }
     }

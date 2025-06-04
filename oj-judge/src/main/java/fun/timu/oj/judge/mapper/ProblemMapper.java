@@ -307,10 +307,9 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      *
      * @param startDate 开始时间
      * @param endDate   结束时间
-     * @param metrics   指标列表
      * @return 自定义报表数据
      */
-    HashMap<String, Object> getCustomRangeReport(@Param("startDate") Date startDate, @Param("endDate") Date endDate, @Param("metrics") List<String> metrics);
+    HashMap<String, Object> getCustomRangeReport(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
     /**
      * 获取周度报表数据
