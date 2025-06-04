@@ -6,6 +6,4 @@ import java.util.Map;
 
 public interface ProblemTrendService {
     List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
-
-    List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity);
 }

@@ -259,11 +259,6 @@ public class ProblemServiceImpl implements ProblemService {
         return trendService.getProblemCreationTrend(startDate, endDate, granularity);
     }
 
-    @Override
-    public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
-        return trendService.getSubmissionTrendAnalysis(startDate, endDate, granularity);
-    }
-
 
     // ==================== 排名类方法实现 ====================
 

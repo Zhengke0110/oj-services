@@ -681,24 +681,13 @@ public class ProblemManagerImpl implements ProblemManager {
     @Override
     public List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity) {
         TrendCriteria criteria = TrendCriteria.builder().type(TrendType.PROBLEM_CREATION).startTime(startDate).endTime(endDate).timeGranularity(granularity).build();
-        return getTrendAnalysis(criteria);
+        List<Map<String, Object>> analysis = getTrendAnalysis(criteria);
+        // 使用工具类处理每条记录，增强数据
+        List<Map<String, Object>> enhancedResult = analysis.stream()
+                .map(StatisticsUtils::enhanceProblemTrendData)
+                .collect(Collectors.toList());
+        return enhancedResult;
     }
-
-    /**
-     * 获取提交趋势分析
-     *
-     * @param startDate   开始日期
-     * @param endDate     结束日期
-     * @param granularity 时间粒度
-     * @return 提交趋势数据
-     */
-    @Override
-    public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
-        // 使用统一接口替代旧的实现
-        TrendCriteria criteria = TrendCriteria.builder().type(TrendType.SUBMISSION_TREND).startTime(startDate).endTime(endDate).timeGranularity(granularity).build();
-        return getTrendAnalysis(criteria);
-    }
-
     /**
      * 获取通过率趋势分析
      *

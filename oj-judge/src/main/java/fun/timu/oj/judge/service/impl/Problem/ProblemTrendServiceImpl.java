@@ -45,35 +45,4 @@ public class ProblemTrendServiceImpl implements ProblemTrendService {
             throw new RuntimeException("获取题目创建趋势失败", e);
         }
     }
-
-    /**
-     * 获取提交趋势分析
-     *
-     * @param startDate   开始日期
-     * @param endDate     结束日期
-     * @param granularity 时间粒度
-     * @return 提交趋势数据
-     */
-    @Override
-    public List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity) {
-        try {
-            log.info("ProblemService--->获取提交趋势分析, 开始日期: {}, 结束日期: {}, 粒度: {}", startDate, endDate, granularity);
-            
-            // TODO 多表联查优化：在ProblemStatisticsManager中优化getSubmissionTrendAnalysis()方法
-            // TODO 通过全面的多表联查分析提交趋势的深层规律：
-            // TODO 1. JOIN problem_tag_relation 和 problem_tag 表分析不同算法标签的提交趋势差异
-            // TODO 2. JOIN user 表分析用户群体的提交行为模式变化和用户留存趋势
-            // TODO 3. 分析提交趋势与题目难度、类型、标签的关联性
-            // TODO 4. 调用ProblemTagRelationManager.getPopularTags()分析热门标签在提交趋势中的影响
-            // TODO 5. 调用ProblemTagRelationManager.getRecentActiveRelations()分析最近活跃的标签关联对提交的促进作用
-            // TODO 6. 为平台运营提供用户行为洞察和题目优化建议
-            List<Map<String, Object>> result = problemManager.getSubmissionTrendAnalysis(startDate, endDate, granularity);
-            
-            log.info("ProblemService--->获取提交趋势分析成功");
-            return result;
-        } catch (Exception e) {
-            log.error("ProblemService--->获取提交趋势分析失败: {}", e.getMessage(), e);
-            throw new RuntimeException("获取提交趋势分析失败", e);
-        }
-    }
 }

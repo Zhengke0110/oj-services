@@ -182,4 +182,51 @@ public abstract class StatisticsUtils {
         stats.put("difficulty_label", ProblemDifficultyEnum.getDescriptionByCode(difficulty));
         return stats;
     }
+
+    /**
+     * 增强题目创建趋势数据
+     * TODO 后续这将会转成实体类
+     * @param trendData 原始趋势数据
+     * @return 增强后的趋势数据
+     */
+    public static Map<String, Object> enhanceProblemTrendData(Map<String, Object> trendData) {
+        if (trendData == null) {
+            return new HashMap<>();
+        }
+
+        // 创建新的Map，避免修改原始数据
+        Map<String, Object> enhancedData = new HashMap<>(trendData);
+
+        // 处理内存限制 - 从字节转换为MB
+        if (enhancedData.containsKey("avg_memory_limit")) {
+            double memoryLimitBytes = ((Number) enhancedData.get("avg_memory_limit")).doubleValue();
+            double memoryLimitMB = memoryLimitBytes / (1024 * 1024);
+            enhancedData.put("memory_limit_mb", Math.round(memoryLimitMB));
+            enhancedData.put("memory_limit_readable", String.format("%.0f MB", memoryLimitMB));
+        }
+
+        // 处理时间限制 - 从毫秒美化显示
+        if (enhancedData.containsKey("avg_time_limit")) {
+            double timeLimitMs = ((Number) enhancedData.get("avg_time_limit")).doubleValue();
+            if (timeLimitMs >= 1000) {
+                enhancedData.put("time_limit_readable", String.format("%.1f s", timeLimitMs / 1000));
+            } else {
+                enhancedData.put("time_limit_readable", String.format("%.0f ms", timeLimitMs));
+            }
+        }
+
+        // 计算难度分布百分比
+        int totalProblems = ((Number) enhancedData.getOrDefault("problems_created", 0)).intValue();
+        if (totalProblems > 0) {
+            int easyProblems = ((Number) enhancedData.getOrDefault("easy_problems", 0)).intValue();
+            int mediumProblems = ((Number) enhancedData.getOrDefault("medium_problems", 0)).intValue();
+            int hardProblems = ((Number) enhancedData.getOrDefault("hard_problems", 0)).intValue();
+
+            enhancedData.put("easy_percent", Math.round((double) easyProblems / totalProblems * 100));
+            enhancedData.put("medium_percent", Math.round((double) mediumProblems / totalProblems * 100));
+            enhancedData.put("hard_percent", Math.round((double) hardProblems / totalProblems * 100));
+        }
+
+        return enhancedData;
+    }
 }

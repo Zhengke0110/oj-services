@@ -329,16 +329,6 @@ public interface ProblemService {
     List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
 
 
-    /**
-     * 获取提交趋势分析
-     *
-     * @param startDate   开始日期
-     * @param endDate     结束日期
-     * @param granularity 时间粒度
-     * @return 提交趋势数据
-     */
-    List<Map<String, Object>> getSubmissionTrendAnalysis(Date startDate, Date endDate, String granularity);
-
 
     // ==================== 排名类方法 ====================
 

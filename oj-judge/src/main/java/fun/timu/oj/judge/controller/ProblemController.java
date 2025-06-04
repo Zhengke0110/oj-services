@@ -804,25 +804,6 @@ public class ProblemController {
         }
     }
 
-    /**
-     * 获取提交趋势分析
-     *
-     * @param startDate   开始日期
-     * @param endDate     结束日期
-     * @param granularity 时间粒度（day/week/month）
-     * @return 提交趋势数据
-     */
-    @GetMapping("/trend/submission")
-    public JsonData getSubmissionTrendAnalysis(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate, @RequestParam(defaultValue = "day") String granularity) {
-        try {
-            log.info("ProblemController--->获取提交趋势分析, 开始日期: {}, 结束日期: {}, 时间粒度: {}", startDate, endDate, granularity);
-            List<Map<String, Object>> trendData = problemService.getSubmissionTrendAnalysis(startDate, endDate, granularity);
-            return JsonData.buildSuccess(trendData);
-        } catch (Exception e) {
-            log.error("ProblemController--->获取提交趋势分析失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
-        }
-    }
 
     // ==================== 排名类接口 ====================
 
