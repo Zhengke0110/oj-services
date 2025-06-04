@@ -7,6 +7,7 @@ import fun.timu.oj.judge.model.criteria.RankingCriteria;
 import fun.timu.oj.judge.model.criteria.TrendCriteria;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -154,5 +155,5 @@ public interface ProblemStatisticsManager {
      * @param request 统一统计请求，包含范围、过滤条件等参数
      * @return 统计数据的原始HashMap
      */
-    Map<String, Object> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request);
+    List<HashMap<String, Object>> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request);
 }

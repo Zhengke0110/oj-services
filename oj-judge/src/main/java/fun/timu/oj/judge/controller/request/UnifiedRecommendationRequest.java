@@ -36,8 +36,8 @@ public class UnifiedRecommendationRequest {
     /**
      * 难度限制
      */
-    @Min(value = 1, message = "难度必须大于0")
-    @Max(value = 5, message = "难度不能大于5")
+    @Min(value = 0, message = "难度必须大于等于0")
+    @Max(value = 2, message = "难度不能2")
     private Integer difficulty;
     
     /**

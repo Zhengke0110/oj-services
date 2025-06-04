@@ -14,6 +14,7 @@ import fun.timu.oj.judge.model.criteria.TrendCriteria;
 import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -570,7 +571,7 @@ public interface ProblemManager {
      * @param request 统一统计请求参数
      * @return 统计数据的原始HashMap
      */
-    Map<String, Object> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request);
+    List<HashMap<String, Object>> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request);
 
 
     /**

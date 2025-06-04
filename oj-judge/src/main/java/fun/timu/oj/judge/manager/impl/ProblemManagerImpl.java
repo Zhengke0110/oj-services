@@ -17,6 +17,7 @@ import fun.timu.oj.judge.model.DTO.ProblemStatisticsDTO;
 import fun.timu.oj.judge.model.Enums.*;
 import fun.timu.oj.judge.model.criteria.*;
 import fun.timu.oj.judge.model.VTO.UnifiedStatisticsVTO;
+import fun.timu.oj.judge.utils.StatisticsUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class ProblemManagerImpl implements ProblemManager {
     private final ProblemBatchManager problemBatchManager;
     private final ProblemRecommendationManager problemRecommendationManager;
     private final ProblemStatisticsManager problemStatisticsManager;
+
     @Override
     public ProblemDO getById(Long id) {
         return problemCoreManager.getById(id);
@@ -189,19 +191,26 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<ProblemStatisticsDTO> getProblemStatistics() {
+        try {
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.BASIC)
+                    .build();
 
-        // 使用统一接口替代旧的实现
-        BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder().scope(StatisticsScope.BASIC).build();
+            List<HashMap<String, Object>> rawDataList = getUnifiedStatisticsRaw(request);
 
-        Map<String, Object> rawData = getUnifiedStatisticsRaw(request);
+            // 转换数据格式以保持向后兼容
+            if (rawDataList == null || rawDataList.isEmpty()) {
+                return Collections.emptyList();
+            }
 
-        // 转换数据格式以保持向后兼容
-        List<Map<String, Object>> statisticsList = (List<Map<String, Object>>) rawData.get("categoryStatistics");
-        if (statisticsList == null) {
-            return Collections.emptyList();
+            // 正确处理List类型，每个元素都转换为DTO
+            return rawDataList.stream()
+                    .map(data -> ProblemStatisticsDTO.fromMap(data))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("获取题目统计信息失败: " + e.getMessage(), e);
         }
-
-        return statisticsList.stream().map(ProblemStatisticsDTO::fromMap).collect(Collectors.toList());
     }
 
     /**
@@ -317,20 +326,55 @@ public class ProblemManagerImpl implements ProblemManager {
      * 获取题目详细统计信息
      * 该方法通过调用Mapper层获取包含题目各维度的统计数据
      *
-     * @return 包含详细统计数据的HashMap
+     * @return 包含详细统计数据的ProblemDetailStatisticsDTO
+     */
+    /**
+     * 获取题目详细统计信息
+     * 该方法通过调用Mapper层获取包含题目各维度的统计数据
+     *
+     * @return 包含详细统计数据的ProblemDetailStatisticsDTO列表
      */
     @Override
     public ProblemDetailStatisticsDTO getProblemDetailStatistics() {
+        try {
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.DETAILED)
+                    .build();
 
-        // 使用统一接口替代旧的实现
-        BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder().scope(StatisticsScope.DETAILED).build();
+            List<HashMap<String, Object>> rawDataList = getUnifiedStatisticsRaw(request);
+            if (rawDataList == null || rawDataList.isEmpty()) {
+                return null;
+            }
+            HashMap<String, Object> data = rawDataList.get(0);
 
-        Map<String, Object> rawData = getUnifiedStatisticsRaw(request);
-        if (rawData == null || rawData.isEmpty()) {
-            throw new RuntimeException("获取题目详细统计信息失败");
+            // 将每条原始数据转换为DTO对象
+            return ProblemDetailStatisticsDTO.fromMap(data);
+        } catch (Exception e) {
+            throw new RuntimeException("获取题目详细统计信息失败: " + e.getMessage(), e);
         }
+    }
 
-        return ProblemDetailStatisticsDTO.fromMap(rawData);
+    /**
+     * 安全地从Map中获取Long值
+     *
+     * @param data 数据Map
+     * @param key  键名
+     * @return Long值，如果不存在或无法转换则返回0
+     */
+    private long getLongValue(Map<String, Object> data, String key) {
+        Object value = data.get(key);
+        if (value == null) {
+            return 0L;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
     }
 
     /**
@@ -390,8 +434,11 @@ public class ProblemManagerImpl implements ProblemManager {
             limit = 10; // 默认返回10条记录
         }
 
+        // TODO 这里还需要添加: tags的逻辑 应该由Service层查询出结果传递下来或直接调用Manager层的查询tags逻辑
         // 使用统一推荐接口替代旧的实现
         RecommendationCriteria criteria = RecommendationCriteria.builder().type(RecommendationType.SIMILARITY).baseProblemId(problemId).difficulty(difficulty).problemType(problemType).limit(limit).build();
+
+
         return getRecommendedProblems(criteria);
     }
 
@@ -463,9 +510,66 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public Map<String, Object> getOverallStatistics() {
-        // 使用统一接口替代旧的实现
-        BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder().scope(StatisticsScope.OVERALL).build();
-        return getUnifiedStatisticsRaw(request);
+        try {
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.OVERALL)
+                    .build();
+
+            List<HashMap<String, Object>> rawDataList = getUnifiedStatisticsRaw(request);
+
+            // 如果返回列表为空，返回空的Map
+            if (rawDataList == null || rawDataList.isEmpty()) {
+                return new HashMap<>();
+            }
+
+            // 对于总体统计，我们需要处理可能的多条记录
+            if (rawDataList.size() == 1) {
+                // 只有一条记录，直接返回
+                return new HashMap<>(rawDataList.get(0));
+            } else {
+                // 多条记录，需要合并统计数据
+                return mergeOverallStatistics(rawDataList);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("获取总体统计信息失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 合并多条总体统计数据
+     *
+     * @param rawDataList 原始数据列表
+     * @return 合并后的统计数据
+     */
+    private Map<String, Object> mergeOverallStatistics(List<HashMap<String, Object>> rawDataList) {
+        Map<String, Object> mergedData = new HashMap<>();
+
+        // 初始化累计值
+        long totalProblems = 0;
+        long totalSubmissions = 0;
+        long totalUsers = 0;
+        long totalAccepted = 0;
+
+        // 累加各项统计数据
+        for (HashMap<String, Object> data : rawDataList) {
+            totalProblems += getLongValue(data, "totalProblems");
+            totalSubmissions += getLongValue(data, "totalSubmissions");
+            totalUsers += getLongValue(data, "totalUsers");
+            totalAccepted += getLongValue(data, "totalAccepted");
+        }
+
+        // 计算总体通过率
+        double overallAcceptanceRate = totalSubmissions > 0 ? (double) totalAccepted / totalSubmissions : 0.0;
+
+        // 构建合并后的数据
+        mergedData.put("totalProblems", totalProblems);
+        mergedData.put("totalSubmissions", totalSubmissions);
+        mergedData.put("totalUsers", totalUsers);
+        mergedData.put("totalAccepted", totalAccepted);
+        mergedData.put("overallAcceptanceRate", overallAcceptanceRate);
+
+        return mergedData;
     }
 
     /**
@@ -475,9 +579,18 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<Map<String, Object>> getStatisticsByDifficulty() {
-        // 使用统一分布统计接口替代旧的实现
+        // 使用统一分布统计接口获取基础数据
         DistributionCriteria criteria = DistributionCriteria.builder().dimension(DistributionDimension.DIFFICULTY).build();
-        return getDistributionStatistics(criteria);
+        List<Map<String, Object>> resultList = getDistributionStatistics(criteria);
+
+        // 遍历结果，添加难度文本描述
+        for (Map<String, Object> item : resultList) {
+            Integer difficulty = (Integer) item.get("dimension_value");
+            // 添加难度文本描述
+            item.put("difficulty_label", ProblemDifficultyEnum.getDescriptionByCode(difficulty));
+        }
+
+        return resultList;
     }
 
     /**
@@ -487,9 +600,15 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<Map<String, Object>> getStatisticsByType() {
-        // 使用统一分布统计接口替代旧的实现
+        // TODO 需要将返回值转化成实体类
+        // 使用统一分布统计接口获取基础数据
         DistributionCriteria criteria = DistributionCriteria.builder().dimension(DistributionDimension.TYPE).build();
-        return getDistributionStatistics(criteria);
+        List<Map<String, Object>> resultList = getDistributionStatistics(criteria);
+
+        // 为每条记录添加类型描述
+        return resultList.stream()
+                .map(StatisticsUtils::addTypeDescription)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -499,9 +618,42 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<Map<String, Object>> getStatisticsByLanguage() {
-        // 使用统一分布统计接口替代旧的实现
+        // 使用统一分布统计接口获取基础数据
         DistributionCriteria criteria = DistributionCriteria.builder().dimension(DistributionDimension.LANGUAGE).build();
-        return getDistributionStatistics(criteria);
+        List<Map<String, Object>> rawDataList = getDistributionStatistics(criteria);
+
+        // 创建每种语言的统计映射
+        Map<String, Map<String, Object>> languageStatsMap = new HashMap<>();
+
+        // 遍历原始数据，解析语言组合并累加统计数据
+        for (Map<String, Object> item : rawDataList) {
+            String languagesJson = (String) item.get("dimension_value");
+            List<String> languages = StatisticsUtils.parseLanguageArray(languagesJson);
+
+            // 提取当前记录的统计数据
+            long activeProblems = ((Number) item.get("active_problems")).longValue();
+            long totalProblems = ((Number) item.get("total_problems")).longValue();
+            long totalSubmissions = ((Number) item.get("total_submissions")).longValue();
+            long totalAccepted = ((Number) item.get("total_accepted")).longValue();
+
+            // 为每种语言更新统计数据
+            for (String language : languages) {
+                Map<String, Object> languageStats = languageStatsMap.computeIfAbsent(language,
+                        StatisticsUtils::initLanguageStats);
+
+                // 累加统计数据
+                StatisticsUtils.updateLanguageStats(languageStats, activeProblems, totalProblems,
+                        totalSubmissions, totalAccepted);
+            }
+        }
+
+        // 计算每种语言的百分比和通过率
+        StatisticsUtils.calculateLanguagePercentages(languageStatsMap);
+
+        // 将Map转换为列表并添加语言描述
+        return languageStatsMap.values().stream()
+                .map(StatisticsUtils::addLanguageDescription)
+                .collect(Collectors.toList());
     }
 
 
@@ -512,6 +664,7 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public List<Map<String, Object>> getStatisticsByStatus() {
+        // TODO 需要将返回值转化成实体类
         // 使用统一分布统计接口替代旧的实现
         DistributionCriteria criteria = DistributionCriteria.builder().dimension(DistributionDimension.STATUS).build();
         return getDistributionStatistics(criteria);
@@ -708,10 +861,68 @@ public class ProblemManagerImpl implements ProblemManager {
      */
     @Override
     public Map<String, Object> getDashboardStatistics() {
-        // 使用统一接口替代旧的实现
-        BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder().scope(StatisticsScope.DASHBOARD).build();
+        try {
+            // 使用统一接口替代旧的实现
+            BatchProblemRequest.UnifiedStatisticsRequest request = BatchProblemRequest.UnifiedStatisticsRequest.builder()
+                    .scope(StatisticsScope.DASHBOARD)
+                    .build();
 
-        return getUnifiedStatisticsRaw(request);
+            List<HashMap<String, Object>> rawDataList = getUnifiedStatisticsRaw(request);
+
+            // 如果返回列表为空，返回空的Map
+            if (rawDataList == null || rawDataList.isEmpty()) {
+                return new HashMap<>();
+            }
+
+            // 对于仪表盘统计，我们需要处理可能的多条记录
+            if (rawDataList.size() == 1) {
+                // 只有一条记录，直接返回
+                return new HashMap<>(rawDataList.get(0));
+            } else {
+                // 多条记录，需要合并统计数据
+                return mergeDashboardStatistics(rawDataList);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("获取仪表盘统计信息失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 合并多条仪表盘统计数据
+     *
+     * @param rawDataList 原始数据列表
+     * @return 合并后的统计数据
+     */
+    private Map<String, Object> mergeDashboardStatistics(List<HashMap<String, Object>> rawDataList) {
+        Map<String, Object> mergedData = new HashMap<>();
+
+        // 初始化累计值
+        long totalProblems = 0;
+        long totalSubmissions = 0;
+        long totalUsers = 0;
+        long dailySubmissions = 0;
+        long weeklySubmissions = 0;
+        long monthlySubmissions = 0;
+
+        // 累加各项统计数据
+        for (HashMap<String, Object> data : rawDataList) {
+            totalProblems += getLongValue(data, "totalProblems");
+            totalSubmissions += getLongValue(data, "totalSubmissions");
+            totalUsers += getLongValue(data, "totalUsers");
+            dailySubmissions += getLongValue(data, "dailySubmissions");
+            weeklySubmissions += getLongValue(data, "weeklySubmissions");
+            monthlySubmissions += getLongValue(data, "monthlySubmissions");
+        }
+
+        // 构建合并后的数据
+        mergedData.put("totalProblems", totalProblems);
+        mergedData.put("totalSubmissions", totalSubmissions);
+        mergedData.put("totalUsers", totalUsers);
+        mergedData.put("dailySubmissions", dailySubmissions);
+        mergedData.put("weeklySubmissions", weeklySubmissions);
+        mergedData.put("monthlySubmissions", monthlySubmissions);
+
+        return mergedData;
     }
 
     /**
@@ -871,7 +1082,7 @@ public class ProblemManagerImpl implements ProblemManager {
      * @return 原始统计数据Map
      */
     @Override
-    public Map<String, Object> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request) {
+    public List<HashMap<String, Object>> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request) {
         return problemStatisticsManager.getUnifiedStatisticsRaw(request);
     }
 

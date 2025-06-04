@@ -6,6 +6,7 @@ import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.*;
+import fun.timu.oj.judge.model.Enums.RankingType;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
@@ -77,6 +78,7 @@ public class ProblemController {
 
     /**
      * 获取当前登录用户创建的题目列表
+     * TODO: 考虑使用分页
      *
      * @return 当前用户创建的题目列表
      */
@@ -187,6 +189,7 @@ public class ProblemController {
 
     /**
      * 获取热门题目列表
+     * TODO 后续需要添加分页
      *
      * @param request 包含查询参数的请求对象
      * @return 热门题目列表
@@ -217,8 +220,7 @@ public class ProblemController {
     @PostMapping("/recommendations")
     public JsonData getUnifiedRecommendations(@Valid @RequestBody UnifiedRecommendationRequest request) {
         try {
-            log.info("ProblemController--->获取统一推荐题目请求, 推荐类型: {}, 参数: {}",
-                    request.getType(), request);
+            log.info("ProblemController--->获取统一推荐题目请求, 推荐类型: {}, 参数: {}", request.getType(), request);
 
             // 构建推荐条件
             RecommendationCriteria criteria = buildRecommendationCriteria(request);
@@ -234,7 +236,7 @@ public class ProblemController {
             }
         } catch (Exception e) {
             log.error("ProblemController--->获取统一推荐题目异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR, "获取推荐题目失败");
         }
     }
 
@@ -403,6 +405,7 @@ public class ProblemController {
 
     /**
      * 获取指定题目的通过率
+     * TODO 需要优化返回值 不应该是Map
      *
      * @param problemId 题目ID
      * @return 通用响应对象，包含题目的通过率
@@ -458,6 +461,8 @@ public class ProblemController {
 
     /**
      * 获取最受欢迎的题目类型和难度组合
+     * <p>
+     * 聚合：数据展示用
      *
      * @param limit 返回结果数量限制
      * @return 包含题目类型、难度及其统计信息的列表
@@ -484,16 +489,11 @@ public class ProblemController {
      * @return 分页题目列表结果
      */
     @GetMapping("/date-range")
-    public JsonData selectByDateRange(
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize) {
+    public JsonData selectByDateRange(@RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate, @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate, @RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "10") int pageSize) {
         try {
             // 调用Service层方法获取时间范围内的题目
             PageResult<ProblemVO> result = problemService.selectByDateRange(startDate, endDate, pageNum, pageSize);
-            log.info("ProblemController--->成功查询时间范围内的题目，开始时间：{}，结束时间：{}，页码：{}，每页数量：{}",
-                    startDate, endDate, pageNum, pageSize);
+            log.info("ProblemController--->成功查询时间范围内的题目，开始时间：{}，结束时间：{}，页码：{}，每页数量：{}", startDate, endDate, pageNum, pageSize);
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->根据创建时间范围查询题目失败: {}", e.getMessage(), e);
@@ -502,7 +502,8 @@ public class ProblemController {
     }
 
     /**
-     * TODO（未测试 目前暂未实现问题与标签的关联）查询相似题目（基于标签和难度）
+     * 查询相似题目（基于难度）
+     * TODO 后续需要修改 考虑使用单独的Mapper接口 提供支持标签查询的功能（由题目关联获取）
      *
      * @param request 包含problemId、difficulty、problemType和limit的请求对象
      * @return 相似题目列表
@@ -514,12 +515,7 @@ public class ProblemController {
             return JsonData.buildError("题目ID不能为空或无效");
         }
 
-        List<ProblemVO> problems = problemService.findSimilarProblems(
-                request.getProblemId(),
-                request.getDifficulty(),
-                request.getProblemType(),
-                request.getLimit()
-        );
+        List<ProblemVO> problems = problemService.findSimilarProblems(request.getProblemId(), request.getDifficulty(), request.getProblemType(), request.getLimit());
 
         return JsonData.buildSuccess(problems);
     }
@@ -533,8 +529,7 @@ public class ProblemController {
     @PutMapping("/batch-visibility")
     public JsonData batchUpdateVisibility(@Valid @RequestBody BatchUpdateVisibilityRequest request) {
         try {
-            log.info("ProblemController--->批量更新题目可见性请求, 题目数量: {}, 目标可见性: {}",
-                    request.getProblemIds().size(), request.getVisibility());
+            log.info("ProblemController--->批量更新题目可见性请求, 题目数量: {}, 目标可见性: {}", request.getProblemIds().size(), request.getVisibility());
 
             boolean result = problemService.batchUpdateVisibility(request.getProblemIds(), request.getVisibility());
 
@@ -557,19 +552,14 @@ public class ProblemController {
     @PutMapping("/batch-limits")
     public JsonData batchUpdateLimits(@Valid @RequestBody BatchUpdateLimitsRequest request) {
         try {
-            log.info("ProblemController--->批量更新题目时间和内存限制请求, 题目数量: {}, 时间限制: {}, 内存限制: {}",
-                    request.getProblemIds().size(), request.getTimeLimit(), request.getMemoryLimit());
+            log.info("ProblemController--->批量更新题目时间和内存限制请求, 题目数量: {}, 时间限制: {}, 内存限制: {}", request.getProblemIds().size(), request.getTimeLimit(), request.getMemoryLimit());
 
             // 参数校验 - 至少要有一个不为null
             if (request.getTimeLimit() == null && request.getMemoryLimit() == null) {
                 return JsonData.buildError("时间限制和内存限制至少需要指定一个");
             }
 
-            boolean result = problemService.batchUpdateLimits(
-                    request.getProblemIds(),
-                    request.getTimeLimit(),
-                    request.getMemoryLimit()
-            );
+            boolean result = problemService.batchUpdateLimits(request.getProblemIds(), request.getTimeLimit(), request.getMemoryLimit());
 
             if (!result) {
                 throw new RuntimeException("批量更新题目时间和内存限制失败");
@@ -619,13 +609,9 @@ public class ProblemController {
      * @return 分页结果，包含符合条件的题目列表
      */
     @GetMapping("/stale")
-    public JsonData getStaleProblems(
-            @RequestParam(defaultValue = "30") @Positive(message = "天数必须为正数") int days,
-            @RequestParam(defaultValue = "1") @Positive(message = "页码必须为正数") int pageNum,
-            @RequestParam(defaultValue = "10") @Positive(message = "每页大小必须为正数") int pageSize) {
+    public JsonData getStaleProblems(@RequestParam(defaultValue = "30") @Positive(message = "天数必须为正数") int days, @RequestParam(defaultValue = "1") @Positive(message = "页码必须为正数") int pageNum, @RequestParam(defaultValue = "10") @Positive(message = "每页大小必须为正数") int pageSize) {
         try {
-            log.info("ProblemController--->查询长时间未更新的题目, 超过{}天, 页码: {}, 每页大小: {}",
-                    days, pageNum, pageSize);
+            log.info("ProblemController--->查询长时间未更新的题目, 超过{}天, 页码: {}, 每页大小: {}", days, pageNum, pageSize);
 
             PageResult<ProblemVO> result = problemService.selectStaleProblems(days, pageNum, pageSize);
             return JsonData.buildSuccess(result);
@@ -643,9 +629,7 @@ public class ProblemController {
      * @return 分页结果，包含零提交的题目列表
      */
     @GetMapping("/no-submissions")
-    public JsonData getProblemsWithoutSubmissions(
-            @RequestParam(defaultValue = "1") @Positive(message = "页码必须为正数") int pageNum,
-            @RequestParam(defaultValue = "10") @Positive(message = "每页大小必须为正数") int pageSize) {
+    public JsonData getProblemsWithoutSubmissions(@RequestParam(defaultValue = "1") @Positive(message = "页码必须为正数") int pageNum, @RequestParam(defaultValue = "10") @Positive(message = "每页大小必须为正数") int pageSize) {
         try {
             log.info("ProblemController--->查询零提交的题目, 页码: {}, 每页大小: {}", pageNum, pageSize);
 
@@ -726,6 +710,342 @@ public class ProblemController {
         criteria.setTimeRange(request.getTimeRange());
         criteria.setLimit(request.getLimit());
         return criteria;
+    }
+
+    // ==================== 分布统计类接口 ====================
+
+    /**
+     * 按难度获取统计信息
+     *
+     * @return 各难度级别的题目统计信息
+     */
+    @GetMapping("/statistics/difficulty")
+    public JsonData getStatisticsByDifficulty() {
+        try {
+            log.info("ProblemController--->按难度获取统计信息");
+            List<Map<String, Object>> statistics = problemService.getStatisticsByDifficulty();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("ProblemController--->按难度获取统计信息失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 按题目类型获取统计信息
+     *
+     * @return 各题目类型的统计信息
+     */
+    @GetMapping("/statistics/type")
+    public JsonData getStatisticsByType() {
+        try {
+            log.info("ProblemController--->按题目类型获取统计信息");
+            List<Map<String, Object>> statistics = problemService.getStatisticsByType();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("ProblemController--->按题目类型获取统计信息失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 按编程语言获取统计信息
+     *
+     * @return 各编程语言的统计信息
+     */
+    @GetMapping("/statistics/language")
+    public JsonData getStatisticsByLanguage() {
+        try {
+            log.info("ProblemController--->按编程语言获取统计信息");
+            List<Map<String, Object>> statistics = problemService.getStatisticsByLanguage();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("ProblemController--->按编程语言获取统计信息失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 按状态获取统计信息
+     *
+     * @return 各状态的统计信息
+     */
+    @GetMapping("/statistics/status")
+    public JsonData getStatisticsByStatus() {
+        try {
+            log.info("ProblemController--->按状态获取统计信息");
+            List<Map<String, Object>> statistics = problemService.getStatisticsByStatus();
+            return JsonData.buildSuccess(statistics);
+        } catch (Exception e) {
+            log.error("ProblemController--->按状态获取统计信息失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    // ==================== 趋势分析类接口 ====================
+
+    /**
+     * 获取题目创建趋势
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度（day/week/month）
+     * @return 题目创建趋势数据
+     */
+    @GetMapping("/trend/creation")
+    public JsonData getProblemCreationTrend(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate, @RequestParam(defaultValue = "day") String granularity) {
+        try {
+            log.info("ProblemController--->获取题目创建趋势, 开始日期: {}, 结束日期: {}, 时间粒度: {}", startDate, endDate, granularity);
+            List<Map<String, Object>> trendData = problemService.getProblemCreationTrend(startDate, endDate, granularity);
+            return JsonData.buildSuccess(trendData);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取题目创建趋势失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取提交趋势分析
+     *
+     * @param startDate   开始日期
+     * @param endDate     结束日期
+     * @param granularity 时间粒度（day/week/month）
+     * @return 提交趋势数据
+     */
+    @GetMapping("/trend/submission")
+    public JsonData getSubmissionTrendAnalysis(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate, @RequestParam(defaultValue = "day") String granularity) {
+        try {
+            log.info("ProblemController--->获取提交趋势分析, 开始日期: {}, 结束日期: {}, 时间粒度: {}", startDate, endDate, granularity);
+            List<Map<String, Object>> trendData = problemService.getSubmissionTrendAnalysis(startDate, endDate, granularity);
+            return JsonData.buildSuccess(trendData);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取提交趋势分析失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    // ==================== 排名类接口 ====================
+
+    /**
+     * 获取热门题目排行榜
+     *
+     * @param limit     限制数量，默认10
+     * @param timeRange 时间范围（天数），默认30天
+     * @return 热门题目排行榜
+     */
+    @GetMapping("/ranking/popular")
+    public JsonData getPopularProblemsRanking(@RequestParam(defaultValue = "10") Integer limit, @RequestParam(defaultValue = "30") Integer timeRange) {
+        try {
+            log.info("ProblemController--->获取热门题目排行榜, 限制数量: {}, 时间范围: {}天", limit, timeRange);
+            List<Map<String, Object>> ranking = problemService.getPopularProblemsRanking(limit, timeRange);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取热门题目排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取最难题目排行榜
+     *
+     * @param limit 限制数量，默认10
+     * @return 最难题目排行榜
+     */
+    @GetMapping("/ranking/hardest")
+    public JsonData getHardestProblemsRanking(@RequestParam(defaultValue = "10") Integer limit) {
+        try {
+            log.info("ProblemController--->获取最难题目排行榜, 限制数量: {}", limit);
+            List<Map<String, Object>> ranking = problemService.getHardestProblemsRanking(limit);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取最难题目排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取最容易题目排行榜
+     *
+     * @param limit 限制数量，默认10
+     * @return 最容易题目排行榜
+     */
+    @GetMapping("/ranking/easiest")
+    public JsonData getEasiestProblemsRanking(@RequestParam(defaultValue = "10") Integer limit) {
+        try {
+            log.info("ProblemController--->获取最容易题目排行榜, 限制数量: {}", limit);
+            List<Map<String, Object>> ranking = problemService.getEasiestProblemsRanking(limit);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取最容易题目排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取最常提交题目排行榜
+     *
+     * @param limit     限制数量，默认10
+     * @param timeRange 时间范围（天数），默认30天
+     * @return 最常提交题目排行榜
+     */
+    @GetMapping("/ranking/most-submitted")
+    public JsonData getMostSubmittedProblemsRanking(@RequestParam(defaultValue = "10") Integer limit, @RequestParam(defaultValue = "30") Integer timeRange) {
+        try {
+            log.info("ProblemController--->获取最常提交题目排行榜, 限制数量: {}, 时间范围: {}天", limit, timeRange);
+            List<Map<String, Object>> ranking = problemService.getMostSubmittedProblemsRanking(limit, timeRange);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取最常提交题目排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取零提交题目排行榜
+     *
+     * @param limit     限制数量，默认10
+     * @param timeRange 时间范围（天数），默认30天
+     * @return 零提交题目排行榜
+     */
+    @GetMapping("/ranking/zero-submitted")
+    public JsonData getZeroSubmittedProblemsRanking(@RequestParam(defaultValue = "10") Integer limit, @RequestParam(defaultValue = "30") Integer timeRange) {
+        try {
+            log.info("ProblemController--->获取零提交题目排行榜, 限制数量: {}, 时间范围: {}天", limit, timeRange);
+            List<Map<String, Object>> ranking = problemService.getZeroSubmittedProblemsRanking(limit, timeRange);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取零提交题目排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取最近热门题目排行榜
+     *
+     * @param limit 限制数量，默认10
+     * @param days  最近天数，默认7天
+     * @return 最近热门题目排行榜
+     */
+    @GetMapping("/ranking/recent-popular")
+    public JsonData getRecentPopularProblemsRanking(@RequestParam(defaultValue = "10") Integer limit, @RequestParam(defaultValue = "7") Integer days) {
+        try {
+            log.info("ProblemController--->获取最近热门题目排行榜, 限制数量: {}, 最近天数: {}", limit, days);
+            List<Map<String, Object>> ranking = problemService.getRecentPopularProblemsRanking(limit, days);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取最近热门题目排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 统一的排行榜接口（使用枚举类型）
+     *
+     * @param type  排行榜类型
+     * @param limit 限制数量，默认10
+     * @return 排行榜数据列表
+     */
+    @GetMapping("/ranking/unified")
+    public JsonData getProblemRankingByType(@RequestParam RankingType type, @RequestParam(defaultValue = "10") Integer limit) {
+        try {
+            log.info("ProblemController--->获取统一排行榜, 类型: {}, 限制数量: {}", type, limit);
+            List<Map<String, Object>> ranking = problemService.getProblemRanking(type, limit);
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取统一排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 通用的排行榜接口（使用字符串类型和条件参数）
+     *
+     * @param request 包含排行榜类型和条件的请求对象
+     * @return 题目排名结果
+     */
+    @PostMapping("/ranking/generic")
+    public JsonData getGenericProblemRanking(@Valid @RequestBody ProblemRankingRequest request) {
+        try {
+            log.info("ProblemController--->获取通用排行榜, 类型: {}, 条件: {}", request.getRankingType(), request.getCriteria());
+            List<Map<String, Object>> ranking = problemService.getProblemRanking(request.getRankingType(), request.getCriteria());
+            return JsonData.buildSuccess(ranking);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取通用排行榜失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    // ==================== 报告类接口 ====================
+
+    /**
+     * 获取月度报告
+     *
+     * @param year  年份
+     * @param month 月份
+     * @return 月度报告数据
+     */
+    @GetMapping("/report/monthly")
+    public JsonData getMonthlyReport(@RequestParam int year, @RequestParam int month) {
+        try {
+            log.info("ProblemController--->获取月度报告, 年份: {}, 月份: {}", year, month);
+
+            // 参数校验
+            if (year < 2000 || year > 3000) {
+                return JsonData.buildError("年份参数无效");
+            }
+            if (month < 1 || month > 12) {
+                return JsonData.buildError("月份参数无效");
+            }
+
+            Map<String, Object> report = problemService.getMonthlyReport(year, month);
+            return JsonData.buildSuccess(report);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取月度报告失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取年度报告
+     *
+     * @param year 年份
+     * @return 年度报告数据
+     */
+    @GetMapping("/report/annual")
+    public JsonData getAnnualReport(@RequestParam int year) {
+        try {
+            log.info("ProblemController--->获取年度报告, 年份: {}", year);
+
+            // 参数校验
+            if (year < 2000 || year > 3000) {
+                return JsonData.buildError("年份参数无效");
+            }
+
+            Map<String, Object> report = problemService.getAnnualReport(year);
+            return JsonData.buildSuccess(report);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取年度报告失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    /**
+     * 获取自定义报告
+     *
+     * @param request 包含开始日期、结束日期和指标列表的请求对象
+     * @return 自定义报告数据
+     */
+    @PostMapping("/report/custom")
+    public JsonData getCustomReport(@Valid @RequestBody CustomReportRequest request) {
+        try {
+            log.info("ProblemController--->获取自定义报告, 开始日期: {}, 结束日期: {}, 指标: {}", request.getStartDate(), request.getEndDate(), request.getMetrics());
+
+            Map<String, Object> report = problemService.getCustomReport(request.getStartDate(), request.getEndDate(), request.getMetrics());
+            return JsonData.buildSuccess(report);
+        } catch (Exception e) {
+            log.error("ProblemController--->获取自定义报告失败: {}", e.getMessage(), e);
+            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+        }
     }
 
 }

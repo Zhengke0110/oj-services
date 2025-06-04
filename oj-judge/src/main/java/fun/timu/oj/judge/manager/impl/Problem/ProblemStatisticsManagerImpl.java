@@ -28,7 +28,7 @@ public class ProblemStatisticsManagerImpl implements ProblemStatisticsManager {
 
     @Override
     public List<Map<String, Object>> getDistributionStatistics(DistributionCriteria criteria) {
-
+        // TODO 返回值需要修改成实体类
         List<HashMap<String, Object>> result = problemMapper.getDistributionStatistics(criteria);
         return result.stream()
                 .map(map -> (Map<String, Object>) map)
@@ -151,10 +151,10 @@ public class ProblemStatisticsManagerImpl implements ProblemStatisticsManager {
         }
 
         // 调用Mapper层获取原始统计数据
-        Map<String, Object> rawData = problemMapper.getUnifiedStatisticsRaw(request);
+        List<HashMap<String, Object>> rawData = problemMapper.getUnifiedStatisticsRaw(request);
 
         if (rawData == null) {
-            rawData = new HashMap<>();
+            rawData = new ArrayList<>();
         }
 
         // 构建结构化响应
@@ -170,7 +170,7 @@ public class ProblemStatisticsManagerImpl implements ProblemStatisticsManager {
     }
 
     @Override
-    public Map<String, Object> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request) {
+    public List<HashMap<String, Object>> getUnifiedStatisticsRaw(BatchProblemRequest.UnifiedStatisticsRequest request) {
 
         // 参数校验
         if (request == null) {
@@ -180,15 +180,13 @@ public class ProblemStatisticsManagerImpl implements ProblemStatisticsManager {
             throw new IllegalArgumentException("统计范围不能为空");
         }
 
-        // 调用Mapper层获取原始统计数据
-        Map<String, Object> rawData = problemMapper.getUnifiedStatisticsRaw(request);
+        // 查询结果现在是List<HashMap>
+        List<HashMap<String, Object>> resultList = problemMapper.getUnifiedStatisticsRaw(request);
 
-        if (rawData == null) {
-            rawData = new HashMap<>();
+        if (resultList == null) {
+            resultList = new ArrayList<>();
         }
-
-
-        return rawData;
+        return resultList;
     }
 
     // ==================== 私有辅助方法 ====================
@@ -249,4 +247,63 @@ public class ProblemStatisticsManagerImpl implements ProblemStatisticsManager {
 
         return metadata;
     }
+
+    /**
+     * 构建统计元数据信息
+     *
+     * @param request 统计请求
+     * @param rawData 原始数据列表
+     * @return 元数据对象
+     */
+    private UnifiedStatisticsVTO.StatisticsMetadata buildMetadata(BatchProblemRequest.UnifiedStatisticsRequest request,
+                                                                  List<HashMap<String, Object>> rawData) {
+        // 创建 StatisticsMetadata 对象
+        UnifiedStatisticsVTO.StatisticsMetadata metadata = new UnifiedStatisticsVTO.StatisticsMetadata();
+
+        // 设置基本统计信息
+        metadata.setTotalCount(rawData != null ? (long) rawData.size() : 0L);
+
+        // 设置分页信息
+        if (request.getPageNum() != null && request.getPageSize() != null) {
+            metadata.setCurrentPage(request.getPageNum());
+            metadata.setPageSize(request.getPageSize());
+
+            // 计算总页数
+            long totalItems = metadata.getTotalCount();
+            int pageSize = request.getPageSize();
+            int totalPages = (int) Math.ceil((double) totalItems / pageSize);
+            metadata.setTotalPages(totalPages);
+        }
+
+        // 设置数据来源
+        metadata.setDataSource("Problem Statistics Manager");
+
+        // 设置附加信息
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put("scope", request.getScope());
+
+        // 添加过滤条件
+        if (request.getDifficulties() != null) {
+            additionalInfo.put("difficulty", request.getDifficulties());
+        }
+        if (request.getProblemTypes() != null) {
+            additionalInfo.put("problemType", request.getProblemTypes());
+        }
+        if (request.getStatuses() != null) {
+            additionalInfo.put("status", request.getStatuses());
+        }
+
+        // 添加日期范围
+        if (request.getStartDate() != null) {
+            additionalInfo.put("startDate", request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            additionalInfo.put("endDate", request.getEndDate());
+        }
+
+        metadata.setAdditionalInfo(additionalInfo);
+
+        return metadata;
+    }
+
 }

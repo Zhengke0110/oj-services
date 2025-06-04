@@ -134,16 +134,26 @@ public class ProblemUtils {
         if (problemDO == null) return null;
 
         ProblemVO problemVO = new ProblemVO();
-        // 只复制基本字段
+        // 修正参数顺序：从源对象复制到目标对象
         BeanUtils.copyProperties(problemDO, problemVO);
 
-        // 设置难度和状态的标签
-        problemVO.setDifficultyLabel(ProblemDifficultyEnum.getDescriptionByCode(problemDO.getDifficulty()));
-        problemVO.setStatusLabel(ProblemStatusEnum.getDescriptionByCode(problemDO.getStatus()));
+        // 设置难度标签，增加空值判断
+        Integer difficulty = problemDO.getDifficulty();
+        problemVO.setDifficultyLabel(
+                ProblemDifficultyEnum.getDescriptionByCode(difficulty != null ? difficulty : 0)
+        );
 
-        // 计算通过率
-        if (problemDO.getSubmissionCount() > 0) {
-            double acceptanceRate = (double) problemDO.getAcceptedCount() / problemDO.getSubmissionCount();
+        // 设置状态标签，增加空值判断
+        Integer status = problemDO.getStatus();
+        problemVO.setStatusLabel(
+                ProblemStatusEnum.getDescriptionByCode(status != null ? status : 0)
+        );
+
+        // 计算通过率，增加更多空值检查
+        Long submissionCount = problemDO.getSubmissionCount();
+        Long acceptedCount = problemDO.getAcceptedCount();
+        if (submissionCount != null && submissionCount > 0 && acceptedCount != null) {
+            double acceptanceRate = (double) acceptedCount / submissionCount;
             problemVO.setAcceptanceRate(Math.round(acceptanceRate * 10000) / 10000.0);
         } else {
             problemVO.setAcceptanceRate(0.0);
@@ -151,5 +161,6 @@ public class ProblemUtils {
 
         return problemVO;
     }
+
 
 }

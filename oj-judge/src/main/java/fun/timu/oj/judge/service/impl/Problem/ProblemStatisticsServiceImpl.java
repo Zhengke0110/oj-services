@@ -49,7 +49,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
     public List<ProblemStatisticsVTO> getProblemStatistics() {
         try {
             log.info("ProblemStatisticsService--->获取题目统计信息");
-            
+
             // TODO 多表联查优化：在ProblemStatisticsManager中优化getProblemStatistics()方法
             // TODO 通过复杂的多表联查获取全面的统计信息：
             // TODO 1. JOIN submission 表统计真实的提交和通过数据
@@ -58,7 +58,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
             // TODO 4. 调用ProblemTagRelationManager.getPopularTags()获取热门标签统计
             // TODO 5. 提供更丰富的统计维度，包括标签分布、创建者排行等
             List<ProblemStatisticsDTO> problemStatistics = problemManager.getProblemStatistics();
-            
+
             List<ProblemStatisticsVTO> problemStatisticsVTOList = problemStatistics.stream().map(problemStatisticsDTO -> {
                 ProblemStatisticsVTO problemStatisticsVTO = ProblemStatisticsVTO.fromDTO(problemStatisticsDTO);
                 return problemStatisticsVTO;
@@ -110,7 +110,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
     public ProblemDetailStatisticsVTO getProblemDetailStatistics() {
         try {
             log.info("ProblemStatisticsService--->获取题目详细统计信息");
-            
+
             // TODO 多表联查优化：在ProblemStatisticsManager中优化getProblemDetailStatistics()方法
             // TODO 通过全面的多表联查构建详细统计报告：
             // TODO 1. JOIN submission 表获取提交趋势、用户参与度、代码语言使用统计
@@ -120,7 +120,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
             // TODO 5. 调用ProblemTagRelationManager.getStatisticsReport()获取关联关系健康度报告
             // TODO 6. 提供多维度交叉分析，如难度-标签分布、类型-地区偏好等
             ProblemDetailStatisticsDTO problemDetailStatistics = problemManager.getProblemDetailStatistics();
-            
+
             ProblemDetailStatisticsVTO problemDetailStatisticsVTO = ProblemDetailStatisticsVTO.fromDTO(problemDetailStatistics);
             log.info("ProblemStatisticsService--->获取题目详细统计信息成功, 统计信息: {}", problemDetailStatisticsVTO.toString());
             return problemDetailStatisticsVTO;
@@ -140,7 +140,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
     public List<PopularProblemCategoryVTO> getPopularProblemCategories(Integer limit) {
         try {
             log.info("ProblemStatisticsService--->获取最受欢迎的题目类型和难度组合, limit: {}", limit);
-            
+
             // TODO 多表联查优化：在ProblemStatisticsManager中优化getPopularProblemCategories()方法
             // TODO 通过多表联查获取更准确的受欢迎程度数据：
             // TODO 1. JOIN submission 表统计真实的用户参与度和提交活跃度
@@ -149,7 +149,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
             // TODO 4. 调用ProblemTagRelationManager.getPopularTags()结合标签热度分析
             // TODO 5. 提供时间维度的热门趋势变化分析
             List<PopularProblemCategoryDTO> popularProblemCategories = problemManager.getPopularProblemCategories(limit);
-            
+
             List<PopularProblemCategoryVTO> popularProblemCategoriesVTO = PopularProblemCategoryVTO.fromDTOList(popularProblemCategories);
             log.info("ProblemStatisticsService--->获取最受欢迎的题目类型和难度组合成功, 获取到的组合数量: {}", popularProblemCategoriesVTO.size());
             return popularProblemCategoriesVTO;
@@ -249,7 +249,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
     public List<Map<String, Object>> getStatisticsByStatus() {
         try {
             log.info("ProblemStatisticsService--->按状态获取统计信息");
-            
+
             // TODO 多表联查优化：在ProblemStatisticsManager中优化按状态统计的方法
             // TODO 通过多表联查分析题目状态的分布和转换模式：
             // TODO 1. JOIN submission 表分析不同状态题目的用户参与度和活跃程度
@@ -258,7 +258,7 @@ public class ProblemStatisticsServiceImpl implements ProblemStatisticsService {
             // TODO 4. 调用ProblemTagRelationManager.findByConditions()分析状态与标签的关联
             // TODO 5. 提供题目生命周期管理和质量控制的数据支持
             List<Map<String, Object>> result = problemManager.getStatisticsByStatus();
-            
+
             log.info("ProblemStatisticsService--->按状态获取统计信息成功");
             return result;
         } catch (Exception e) {

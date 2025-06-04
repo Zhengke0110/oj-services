@@ -33,8 +33,7 @@ public interface ProblemMapper extends BaseMapper<ProblemDO> {
      * @param request 统一统计请求参数
      * @return 统计数据的原始HashMap
      */
-    HashMap<String, Object> getUnifiedStatisticsRaw(@Param("request") BatchProblemRequest.UnifiedStatisticsRequest request);
-
+    List<HashMap<String, Object>> getUnifiedStatisticsRaw(@Param("request") BatchProblemRequest.UnifiedStatisticsRequest request);
     /**
      * 统一的推荐题目接口
      * 根据不同的推荐条件返回推荐题目列表

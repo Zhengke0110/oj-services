@@ -6,7 +6,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.0.162:8848
+        server-addr: 192.168.0.130:8848
         namespace: bdd24507-ab90-4409-941a-5d6eb60739cf
     # 配置LoadBalancer使用Caffeine缓存
     loadbalancer:

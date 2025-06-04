@@ -468,12 +468,12 @@
 
             <!-- 基于相似性的推荐 -->
             <when test="criteria.type.name() == 'SIMILARITY'">
-                <if test="criteria.targetProblemId != null">
-                    AND id != #{criteria.targetProblemId}
+                <if test="criteria.baseProblemId != null">
+                    AND id != #{criteria.baseProblemId}
                     AND (
-                    problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId} AND
+                    problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.baseProblemId} AND
                     is_deleted = 0)
-                    OR difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND
+                    OR difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.baseProblemId} AND
                     is_deleted = 0)
                     )
                 </if>
@@ -564,11 +564,11 @@
 
             <!-- 基于相似性的推荐评分 -->
             <when test="criteria.type.name() == 'SIMILARITY'">
-                <if test="criteria.targetProblemId != null">
+                <if test="criteria.baseProblemId != null">
                     ROUND(
-                    (CASE WHEN problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.targetProblemId}
+                    (CASE WHEN problem_type = (SELECT problem_type FROM problem WHERE id = #{criteria.baseProblemId}
                     AND is_deleted = 0) THEN 30 ELSE 10 END) +
-                    (CASE WHEN difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.targetProblemId} AND
+                    (CASE WHEN difficulty = (SELECT difficulty FROM problem WHERE id = #{criteria.baseProblemId} AND
                     is_deleted = 0) THEN 25 ELSE 5 END) +
                     LEAST(submission_count / 100.0, 1) * 25 +
                     (CASE
@@ -577,7 +577,7 @@
                     END), 2
                     ) as recommendation_score
                 </if>
-                <if test="criteria.targetProblemId == null">
+                <if test="criteria.baseProblemId == null">
                     ROUND(submission_count * 0.6 + accepted_count * 0.4, 2) as recommendation_score
                 </if>
             </when>
@@ -634,8 +634,8 @@
 
             <!-- 基于相似性的推荐 -->
             <when test="criteria.type.name() == 'SIMILARITY'">
-                <if test="criteria.targetProblemId != null">
-                    AND id != #{criteria.targetProblemId}
+                <if test="criteria.baseProblemId != null">
+                    AND id != #{criteria.baseProblemId}
                 </if>
                 <if test="criteria.difficulty != null">
                     AND difficulty = #{criteria.difficulty}
@@ -2069,8 +2069,10 @@
                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_count,
                 SUM(submission_count) as total_submissions,
                 SUM(accepted_count) as total_accepted,
-                ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count / submission_count ELSE 0 END), 4) as
-                avg_acceptance_rate
+                ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count * 1.0 / submission_count ELSE 0 END), 4) as
+                avg_acceptance_rate,
+                MAX(submission_count) as max_submissions,
+                MIN(CASE WHEN submission_count > 0 THEN submission_count ELSE NULL END) as min_submissions
                 FROM problem
                 WHERE is_deleted = 0
                 <if test="request.startDate != null">
@@ -2095,6 +2097,12 @@
                     AND status IN
                     <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
                         #{status}
+                    </foreach>
+                </if>
+                <if test="request.creatorIds != null and request.creatorIds.size() > 0">
+                    AND creator_id IN
+                    <foreach item="creatorId" collection="request.creatorIds" open="(" separator="," close=")">
+                        #{creatorId}
                     </foreach>
                 </if>
                 GROUP BY problem_type, difficulty
@@ -2238,6 +2246,60 @@
                     AND status IN
                     <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
                         #{status}
+                    </foreach>
+                </if>
+            </when>
+
+            <!-- 添加新的聚合统计功能 -->
+            <when test="request.scope.name() == 'AGGREGATED'">
+                SELECT
+                COUNT(*) as total_problems,
+                COUNT(DISTINCT problem_type) as problem_type_count,
+                COUNT(DISTINCT difficulty) as difficulty_levels,
+                COUNT(DISTINCT creator_id) as creator_count,
+                SUM(submission_count) as total_submissions,
+                SUM(accepted_count) as total_accepted,
+                SUM(view_count) as total_views,
+                ROUND(AVG(CASE WHEN submission_count > 0 THEN accepted_count * 1.0 / submission_count ELSE 0 END), 4) as
+                avg_acceptance_rate,
+                MAX(submission_count) as max_submissions,
+                MIN(CASE WHEN submission_count > 0 THEN submission_count ELSE NULL END) as min_submissions,
+                ROUND(AVG(time_limit), 2) as avg_time_limit,
+                ROUND(AVG(memory_limit), 2) as avg_memory_limit,
+                COUNT(CASE WHEN status = 1 THEN 1 END) as active_problems,
+                COUNT(CASE WHEN status = 0 THEN 1 END) as inactive_problems,
+                COUNT(CASE WHEN submission_count = 0 THEN 1 END) as zero_submission_problems,
+                COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_problems_last_30days
+                FROM problem
+                WHERE is_deleted = 0
+                <if test="request.startDate != null">
+                    AND created_at >= #{request.startDate}
+                </if>
+                <if test="request.endDate != null">
+                    AND created_at &lt;= #{request.endDate}
+                </if>
+                <if test="request.difficulties != null and request.difficulties.size() > 0">
+                    AND difficulty IN
+                    <foreach item="difficulty" collection="request.difficulties" open="(" separator="," close=")">
+                        #{difficulty}
+                    </foreach>
+                </if>
+                <if test="request.problemTypes != null and request.problemTypes.size() > 0">
+                    AND problem_type IN
+                    <foreach item="type" collection="request.problemTypes" open="(" separator="," close=")">
+                        #{type}
+                    </foreach>
+                </if>
+                <if test="request.statuses != null and request.statuses.size() > 0">
+                    AND status IN
+                    <foreach item="status" collection="request.statuses" open="(" separator="," close=")">
+                        #{status}
+                    </foreach>
+                </if>
+                <if test="request.creatorIds != null and request.creatorIds.size() > 0">
+                    AND creator_id IN
+                    <foreach item="creatorId" collection="request.creatorIds" open="(" separator="," close=")">
+                        #{creatorId}
                     </foreach>
                 </if>
             </when>
@@ -2798,222 +2860,236 @@
         </if>
     </select>
 
-    <!-- 统一的趋势分析接口（替代原有的4个冗余接口） -->
-    <select id="getTrendAnalysis" resultType="java.util.HashMap">
-        <choose>
-            <!-- 题目创建趋势分析 -->
-            <when test="criteria.type.name() == 'PROBLEM_CREATION'">
-                SELECT
-                <choose>
-                    <when test="criteria.timeGranularity == 'DAY'">
-                        DATE(created_at) as time_period,
-                        DATE_FORMAT(created_at, '%Y-%m-%d') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'WEEK'">
-                        DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as time_period,
-                        CONCAT(YEAR(created_at), '-W', LPAD(WEEK(created_at), 2, '0')) as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'MONTH'">
-                        DATE_FORMAT(created_at, '%Y-%m-01') as time_period,
-                        DATE_FORMAT(created_at, '%Y-%m') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'YEAR'">
-                        DATE_FORMAT(created_at, '%Y-01-01') as time_period,
-                        YEAR(created_at) as time_label
-                    </when>
-                </choose>
-                ,
-                COUNT(*) as problems_created,
-                COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
-                COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
-                COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
-                COUNT(DISTINCT problem_type) as unique_types,
-                ROUND(AVG(time_limit), 2) as avg_time_limit,
-                ROUND(AVG(memory_limit), 2) as avg_memory_limit
-                FROM problem
-                WHERE is_deleted = 0
-                <if test="criteria.startTime != null">
-                    AND created_at &gt;= #{criteria.startTime}
-                </if>
-                <if test="criteria.endTime != null">
-                    AND created_at &lt;= #{criteria.endTime}
-                </if>
-                <if test="criteria.problemId != null">
-                    AND id = #{criteria.problemId}
-                </if>
-                <if test="criteria.userId != null">
-                    AND creator_id = #{criteria.userId}
-                </if>
-                GROUP BY time_period, time_label
-                ORDER BY time_period
-                <if test="criteria.limit != null">
-                    LIMIT #{criteria.limit}
-                </if>
-            </when>
 
-            <!-- 提交趋势分析 -->
-            <when test="criteria.type.name() == 'SUBMISSION_TREND'">
-                SELECT
-                <choose>
-                    <when test="criteria.timeGranularity == 'DAY'">
-                        DATE(updated_at) as time_period,
-                        DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'WEEK'">
-                        DATE(DATE_SUB(updated_at, INTERVAL WEEKDAY(updated_at) DAY)) as time_period,
-                        CONCAT(YEAR(updated_at), '-W', LPAD(WEEK(updated_at), 2, '0')) as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'MONTH'">
-                        DATE_FORMAT(updated_at, '%Y-%m-01') as time_period,
-                        DATE_FORMAT(updated_at, '%Y-%m') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'YEAR'">
-                        DATE_FORMAT(updated_at, '%Y-01-01') as time_period,
-                        YEAR(updated_at) as time_label
-                    </when>
-                </choose>
-                ,
-                SUM(submission_count) as total_submissions,
-                COUNT(*) as active_problems,
-                ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
-                MAX(submission_count) as max_submissions,
-                MIN(submission_count) as min_submissions,
-                COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as problems_with_submissions
-                FROM problem
-                WHERE is_deleted = 0 AND status = 1
-                <if test="criteria.startTime != null">
-                    AND updated_at &gt;= #{criteria.startTime}
-                </if>
-                <if test="criteria.endTime != null">
-                    AND updated_at &lt;= #{criteria.endTime}
-                </if>
-                <if test="criteria.problemId != null">
-                    AND id = #{criteria.problemId}
-                </if>
-                <if test="criteria.userId != null">
-                    AND creator_id = #{criteria.userId}
-                </if>
-                GROUP BY time_period, time_label
-                ORDER BY time_period
-                <if test="criteria.limit != null">
-                    LIMIT #{criteria.limit}
-                </if>
-            </when>
+        <!-- 统一的趋势分析接口（替代原有的4个冗余接口） -->
+        <select id="getTrendAnalysis" resultType="java.util.HashMap">
+            <choose>
+                <!-- 题目创建趋势分析 -->
+                <when test="criteria.type.name() == 'PROBLEM_CREATION'">
+                    SELECT
+                    <choose>
+                        <when test="criteria.timeGranularity == 'DAY'">
+                            DATE(created_at) as time_period,
+                            DATE_FORMAT(created_at, '%Y-%m-%d') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'WEEK'">
+                            DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as time_period,
+                            CONCAT(YEAR(created_at), '-W', LPAD(WEEK(created_at), 2, '0')) as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'MONTH'">
+                            DATE_FORMAT(created_at, '%Y-%m-01') as time_period,
+                            DATE_FORMAT(created_at, '%Y-%m') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'YEAR'">
+                            DATE_FORMAT(created_at, '%Y-01-01') as time_period,
+                            YEAR(created_at) as time_label
+                        </when>
+                        <otherwise>
+                            DATE(created_at) as time_period,
+                            DATE_FORMAT(created_at, '%Y-%m-%d') as time_label
+                        </otherwise>
+                    </choose>,
+                    COUNT(*) as problems_created,
+                    COUNT(CASE WHEN difficulty = 'EASY' THEN 1 END) as easy_problems,
+                    COUNT(CASE WHEN difficulty = 'MEDIUM' THEN 1 END) as medium_problems,
+                    COUNT(CASE WHEN difficulty = 'HARD' THEN 1 END) as hard_problems,
+                    COUNT(DISTINCT problem_type) as unique_types,
+                    ROUND(AVG(time_limit), 2) as avg_time_limit,
+                    ROUND(AVG(memory_limit), 2) as avg_memory_limit
+                    FROM problem
+                    WHERE is_deleted = 0
+                    <if test="criteria.startTime != null">
+                        AND created_at &gt;= #{criteria.startTime}
+                    </if>
+                    <if test="criteria.endTime != null">
+                        AND created_at &lt;= #{criteria.endTime}
+                    </if>
+                    <if test="criteria.problemId != null">
+                        AND id = #{criteria.problemId}
+                    </if>
+                    <if test="criteria.userId != null">
+                        AND creator_id = #{criteria.userId}
+                    </if>
+                    GROUP BY time_period, time_label
+                    ORDER BY time_period
+                    <if test="criteria.limit != null">
+                        LIMIT #{criteria.limit}
+                    </if>
+                </when>
+    
+                <!-- 提交趋势分析 -->
+                <when test="criteria.type.name() == 'SUBMISSION_TREND'">
+                    SELECT
+                    <choose>
+                        <when test="criteria.timeGranularity == 'DAY'">
+                            DATE(updated_at) as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'WEEK'">
+                            DATE(DATE_SUB(updated_at, INTERVAL WEEKDAY(updated_at) DAY)) as time_period,
+                            CONCAT(YEAR(updated_at), '-W', LPAD(WEEK(updated_at), 2, '0')) as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'MONTH'">
+                            DATE_FORMAT(updated_at, '%Y-%m-01') as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'YEAR'">
+                            DATE_FORMAT(updated_at, '%Y-01-01') as time_period,
+                            YEAR(updated_at) as time_label
+                        </when>
+                        <otherwise>
+                            DATE(updated_at) as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
+                        </otherwise>
+                    </choose>,
+                    SUM(submission_count) as total_submissions,
+                    COUNT(*) as active_problems,
+                    ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
+                    MAX(submission_count) as max_submissions,
+                    MIN(submission_count) as min_submissions,
+                    COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as problems_with_submissions
+                    FROM problem
+                    WHERE is_deleted = 0 AND status = 1
+                    <if test="criteria.startTime != null">
+                        AND updated_at &gt;= #{criteria.startTime}
+                    </if>
+                    <if test="criteria.endTime != null">
+                        AND updated_at &lt;= #{criteria.endTime}
+                    </if>
+                    <if test="criteria.problemId != null">
+                        AND id = #{criteria.problemId}
+                    </if>
+                    <if test="criteria.userId != null">
+                        AND creator_id = #{criteria.userId}
+                    </if>
+                    GROUP BY time_period, time_label
+                    ORDER BY time_period
+                    <if test="criteria.limit != null">
+                        LIMIT #{criteria.limit}
+                    </if>
+                </when>
+    
+                <!-- 通过率趋势分析 -->
+                <when test="criteria.type.name() == 'ACCEPTANCE_RATE_TREND'">
+                    SELECT
+                    <choose>
+                        <when test="criteria.timeGranularity == 'DAY'">
+                            DATE(updated_at) as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'WEEK'">
+                            DATE(DATE_SUB(updated_at, INTERVAL WEEKDAY(updated_at) DAY)) as time_period,
+                            CONCAT(YEAR(updated_at), '-W', LPAD(WEEK(updated_at), 2, '0')) as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'MONTH'">
+                            DATE_FORMAT(updated_at, '%Y-%m-01') as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'YEAR'">
+                            DATE_FORMAT(updated_at, '%Y-01-01') as time_period,
+                            YEAR(updated_at) as time_label
+                        </when>
+                        <otherwise>
+                            DATE(updated_at) as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
+                        </otherwise>
+                    </choose>,
+                    ROUND(
+                    CASE
+                    WHEN SUM(submission_count) &gt; 0
+                    THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
+                    ELSE 0
+                    END, 2
+                    ) as acceptance_rate,
+                    SUM(submission_count) as total_submissions,
+                    SUM(accepted_count) as total_accepted,
+                    COUNT(*) as total_problems,
+                    COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as problems_with_submissions,
+                    ROUND(AVG(
+                    CASE
+                    WHEN submission_count &gt; 0
+                    THEN (accepted_count * 100.0 / submission_count)
+                    ELSE 0
+                    END), 2
+                    ) as avg_acceptance_rate_per_problem
+                    FROM problem
+                    WHERE is_deleted = 0 AND status = 1
+                    <if test="criteria.startTime != null">
+                        AND updated_at &gt;= #{criteria.startTime}
+                    </if>
+                    <if test="criteria.endTime != null">
+                        AND updated_at &lt;= #{criteria.endTime}
+                    </if>
+                    <if test="criteria.problemId != null">
+                        AND id = #{criteria.problemId}
+                    </if>
+                    <if test="criteria.userId != null">
+                        AND creator_id = #{criteria.userId}
+                    </if>
+                    GROUP BY time_period, time_label
+                    ORDER BY time_period
+                    <if test="criteria.limit != null">
+                        LIMIT #{criteria.limit}
+                    </if>
+                </when>
+    
+                <!-- 题目活跃度时间趋势 -->
+                <when test="criteria.type.name() == 'PROBLEM_ACTIVITY_TREND'">
+                    SELECT
+                    <choose>
+                        <when test="criteria.timeGranularity == 'DAY'">
+                            DATE(updated_at) as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'WEEK'">
+                            DATE(DATE_SUB(updated_at, INTERVAL WEEKDAY(updated_at) DAY)) as time_period,
+                            CONCAT(YEAR(updated_at), '-W', LPAD(WEEK(updated_at), 2, '0')) as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'MONTH'">
+                            DATE_FORMAT(updated_at, '%Y-%m-01') as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m') as time_label
+                        </when>
+                        <when test="criteria.timeGranularity == 'YEAR'">
+                            DATE_FORMAT(updated_at, '%Y-01-01') as time_period,
+                            YEAR(updated_at) as time_label
+                        </when>
+                        <otherwise>
+                            DATE(updated_at) as time_period,
+                            DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
+                        </otherwise>
+                    </choose>,
+                    COUNT(*) as total_problems,
+                    SUM(submission_count) as total_submissions,
+                    SUM(accepted_count) as total_accepted,
+                    SUM(view_count) as total_views,
+                    ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
+                    ROUND(AVG(view_count), 2) as avg_views_per_problem,
+                    COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as active_problems,
+                    MAX(submission_count) as max_submissions_single_problem,
+                    COUNT(CASE WHEN submission_count > (SELECT AVG(submission_count) FROM problem WHERE is_deleted = 0) THEN
+                    1 END)
+                    as above_avg_activity_problems
+                    FROM problem
+                    WHERE is_deleted = 0 AND status = 1
+                    <if test="criteria.startTime != null">
+                        AND updated_at &gt;= #{criteria.startTime}
+                    </if>
+                    <if test="criteria.endTime != null">
+                        AND updated_at &lt;= #{criteria.endTime}
+                    </if>
+                    <if test="criteria.problemId != null">
+                        AND id = #{criteria.problemId}
+                    </if>
+                    <if test="criteria.userId != null">
+                        AND creator_id = #{criteria.userId}
+                    </if>
+                    GROUP BY time_period, time_label
+                    ORDER BY time_period
+                    <if test="criteria.limit != null">
+                        LIMIT #{criteria.limit}
+                    </if>
+                </when>
+            </choose>
+        </select>
 
-            <!-- 通过率趋势分析 -->
-            <when test="criteria.type.name() == 'ACCEPTANCE_RATE_TREND'">
-                SELECT
-                <choose>
-                    <when test="criteria.timeGranularity == 'DAY'">
-                        DATE(updated_at) as time_period,
-                        DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'WEEK'">
-                        DATE(DATE_SUB(updated_at, INTERVAL WEEKDAY(updated_at) DAY)) as time_period,
-                        CONCAT(YEAR(updated_at), '-W', LPAD(WEEK(updated_at), 2, '0')) as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'MONTH'">
-                        DATE_FORMAT(updated_at, '%Y-%m-01') as time_period,
-                        DATE_FORMAT(updated_at, '%Y-%m') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'YEAR'">
-                        DATE_FORMAT(updated_at, '%Y-01-01') as time_period,
-                        YEAR(updated_at) as time_label
-                    </when>
-                </choose>
-                ,
-                ROUND(
-                CASE
-                WHEN SUM(submission_count) &gt; 0
-                THEN (SUM(accepted_count) * 100.0 / SUM(submission_count))
-                ELSE 0
-                END, 2
-                ) as acceptance_rate,
-                SUM(submission_count) as total_submissions,
-                SUM(accepted_count) as total_accepted,
-                COUNT(*) as total_problems,
-                COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as problems_with_submissions,
-                ROUND(AVG(
-                CASE
-                WHEN submission_count &gt; 0
-                THEN (accepted_count * 100.0 / submission_count)
-                ELSE 0
-                END), 2
-                ) as avg_acceptance_rate_per_problem
-                FROM problem
-                WHERE is_deleted = 0 AND status = 1
-                <if test="criteria.startTime != null">
-                    AND updated_at &gt;= #{criteria.startTime}
-                </if>
-                <if test="criteria.endTime != null">
-                    AND updated_at &lt;= #{criteria.endTime}
-                </if>
-                <if test="criteria.problemId != null">
-                    AND id = #{criteria.problemId}
-                </if>
-                <if test="criteria.userId != null">
-                    AND creator_id = #{criteria.userId}
-                </if>
-                GROUP BY time_period, time_label
-                ORDER BY time_period
-                <if test="criteria.limit != null">
-                    LIMIT #{criteria.limit}
-                </if>
-            </when>
-
-            <!-- 题目活跃度时间趋势 -->
-            <when test="criteria.type.name() == 'PROBLEM_ACTIVITY_TREND'">
-                SELECT
-                <choose>
-                    <when test="criteria.timeGranularity == 'DAY'">
-                        DATE(updated_at) as time_period,
-                        DATE_FORMAT(updated_at, '%Y-%m-%d') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'WEEK'">
-                        DATE(DATE_SUB(updated_at, INTERVAL WEEKDAY(updated_at) DAY)) as time_period,
-                        CONCAT(YEAR(updated_at), '-W', LPAD(WEEK(updated_at), 2, '0')) as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'MONTH'">
-                        DATE_FORMAT(updated_at, '%Y-%m-01') as time_period,
-                        DATE_FORMAT(updated_at, '%Y-%m') as time_label
-                    </when>
-                    <when test="criteria.timeGranularity == 'YEAR'">
-                        DATE_FORMAT(updated_at, '%Y-01-01') as time_period,
-                        YEAR(updated_at) as time_label
-                    </when>
-                </choose>
-                ,
-                COUNT(*) as total_problems,
-                SUM(submission_count) as total_submissions,
-                SUM(accepted_count) as total_accepted,
-                SUM(view_count) as total_views,
-                ROUND(AVG(submission_count), 2) as avg_submissions_per_problem,
-                ROUND(AVG(view_count), 2) as avg_views_per_problem,
-                COUNT(CASE WHEN submission_count &gt; 0 THEN 1 END) as active_problems,
-                MAX(submission_count) as max_submissions_single_problem,
-                COUNT(CASE WHEN submission_count > (SELECT AVG(submission_count) FROM problem WHERE is_deleted = 0) THEN
-                1 END)
-                as above_avg_activity_problems
-                FROM problem
-                WHERE is_deleted = 0 AND status = 1
-                <if test="criteria.startTime != null">
-                    AND updated_at &gt;= #{criteria.startTime}
-                </if>
-                <if test="criteria.endTime != null">
-                    AND updated_at &lt;= #{criteria.endTime}
-                </if>
-                <if test="criteria.problemId != null">
-                    AND id = #{criteria.problemId}
-                </if>
-                <if test="criteria.userId != null">
-                    AND creator_id = #{criteria.userId}
-                </if>
-                GROUP BY time_period, time_label
-                ORDER BY time_period
-                <if test="criteria.limit != null">
-                    LIMIT #{criteria.limit}
-                </if>
-            </when>
-        </choose>
-    </select>
 </mapper>
