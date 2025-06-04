@@ -75,7 +75,9 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
             // 将题目数据对象转换为视图对象
             ProblemVO problemVO = ProblemUtils.convertToVO(problemDO);
 
-            // TODO 获取题目标签
+            // TODO 多表联查优化：调用ProblemTagRelationManager.findByProblemId()方法，一次性获取题目和标签信息，避免N+1查询问题
+            // TODO 考虑在ProblemManager中新增getByIdWithTags()方法，通过JOIN查询获取题目信息和关联标签
+            // TODO 或者调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取标签名称
             List<Long> tagIds = problemTagRelationService.getTagIdsByProblemId(id);
 //            problemVO.setTags(tagIds);
 
@@ -101,11 +103,19 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
             int size = Optional.ofNullable(request.getSize()).orElse(20);
 
             // 2. 调用Manager层方法获取分页结果
+            // TODO 多表联查优化：在ProblemManager中新增findProblemsWithTagsAndCreator()方法
+            // TODO 通过LEFT JOIN problem_tag_relation 和 problem_tag 表获取标签信息
+            // TODO 通过LEFT JOIN user 表获取创建者信息，避免单独查询每个题目的详细信息
             IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(current, size, request.getProblemType(), request.getDifficulty(), request.getStatus(), request.getVisibility(), request.getSupportedLanguages(), request.getHasInput(), request.getMinAcceptanceRate(), request.getMaxAcceptanceRate());
 
             // 3. 将DO转换为VO
             List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO)  // 使用类名调用静态方法
                     .filter(Objects::nonNull).collect(Collectors.toList());
+
+            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取所有题目的标签信息
+            // TODO 避免在循环中单独查询每个题目的标签，改为一次性批量查询提高性能
+            // TODO 考虑在ProblemTagRelationManager中新增findByProblemIdsWithTagNames()方法返回题目ID到标签名称列表的映射
+            
             // 4. 构建并返回分页结果
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
             log.info("ProblemService--->按条件查询题目列表成功: 当前页 {}, 每页大小 {}, 总记录数 {}", current, size, problemPage.getTotal());
@@ -135,6 +145,10 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
             // 从线程局部变量中获取当前登录用户信息
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) throw new RuntimeException("用户未登录");
+            
+            // TODO 多表联查优化：在ProblemManager中新增findByCreatorIdWithTags()方法
+            // TODO 通过LEFT JOIN problem_tag_relation 和 problem_tag 表一次性获取用户题目及其标签信息
+            // TODO 或调用ProblemTagRelationManager.findByProblemIds()批量获取标签关联信息
             // 查询并转换问题数据为视图对象列表
             List<ProblemVO> voList = problemManager.findByCreatorId(loginUser.getAccountNo()).stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
             // 记录获取问题列表成功的日志信息
@@ -177,7 +191,6 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
             if (isDuplicateTitle(request.getTitle())) {
                 throw new RuntimeException("标题已存在" + request.getTitle());
             }
-
 
             // 创建ProblemDO对象并设置基本属性
             ProblemDO problemDO = new ProblemDO();
@@ -233,6 +246,9 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
 
             // 处理标签关联
             if (row > 0 && request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                // TODO 多表联查优化：考虑在ProblemTagRelationManager中新增validateAndBatchAddTags()方法
+                // TODO 在添加标签关联前先验证标签是否存在，通过JOIN查询ProblemTagManager.findById()
+                // TODO 避免无效标签ID的关联操作
                 // 关联题目和标签
                 Long problemId = problemDO.getId();
                 problemTagRelationService.batchAddTagsToProblem(problemId, request.getTagIds());
@@ -310,6 +326,9 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
 
             // 更新标签关联（如果有）
             if (row > 0 && request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                // TODO 多表联查优化：在ProblemTagRelationManager中优化replaceAllTagsForProblem()方法
+                // TODO 通过一次查询获取当前标签关联，对比新标签列表，只操作差异部分
+                // TODO 可调用ProblemTagRelationManager.findByProblemId()获取现有关联，减少不必要的删除和插入操作
                 // 更新题目和标签的关联
                 problemTagRelationService.replaceAllTagsForProblem(request.getId(), request.getTagIds());
             }

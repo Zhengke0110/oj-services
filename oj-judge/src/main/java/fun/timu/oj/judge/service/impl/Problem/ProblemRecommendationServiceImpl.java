@@ -37,6 +37,9 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
     @Override
     public List<ProblemVO> selectHotProblems(String problemType, Integer difficulty, Integer limit) {
         try {
+            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取题目标签信息
+            // TODO 在ProblemManager.selectHotProblems()方法中通过LEFT JOIN problem_tag_relation和problem_tag表
+            // TODO 一次性获取热门题目及其关联标签，避免后续单独查询每个题目的标签信息
             // 调用manager层获取热门题目数据
             List<ProblemDO> problemDOList = problemManager.selectHotProblems(problemType, difficulty, limit);
 
@@ -65,6 +68,9 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
         try {
             log.info("ProblemRecommendationService--->获取推荐题目开始, 推荐类型:{}, 条件:{}", criteria.getType(), criteria);
 
+            // TODO 多表联查优化：在ProblemManager.getRecommendedProblems()方法中集成标签查询
+            // TODO 通过JOIN problem_tag_relation和problem_tag表，一次性获取推荐题目及其标签信息
+            // TODO 调用ProblemTagRelationManager.findByProblemIds()批量获取标签关联，避免N+1查询问题
             List<ProblemDO> problemDOList = problemManager.getRecommendedProblems(criteria);
             List<ProblemVO> result = problemDOList.stream().map(ProblemUtils::convertToVO).collect(Collectors.toList());
 
@@ -89,6 +95,9 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
         try {
             log.info("ProblemRecommendationService--->获取带评分推荐题目开始, 推荐类型:{}, 条件:{}", criteria.getType(), criteria);
 
+            // TODO 多表联查优化：在ProblemManager.getRecommendedProblemsWithScore()方法中优化数据获取
+            // TODO 通过JOIN problem_tag_relation和problem_tag表，将标签信息直接包含在返回的Map中
+            // TODO 调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取标签名称，减少后续查询
             List<Map<String, Object>> recommendedProblemsWithScore = problemManager.getRecommendedProblemsWithScore(criteria);
 
             log.info("ProblemRecommendationService--->获取带评分推荐题目成功, 推荐类型:{}, 返回数量:{}", criteria.getType(), recommendedProblemsWithScore.size());
@@ -118,6 +127,10 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
                 throw new RuntimeException("题目ID无效");
             }
 
+            // TODO 多表联查优化：优化ProblemManager.findSimilarProblems()方法的实现
+            // TODO 通过ProblemTagRelationManager.findSimilarProblems()方法基于共同标签查找相似题目
+            // TODO 在查询相似题目时直接JOIN problem_tag_relation表，根据共同标签数量计算相似度
+            // TODO 调用ProblemTagRelationManager.findRelatedTags()获取相关标签，提升推荐精度
             // 调用manager层查询相似题目
             List<ProblemDO> problemDOList = problemManager.findSimilarProblems(problemId, difficulty, problemType, limit);
 

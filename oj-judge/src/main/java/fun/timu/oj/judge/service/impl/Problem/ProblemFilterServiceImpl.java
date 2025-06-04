@@ -37,6 +37,9 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
             // 默认查询状态为1（激活状态）的题目
             Integer status = 1;
 
+            // TODO 多表联查优化：在ProblemManager中新增selectByDateRangeWithTagsAndCreator()方法
+            // TODO 通过LEFT JOIN problem_tag_relation、problem_tag 和 user 表一次性获取题目、标签、创建者信息
+            // TODO 或调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取标签名称
             // 调用Manager层方法获取分页数据
             IPage<ProblemDO> problemPage = problemManager.selectByDateRange(startDate, endDate, status, pageNum, pageSize);
 
@@ -46,6 +49,10 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
 
             // 转换DO对象为VO对象
             List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).collect(Collectors.toList());
+
+            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取所有题目的标签信息
+            // TODO 调用UserManager.findByIds()批量获取创建者信息，避免N+1查询问题
+            // TODO 在ProblemTagRelationManager中新增findByProblemIdsWithCreatorInfo()方法
 
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
             log.info("成功查询时间范围内的题目列表，当前页: {}, 每页大小: {}, 总数: {}", pageNum, pageSize, problemPage.getTotal());
@@ -73,12 +80,19 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
             calendar.add(Calendar.DAY_OF_MONTH, -days);
             Date lastUpdateBefore = calendar.getTime();
 
+            // TODO 多表联查优化：在ProblemManager中新增selectStaleProblemsWithAnalysisData()方法
+            // TODO 通过JOIN problem_tag_relation、problem_tag、user 表获取长期未更新题目的完整分析数据
+            // TODO 包括题目标签分布、创建者活跃度等信息，用于分析长期未更新的原因
             // 调用管理层方法查询数据
             IPage<ProblemDO> problemPage = problemManager.selectStaleProblems(lastUpdateBefore, pageNum, pageSize);
 
 
             // 转换DO对象为VO对象
             List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).collect(Collectors.toList());
+
+            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()获取题目标签
+            // TODO 调用UserManager.findByIds()获取创建者信息和活跃度数据
+            // TODO 用于分析长期未更新题目的标签分布和创建者活跃情况
 
             // 构建并返回分页结果
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
@@ -107,6 +121,10 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
                 return new ArrayList<>();
             }
 
+            // TODO 多表联查优化：在ProblemManager中新增selectBasicInfoWithTagsByIds()方法
+            // TODO 通过LEFT JOIN problem_tag_relation 和 problem_tag 表一次性获取题目基本信息和相关标签
+            // TODO 或者调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取标签信息
+            // TODO 提高批量查询的效率，减少数据库查询次数
             // 调用manager层获取题目基本信息
             List<ProblemDO> problemDOList = problemManager.selectBasicInfoByIds(problemIds);
 
@@ -134,11 +152,17 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
         try {
             log.info("ProblemService--->根据支持的编程语言查询题目, 页码: {}, 每页数量: {}, 语言: {}", pageNum, pageSize, language);
 
+            // TODO 多表联查优化：在ProblemManager中新增selectByLanguageWithTags()方法
+            // TODO 通过LEFT JOIN problem_tag_relation 和 problem_tag 表联查题目和标签信息
+            // TODO 为支持特定语言的题目提供标签分类信息，帮助用户更好地选择题目
             // 调用manager层获取分页数据
             IPage<ProblemDO> problemPage = problemManager.selectByLanguage(pageNum, pageSize, language);
 
             // 将DO列表转换为VO列表
             List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取题目标签信息
+            // TODO 帮助用户了解支持特定语言的题目在算法分类上的分布情况
 
             // 构建分页结果
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
@@ -163,11 +187,17 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
     @Override
     public List<ProblemVO> selectRecentProblems(int pageNum, int pageSize, Integer limit) {
         try {
+            // TODO 多表联查优化：在ProblemManager中新增selectRecentProblemsWithDetails()方法
+            // TODO 通过LEFT JOIN problem_tag_relation、problem_tag、user 表联查题目、标签、创建者信息
+            // TODO 为最近创建的题目提供更丰富的展示信息，包括创建者昵称、题目标签等
             // 调用manager层查询最近创建的题目
             IPage<ProblemDO> problemPage = problemManager.selectRecentProblems(pageNum, pageSize, limit);
 
             // 将DO列表转换为VO列表
             List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+
+            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取最近创建题目的标签
+            // TODO 调用UserManager.findByIds()批量获取创建者昵称和头像信息，提升用户体验
 
             log.info("ProblemService--->获取最近创建的题目成功，页码: {}, 每页数量: {}, 限制数量: {}, 实际获取数量: {}", pageNum, pageSize, limit, problemVOList.size());
 

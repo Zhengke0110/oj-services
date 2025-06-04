@@ -36,6 +36,9 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
                     .timeRange(timeRange)
                     .build();
 
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getPopularProblemsWithDetails()方法
+            // TODO 通过LEFT JOIN problem_tag_relation、problem_tag、user 表获取热门题目的完整信息
+            // TODO 包括题目标签、创建者信息等，为排行榜提供更丰富的展示数据
             List<Map<String, Object>> result = problemManager.getProblemRanking(criteria);
 
             log.info("ProblemRankingService--->获取热门题目排行榜成功");
@@ -56,6 +59,10 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
     public List<Map<String, Object>> getHardestProblemsRanking(Integer limit) {
         try {
             log.info("ProblemRankingService--->获取最难题目排行榜, 限制数量: {}", limit);
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getHardestProblemsWithAnalysis()方法
+            // TODO 通过JOIN submission 表统计题目的真实难度数据（通过率、平均提交次数等）
+            // TODO 通过JOIN problem_tag_relation 和 problem_tag 表获取题目标签分布
+            // TODO 调用ProblemTagRelationManager.getTagNamesByProblemIds()获取标签信息
             List<Map<String, Object>> result = problemManager.getHardestProblemsRanking(limit);
             log.info("ProblemRankingService--->获取最难题目排行榜成功");
             return result;
@@ -75,6 +82,10 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
     public List<Map<String, Object>> getEasiestProblemsRanking(Integer limit) {
         try {
             log.info("ProblemRankingService--->获取最简单题目排行榜, 限制数量: {}", limit);
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getEasiestProblemsWithRecommendation()方法
+            // TODO 通过JOIN submission 表获取题目的通过率和用户反馈数据
+            // TODO 通过JOIN problem_tag_relation 和 problem_tag 表分析简单题目的标签特征
+            // TODO 调用ProblemTagRelationManager.getTagNamesByProblemIds()为初学者推荐合适的学习路径
             List<Map<String, Object>> result = problemManager.getEasiestProblemsRanking(limit);
             log.info("ProblemRankingService--->获取最简单题目排行榜成功");
             return result;
@@ -95,6 +106,10 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
     public List<Map<String, Object>> getMostSubmittedProblemsRanking(Integer limit, Integer timeRange) {
         try {
             log.info("ProblemRankingService--->获取提交最多题目排行榜, 限制数量: {}, 时间范围: {}", limit, timeRange);
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getMostSubmittedProblemsWithTrend()方法
+            // TODO 通过JOIN submission 表按时间范围统计提交趋势和用户参与度
+            // TODO 通过JOIN problem_tag_relation 和 problem_tag 表分析热门题目的标签分布
+            // TODO 通过JOIN user 表获取提交用户的统计信息，分析题目受欢迎程度
             List<Map<String, Object>> result = problemManager.getMaxSubmissionProblemsRanking(limit, timeRange);
             log.info("ProblemRankingService--->获取提交最多题目排行榜成功");
             return result;
@@ -115,6 +130,11 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
     public List<Map<String, Object>> getZeroSubmittedProblemsRanking(Integer limit, Integer timeRange) {
         try {
             log.info("ProblemRankingService--->获取零提交题目排行榜, 限制数量: {}, 时间范围: {}", limit, timeRange);
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getZeroSubmissionProblemsWithAnalysis()方法
+            // TODO 通过LEFT JOIN submission 表确认零提交状态
+            // TODO 通过JOIN problem_tag_relation 和 problem_tag 表分析零提交题目的标签特征
+            // TODO 通过JOIN user 表获取创建者信息，分析题目质量和推广情况
+            // TODO 为题目运营提供改进建议和推广策略
             List<Map<String, Object>> result = problemManager.getZeroSubmissionProblemsRanking(limit, timeRange);
             log.info("ProblemRankingService--->获取零提交题目排行榜成功");
             return result;
@@ -142,6 +162,11 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
                     .dayRange(days)
                     .build();
 
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getRecentPopularProblemsWithTrend()方法
+            // TODO 通过JOIN submission 表按日期范围统计最近的提交活跃度
+            // TODO 通过JOIN problem_tag_relation 和 problem_tag 表分析最近热门题目的标签趋势
+            // TODO 通过JOIN user 表分析参与用户的活跃度和分布情况
+            // TODO 为推荐系统提供实时热门题目数据支持
             List<Map<String, Object>> result = problemManager.getProblemRanking(criteria);
 
             log.info("ProblemRankingService--->获取最近热门题目排行榜成功");
@@ -155,7 +180,7 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
     /**
      * 统一的排行榜接口
      *
-     * @param type  排行榜类型
+     * @param type  排排行榜类型
      * @param limit 限制数量
      * @return 排行榜数据列表
      */
@@ -167,6 +192,11 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
             // 构建排行榜条件
             RankingCriteria criteria = RankingCriteria.fromRankingType(type, limit, null, null, null);
 
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getUnifiedRankingWithDetails()方法
+            // TODO 根据不同排行榜类型，动态JOIN相关表获取完整信息
+            // TODO 对于热门排行榜：JOIN submission、user 表获取提交统计和用户参与数据
+            // TODO 对于难度排行榜：JOIN submission 表计算真实通过率和用户反馈
+            // TODO 统一调用ProblemTagRelationManager.getTagNamesByProblemIds()获取标签信息
             // 调用管理器方法获取排行榜数据
             List<Map<String, Object>> result = problemManager.getProblemRanking(criteria);
 
@@ -206,6 +236,11 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
                 }
             }
 
+            // TODO 多表联查优化：在ProblemStatisticsManager中新增getDynamicRankingWithCriteria()方法
+            // TODO 根据动态条件构建复杂的多表联查，支持灵活的排行榜需求
+            // TODO 通过JOIN problem_tag_relation 和 problem_tag 表支持按标签筛选的排行榜
+            // TODO 通过JOIN user 表支持按创建者或地区筛选的排行榜
+            // TODO 通过JOIN submission 表支持按时间范围、提交状态等动态条件筛选
             List<Map<String, Object>> result = problemManager.getProblemRanking(rankingCriteria);
 
             log.info("ProblemRankingService--->获取题目排名成功, 排名类型: {}, 返回数量: {}", rankingType, result.size());
