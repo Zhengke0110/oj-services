@@ -716,6 +716,7 @@ public class ProblemController {
 
     /**
      * 按难度获取统计信息
+     * TODO 结果转实体
      *
      * @return 各难度级别的题目统计信息
      */
@@ -733,6 +734,7 @@ public class ProblemController {
 
     /**
      * 按题目类型获取统计信息
+     * TODO 结果转实体
      *
      * @return 各题目类型的统计信息
      */
@@ -750,6 +752,7 @@ public class ProblemController {
 
     /**
      * 按编程语言获取统计信息
+     * TODO 结果转实体
      *
      * @return 各编程语言的统计信息
      */
@@ -767,6 +770,7 @@ public class ProblemController {
 
     /**
      * 按状态获取统计信息
+     * TODO 结果转实体
      *
      * @return 各状态的统计信息
      */
@@ -786,6 +790,7 @@ public class ProblemController {
 
     /**
      * 获取题目创建趋势
+     * TODO 结果转实体
      *
      * @param startDate   开始日期
      * @param endDate     结束日期
@@ -809,6 +814,7 @@ public class ProblemController {
 
     /**
      * 获取热门题目排行榜
+     * TODO 结果转实体
      *
      * @param limit     限制数量，默认10
      * @param timeRange 时间范围（天数），默认30天
@@ -827,7 +833,27 @@ public class ProblemController {
     }
 
     /**
+     * 获取高质量题目排行榜
+     *
+     * @param limit 限制数量，可选参数，默认为10
+     * @return 高质量题目排行榜数据
+     */
+    @GetMapping("/ranking/quality")
+    public JsonData getHighQualityProblemsRanking(@RequestParam(required = false) Integer limit) {
+        try {
+            log.info("获取高质量题目排行榜，限制数量: {}", limit);
+            List<Map<String, Object>> result = problemService.getHighQualityProblemsRanking(limit);
+            log.info("成功获取高质量题目排行榜，返回条目数: {}", result.size());
+            return JsonData.buildSuccess(result);
+        } catch (Exception e) {
+            log.error("获取高质量题目排行榜失败", e);
+            return JsonData.buildError("获取高质量题目排行榜失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 获取最难题目排行榜
+     * TODO 结果转实体
      *
      * @param limit 限制数量，默认10
      * @return 最难题目排行榜
@@ -846,6 +872,7 @@ public class ProblemController {
 
     /**
      * 获取最容易题目排行榜
+     * TODO 结果转实体
      *
      * @param limit 限制数量，默认10
      * @return 最容易题目排行榜
@@ -864,11 +891,13 @@ public class ProblemController {
 
     /**
      * 获取最常提交题目排行榜
+     * TODO 需要结合提交记录表修改 目前不符合要求
      *
      * @param limit     限制数量，默认10
      * @param timeRange 时间范围（天数），默认30天
      * @return 最常提交题目排行榜
      */
+    @Deprecated
     @GetMapping("/ranking/most-submitted")
     public JsonData getMostSubmittedProblemsRanking(@RequestParam(defaultValue = "10") Integer limit, @RequestParam(defaultValue = "30") Integer timeRange) {
         try {
@@ -902,11 +931,13 @@ public class ProblemController {
 
     /**
      * 获取最近热门题目排行榜
+     * TODO 需要结合提交记录表修改 目前不符合要求
      *
      * @param limit 限制数量，默认10
      * @param days  最近天数，默认7天
      * @return 最近热门题目排行榜
      */
+    @Deprecated
     @GetMapping("/ranking/recent-popular")
     public JsonData getRecentPopularProblemsRanking(@RequestParam(defaultValue = "10") Integer limit, @RequestParam(defaultValue = "7") Integer days) {
         try {

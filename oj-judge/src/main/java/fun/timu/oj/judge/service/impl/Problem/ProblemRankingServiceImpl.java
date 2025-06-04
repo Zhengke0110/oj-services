@@ -50,6 +50,35 @@ public class ProblemRankingServiceImpl implements ProblemRankingService {
     }
 
     /**
+     * 获取高质量题目排行榜
+     * <p>
+     * 基于多维度指标（如通过率、评分、提交次数等）获取质量最高的题目列表
+     *
+     * @param limit 限制返回数量，默认为10
+     * @return 高质量题目排行榜数据
+     */
+    @Override
+    public List<Map<String, Object>> getHighQualityProblemsRanking(Integer limit) {
+        try {
+            log.info("ProblemRankingService--->获取高质量题目排行榜, 限制数量: {}", limit);
+
+            // 构建查询条件，使用QUALITY类型
+            RankingCriteria criteria = RankingCriteria.builder()
+                    .type(RankingType.QUALITY)
+                    .limit(limit != null ? limit : 10)
+                    .build();
+            // 调用通用排行榜方法获取结果
+            List<Map<String, Object>> result = problemManager.getProblemRanking(criteria);
+            log.info("ProblemRankingService--->成功获取高质量题目排行榜, 获取数量: {}", result.size());
+
+            return result;
+        } catch (Exception e) {
+            log.error("ProblemRankingService--->获取高质量题目排行榜失败", e);
+            throw new RuntimeException("获取高质量题目排行榜失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 获取最难题目排行榜
      *
      * @param limit 限制数量

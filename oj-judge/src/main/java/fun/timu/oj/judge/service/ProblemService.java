@@ -329,7 +329,6 @@ public interface ProblemService {
     List<Map<String, Object>> getProblemCreationTrend(Date startDate, Date endDate, String granularity);
 
 
-
     // ==================== 排名类方法 ====================
 
     /**
@@ -340,6 +339,14 @@ public interface ProblemService {
      * @return 热门题目排行榜
      */
     List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
+
+    /**
+     * 获取高质量题目排行榜
+     *
+     * @param limit 限制返回数量，默认为10
+     * @return 高质量题目排行榜数据
+     */
+    List<Map<String, Object>> getHighQualityProblemsRanking(Integer limit);
 
     /**
      * 获取最难题目排行榜

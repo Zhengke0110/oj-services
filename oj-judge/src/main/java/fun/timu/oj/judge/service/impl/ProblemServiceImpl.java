@@ -268,6 +268,11 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     @Override
+    public List<Map<String, Object>> getHighQualityProblemsRanking(Integer limit) {
+        return rankingService.getHighQualityProblemsRanking(limit);
+    }
+
+    @Override
     public List<Map<String, Object>> getHardestProblemsRanking(Integer limit) {
         return rankingService.getHardestProblemsRanking(limit);
     }

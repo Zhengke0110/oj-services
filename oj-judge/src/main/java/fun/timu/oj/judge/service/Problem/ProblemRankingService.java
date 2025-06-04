@@ -8,6 +8,8 @@ import java.util.Map;
 public interface ProblemRankingService {
     List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
 
+    List<Map<String, Object>> getHighQualityProblemsRanking(Integer limit);
+
     List<Map<String, Object>> getHardestProblemsRanking(Integer limit);
 
     List<Map<String, Object>> getEasiestProblemsRanking(Integer limit);

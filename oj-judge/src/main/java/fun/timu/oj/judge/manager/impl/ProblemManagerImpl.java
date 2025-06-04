@@ -672,6 +672,7 @@ public class ProblemManagerImpl implements ProblemManager {
 
     /**
      * 获取题目创建趋势
+     * TODO 需要将返回值转化成实体类
      *
      * @param startDate   开始日期
      * @param endDate     结束日期
@@ -688,6 +689,7 @@ public class ProblemManagerImpl implements ProblemManager {
                 .collect(Collectors.toList());
         return enhancedResult;
     }
+
     /**
      * 获取通过率趋势分析
      *
@@ -700,6 +702,7 @@ public class ProblemManagerImpl implements ProblemManager {
     public List<Map<String, Object>> getAcceptanceRateTrend(Date startDate, Date endDate, String granularity) {
         // 使用统一接口替代旧的实现
         TrendCriteria criteria = TrendCriteria.builder().type(TrendType.ACCEPTANCE_RATE_TREND).startTime(startDate).endTime(endDate).timeGranularity(granularity).build();
+        // TODO 需要将返回值转化成实体类
         return getTrendAnalysis(criteria);
     }
 
@@ -714,6 +717,24 @@ public class ProblemManagerImpl implements ProblemManager {
     public List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange) {
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.POPULARITY).limit(limit != null ? limit : 10).timeRange(timeRange).build();
+        // TODO 需要将返回值转化成实体类
+        return getProblemRanking(criteria);
+    }
+
+    /**
+     * 获取高质量题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 高质量题目排行榜
+     */
+    @Override
+    public List<Map<String, Object>> getHighQualityProblemsRanking(Integer limit) {
+        // 使用统一排行榜接口
+        RankingCriteria criteria = RankingCriteria.builder()
+                .type(RankingType.QUALITY)
+                .limit(limit != null ? limit : 10)
+                .build();
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 
@@ -728,6 +749,7 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.HARDEST).limit(limit != null ? limit : 10).build();
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 
@@ -742,6 +764,7 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.EASIEST).limit(limit != null ? limit : 10).build();
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 
@@ -755,6 +778,7 @@ public class ProblemManagerImpl implements ProblemManager {
     public List<Map<String, Object>> getMaxSubmissionProblemsRanking(Integer limit, Integer timeRange) {
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.MAX_SUBMISSION).limit(limit != null ? limit : 10).timeRange(timeRange).build();
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 
@@ -768,6 +792,7 @@ public class ProblemManagerImpl implements ProblemManager {
     public List<Map<String, Object>> getZeroSubmissionProblemsRanking(Integer limit, Integer timeRange) {
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.ZERO_SUBMISSION).limit(limit != null ? limit : 10).timeRange(timeRange).build();
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 
@@ -783,7 +808,7 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.CREATOR_CONTRIBUTION).limit(limit != null ? limit : 10).timeRange(timeRange).build();
-
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 
@@ -798,6 +823,7 @@ public class ProblemManagerImpl implements ProblemManager {
 
         // 使用统一排行榜接口替代旧的实现
         RankingCriteria criteria = RankingCriteria.builder().type(RankingType.QUALITY).limit(limit != null ? limit : 10).build();
+        // TODO 需要将返回值转化成实体类
         return getProblemRanking(criteria);
     }
 

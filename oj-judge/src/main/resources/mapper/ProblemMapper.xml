@@ -1548,24 +1548,24 @@
     <select id="getProblemLifecycleAnalysis" resultType="java.util.HashMap">
         SELECT p.id                           as problem_id,
                p.title,
-               p.create_time,
+               p.created_at,
                p.update_time,
-               DATEDIFF(NOW(), p.create_time) as days_since_creation,
+               DATEDIFF(NOW(), p.created_at) as days_since_creation,
                p.submission_count,
                p.accepted_count,
                p.view_count,
                -- 生命周期阶段
                CASE
-                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 7 THEN 'NEW'
-                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 30 THEN 'GROWING'
-                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 90 THEN 'MATURE'
-                   WHEN DATEDIFF(NOW(), p.create_time) &lt;= 365 THEN 'STABLE'
+                   WHEN DATEDIFF(NOW(), p.created_at) &lt;= 7 THEN 'NEW'
+                   WHEN DATEDIFF(NOW(), p.created_at) &lt;= 30 THEN 'GROWING'
+                   WHEN DATEDIFF(NOW(), p.created_at) &lt;= 90 THEN 'MATURE'
+                   WHEN DATEDIFF(NOW(), p.created_at) &lt;= 365 THEN 'STABLE'
                    ELSE 'LEGACY'
                    END                        as lifecycle_stage,
                -- 活跃度评分
                ROUND(
                        (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
-                       GREATEST(DATEDIFF(NOW(), p.create_time), 1), 2
+                       GREATEST(DATEDIFF(NOW(), p.created_at), 1), 2
                )                              as activity_score,
                -- 健康度评分
                ROUND(
@@ -1583,15 +1583,15 @@
     <!-- 获取平台增长指标 -->
     <select id="getPlatformGrowthMetrics" resultType="java.util.HashMap">
         SELECT COUNT(*)                                                                                 as total_problems,
-               COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) as new_problems,
+               COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) as new_problems,
                SUM(submission_count)                                                                    as total_submissions,
                SUM(accepted_count)                                                                      as total_accepted,
                SUM(view_count)                                                                          as total_views,
                -- 增长率计算
                ROUND(
-                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) *
+                       COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END) *
                        100.0 /
-                       GREATEST(COUNT(CASE WHEN create_time &lt; DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END),
+                       GREATEST(COUNT(CASE WHEN created_at &lt; DATE_SUB(NOW(), INTERVAL #{timeRange} DAY) THEN 1 END),
                                 1), 2
                )                                                                                        as problem_growth_rate,
                -- 活跃度指标
@@ -1658,7 +1658,7 @@
                p.view_count,
                -- 异常类型检测
                CASE
-                   WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.create_time) &gt; 30 THEN 'ZERO_SUBMISSION'
+                   WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.created_at) &gt; 30 THEN 'ZERO_SUBMISSION'
                    WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &lt; 5
                        THEN 'EXTREMELY_HARD'
                    WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &gt; 95
@@ -1677,7 +1677,7 @@
                )       as anomaly_score,
                -- 建议措施
                CASE
-                   WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.create_time) &gt; 30 THEN 'PROMOTE_PROBLEM'
+                   WHEN p.submission_count = 0 AND DATEDIFF(NOW(), p.created_at) &gt; 30 THEN 'PROMOTE_PROBLEM'
                    WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &lt; 5
                        THEN 'REVIEW_DIFFICULTY'
                    WHEN p.submission_count &gt; 0 AND (p.accepted_count * 100.0 / p.submission_count) &gt; 95
@@ -1697,7 +1697,7 @@
         SELECT #{year}                                                                                    as report_year,
                #{month}                                                                                   as report_month,
                COUNT(*)                                                                                   as total_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND MONTH(create_time) = #{month} THEN 1 END) as new_problems_this_month,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND MONTH(created_at) = #{month} THEN 1 END) as new_problems_this_month,
                SUM(submission_count)                                                                      as total_submissions,
                SUM(accepted_count)                                                                        as total_accepted,
                SUM(view_count)                                                                            as total_views,
@@ -1731,15 +1731,15 @@
     <select id="getAnnualReport" resultType="java.util.HashMap">
         SELECT #{year}                                                                               as       report_year,
                COUNT(*)                                                                              as       total_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} THEN 1 END)                              as       new_problems_this_year,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} THEN 1 END)                              as       new_problems_this_year,
                SUM(submission_count)                                                                 as       total_submissions,
                SUM(accepted_count)                                                                   as       total_accepted,
                SUM(view_count)                                                                       as       total_views,
                -- 月度增长趋势
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 1 THEN 1 END) as       q1_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 2 THEN 1 END) as       q2_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 3 THEN 1 END) as       q3_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = 4 THEN 1 END) as       q4_problems,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = 1 THEN 1 END) as       q1_problems,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = 2 THEN 1 END) as       q2_problems,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = 3 THEN 1 END) as       q3_problems,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = 4 THEN 1 END) as       q4_problems,
                -- 年度质量指标
                ROUND(AVG(
                              CASE
@@ -1764,7 +1764,7 @@
     <!-- 获取自定义时间范围统计报表 -->
     <select id="getCustomRangeReport" resultType="java.util.HashMap">
         SELECT COUNT(*)                                                                    as total_problems,
-               COUNT(CASE WHEN create_time BETWEEN #{startDate} AND #{endDate} THEN 1 END) as problems_in_range,
+               COUNT(CASE WHEN created_at BETWEEN #{startDate} AND #{endDate} THEN 1 END) as problems_in_range,
                SUM(submission_count)                                                       as total_submissions,
                SUM(accepted_count)                                                         as total_accepted,
                SUM(view_count)                                                             as total_views,
@@ -1795,7 +1795,7 @@
         SELECT #{year}                                                                                     as report_year,
                #{week}                                                                                     as report_week,
                COUNT(*)                                                                                    as total_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND WEEK(create_time, 1) = #{week} THEN 1 END) as new_problems_this_week,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND WEEK(created_at, 1) = #{week} THEN 1 END) as new_problems_this_week,
                SUM(submission_count)                                                                       as total_submissions,
                SUM(accepted_count)                                                                         as total_accepted,
                -- 周度活跃度
@@ -1825,15 +1825,15 @@
         SELECT #{year}                                                                                        as report_year,
                #{quarter}                                                                                     as report_quarter,
                COUNT(*)                                                                                       as total_problems,
-               COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter} THEN 1 END) as new_problems_this_quarter,
+               COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = #{quarter} THEN 1 END) as new_problems_this_quarter,
                SUM(submission_count)                                                                          as total_submissions,
                SUM(accepted_count)                                                                            as total_accepted,
                SUM(view_count)                                                                                as total_views,
                -- 季度增长指标
                ROUND(
-                       COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter} THEN 1 END) *
+                       COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = #{quarter} THEN 1 END) *
                        100.0 /
-                       GREATEST(COUNT(CASE WHEN YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter} - 1 THEN 1 END), 1),
+                       GREATEST(COUNT(CASE WHEN YEAR (created_at) = #{year} AND QUARTER(created_at) = #{quarter} - 1 THEN 1 END), 1),
                        2
                )                                                                                              as quarter_growth_rate,
                -- 季度质量指标
@@ -1849,7 +1849,7 @@
                COUNT(DISTINCT creator_id)                                                                     as quarterly_creators,
                COUNT(DISTINCT problem_type)                                                                   as quarterly_types,
                -- 季度热门题目
-               (SELECT title FROM problem WHERE is_deleted = 0 AND YEAR (create_time) = #{year} AND QUARTER(create_time) = #{quarter}
+               (SELECT title FROM problem WHERE is_deleted = 0 AND YEAR (created_at) = #{year} AND QUARTER(created_at) = #{quarter}
         ORDER BY submission_count DESC LIMIT 1) as most_popular_problem_this_quarter
         FROM problem
         WHERE is_deleted = 0
@@ -1951,21 +1951,21 @@
                p.title,
                p.submission_count             as current_submissions,
                p.view_count,
-               DATEDIFF(NOW(), p.create_time) as days_since_creation,
+               DATEDIFF(NOW(), p.created_at) as days_since_creation,
                -- 提交趋势预测
                ROUND(
                        p.submission_count *
-                       (1 + (p.submission_count / GREATEST(DATEDIFF(NOW(), p.create_time), 1) * #{predictDays} / 100)),
+                       (1 + (p.submission_count / GREATEST(DATEDIFF(NOW(), p.created_at), 1) * #{predictDays} / 100)),
                        0
                )                              as predicted_submissions,
                -- 预测增长率
                ROUND(
-                       (p.submission_count / GREATEST(DATEDIFF(NOW(), p.create_time), 1) * #{predictDays}), 2
+                       (p.submission_count / GREATEST(DATEDIFF(NOW(), p.created_at), 1) * #{predictDays}), 2
                )                              as predicted_growth,
                -- 预测置信度
                CASE
-                   WHEN DATEDIFF(NOW(), p.create_time) &gt; 30 AND p.submission_count &gt; 10 THEN 'HIGH'
-                   WHEN DATEDIFF(NOW(), p.create_time) &gt; 7 AND p.submission_count &gt; 1 THEN 'MEDIUM'
+                   WHEN DATEDIFF(NOW(), p.created_at) &gt; 30 AND p.submission_count &gt; 10 THEN 'HIGH'
+                   WHEN DATEDIFF(NOW(), p.created_at) &gt; 7 AND p.submission_count &gt; 1 THEN 'MEDIUM'
                    ELSE 'LOW'
                    END                        as prediction_confidence,
                -- 影响因素
@@ -1980,23 +1980,23 @@
     <!-- 获取平台增长预测 -->
     <select id="getPlatformGrowthPrediction" resultType="java.util.HashMap">
         SELECT COUNT(*)                                                                       as current_total_problems,
-               COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_month_problems,
-               COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY) THEN 1 END) as recent_quarter_problems,
+               COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_month_problems,
+               COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL 90 DAY) THEN 1 END) as recent_quarter_problems,
                -- 增长率计算
                ROUND(
-                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 *
+                       COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 *
                        #{predictMonths} * 30, 0
                )                                                                              as predicted_new_problems,
                -- 预测总数
                COUNT(*) + ROUND(
-                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 *
+                       COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) / 30.0 *
                        #{predictMonths} * 30, 0
                           )                                                                   as predicted_total_problems,
                -- 增长趋势
                ROUND(
-                       COUNT(CASE WHEN create_time &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) * 100.0 /
+                       COUNT(CASE WHEN created_at &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) * 100.0 /
                        GREATEST(COUNT(CASE
-                                          WHEN create_time BETWEEN DATE_SUB(NOW(), INTERVAL 60 DAY) AND DATE_SUB(NOW(), INTERVAL 30 DAY)
+                                          WHEN created_at BETWEEN DATE_SUB(NOW(), INTERVAL 60 DAY) AND DATE_SUB(NOW(), INTERVAL 30 DAY)
                                               THEN 1 END), 1), 2
                )                                                                              as monthly_growth_rate,
                -- 预测质量指标
@@ -2025,12 +2025,12 @@
                -- 流行度评分
                ROUND(
                        (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
-                       GREATEST(DATEDIFF(NOW(), p.create_time), 1), 2
+                       GREATEST(DATEDIFF(NOW(), p.created_at), 1), 2
                )       as current_popularity_score,
                -- 流行度预测
                ROUND(
                        (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
-                       GREATEST(DATEDIFF(NOW(), p.create_time), 1) *
+                       GREATEST(DATEDIFF(NOW(), p.created_at), 1) *
                        (1 + #{timeRange} * 0.01), 2
                )       as predicted_popularity_score,
                -- 预测排名变化
@@ -2044,11 +2044,11 @@
                -- 推荐等级
                CASE
                    WHEN (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
-                        GREATEST(DATEDIFF(NOW(), p.create_time), 1) &gt; 100 THEN 'HOT'
+                        GREATEST(DATEDIFF(NOW(), p.created_at), 1) &gt; 100 THEN 'HOT'
                    WHEN (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
-                        GREATEST(DATEDIFF(NOW(), p.create_time), 1) &gt; 50 THEN 'TRENDING'
+                        GREATEST(DATEDIFF(NOW(), p.created_at), 1) &gt; 50 THEN 'TRENDING'
                    WHEN (p.submission_count * 0.4 + p.view_count * 0.3 + p.accepted_count * 0.3) /
-                        GREATEST(DATEDIFF(NOW(), p.create_time), 1) &gt; 10 THEN 'POPULAR'
+                        GREATEST(DATEDIFF(NOW(), p.created_at), 1) &gt; 10 THEN 'POPULAR'
                    ELSE 'NORMAL'
                    END as recommendation_level
         FROM problem p
@@ -2571,9 +2571,9 @@
         p.title_en,
         p.difficulty,
         CASE
-        WHEN p.difficulty = 'EASY' THEN '简单'
-        WHEN p.difficulty = 'MEDIUM' THEN '中等'
-        WHEN p.difficulty = 'HARD' THEN '困难'
+        WHEN p.difficulty = 0 THEN '简单'
+        WHEN p.difficulty = 1 THEN '中等'
+        WHEN p.difficulty = 2 THEN '困难'
         ELSE '未知'
         END as difficulty_name,
         p.problem_type,
@@ -2619,13 +2619,9 @@
             <!-- 最简单题目排行 -->
             <when test="criteria.type.name() == 'EASIEST'">
                 ROUND(
-                (CASE
-                WHEN p.submission_count > 0
-                THEN (p.accepted_count * 100.0 / p.submission_count)
-                ELSE 0
-                END) -
+                (CASE WHEN p.submission_count > 0 THEN (p.accepted_count * 100.0 / p.submission_count) ELSE 0 END) -
                 (p.time_limit / 1000.0 * 0.1) -
-                (p.memory_limit / 256.0 * 0.1)
+                (p.memory_limit / (1024.0 * 1024.0) / 256.0 * 0.1)
                 , 2) as easiness_score
             </when>
             <!-- 高质量题目排行 -->
@@ -2658,10 +2654,11 @@
                 ELSE 'UNKNOWN'
                 END as status_name
             </when>
-             <!-- 最多提交题目排行 -->
+            <!-- 最多提交题目排行 -->
             <when test="criteria.type.name() == 'MAX_SUBMISSION'">
                 DATEDIFF(CURRENT_DATE, p.created_at) as days_since_creation,
-                ROUND(p.submission_count / GREATEST(DATEDIFF(CURRENT_DATE, p.created_at), 1), 2) as daily_submission_rate,
+                ROUND(p.submission_count / GREATEST(DATEDIFF(CURRENT_DATE, p.created_at), 1), 2) as
+                daily_submission_rate,
                 CASE
                 WHEN p.status = 0 THEN 'DISABLED'
                 WHEN p.status = 1 THEN 'ACTIVE'
@@ -2733,7 +2730,7 @@
                     AND p.created_at >= DATE_SUB(CURRENT_DATE, INTERVAL #{criteria.dayRange} DAY)
                 </if>
             </when>
-             <!-- 零提交题目排行条件 -->
+            <!-- 零提交题目排行条件 -->
             <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
                 AND p.submission_count = 0
             </when>
@@ -2775,7 +2772,7 @@
             <when test="criteria.type.name() == 'NEWEST'">
                 ORDER BY p.created_at DESC, daily_submission_rate DESC
             </when>
-             <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
+            <when test="criteria.type.name() == 'ZERO_SUBMISSION'">
                 ORDER BY days_since_creation DESC, p.created_at DESC
             </when>
             <when test="criteria.type.name() == 'MAX_SUBMISSION'">

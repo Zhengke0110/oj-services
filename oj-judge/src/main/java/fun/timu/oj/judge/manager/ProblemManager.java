@@ -372,6 +372,14 @@ public interface ProblemManager {
     List<Map<String, Object>> getPopularProblemsRanking(Integer limit, Integer timeRange);
 
     /**
+     * 获取高质量题目排行榜
+     *
+     * @param limit 限制数量
+     * @return 高质量题目排行榜
+     */
+    List<Map<String, Object>> getHighQualityProblemsRanking(Integer limit);
+
+    /**
      * 获取最难题目排行榜
      *
      * @param limit 限制数量
