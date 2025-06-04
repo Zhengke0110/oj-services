@@ -33,13 +33,6 @@ public class ProblemManagerImpl implements ProblemManager {
     private final ProblemBatchManager problemBatchManager;
     private final ProblemRecommendationManager problemRecommendationManager;
     private final ProblemStatisticsManager problemStatisticsManager;
-
-    /**
-     * 根据id查询题目
-     *
-     * @param id 题目id
-     * @return 题目
-     */
     @Override
     public ProblemDO getById(Long id) {
         return problemCoreManager.getById(id);
