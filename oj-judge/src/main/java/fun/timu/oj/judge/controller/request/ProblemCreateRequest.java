@@ -1,8 +1,8 @@
 package fun.timu.oj.judge.controller.request;
 
-import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
-import fun.timu.oj.common.enmus.ProblemStatusEnum;
-import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
+import fun.timu.oj.judge.model.Enums.ProblemDifficultyEnum;
+import fun.timu.oj.judge.model.Enums.ProblemStatusEnum;
+import fun.timu.oj.judge.model.Enums.ProblemVisibilityEnum;
 import lombok.Data;
 
 import javax.validation.constraints.*;

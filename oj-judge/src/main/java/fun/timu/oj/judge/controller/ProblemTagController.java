@@ -2,7 +2,7 @@ package fun.timu.oj.judge.controller;
 
 import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.enmus.ColorEnum;
-import fun.timu.oj.common.enmus.TagCategoryEnum;
+import fun.timu.oj.judge.model.Enums.TagCategoryEnum;
 import fun.timu.oj.common.exception.BizException;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.common.utils.JsonData;

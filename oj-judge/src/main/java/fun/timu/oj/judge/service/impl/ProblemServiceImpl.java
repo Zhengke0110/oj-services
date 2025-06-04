@@ -1,19 +1,12 @@
 package fun.timu.oj.judge.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
-import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
-import fun.timu.oj.common.enmus.ProblemStatusEnum;
-import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
-import fun.timu.oj.judge.model.DO.ProblemDO;
 
 import fun.timu.oj.judge.model.Enums.RankingType;
-import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.VTO.PopularProblemCategoryVTO;
 import fun.timu.oj.judge.model.VTO.ProblemDetailStatisticsVTO;
@@ -23,7 +16,6 @@ import fun.timu.oj.judge.service.Problem.*;
 import fun.timu.oj.judge.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

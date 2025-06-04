@@ -1,6 +1,6 @@
 package fun.timu.oj.judge.controller.request;
 
-import fun.timu.oj.common.enmus.TagCategoryEnum;
+import fun.timu.oj.judge.model.Enums.TagCategoryEnum;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;

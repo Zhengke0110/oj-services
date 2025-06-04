@@ -1,4 +1,4 @@
-package fun.timu.oj.common.enmus;
+package fun.timu.oj.judge.model.Enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

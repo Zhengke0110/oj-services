@@ -1,6 +1,6 @@
 package fun.timu.oj.judge.service;
 
-import fun.timu.oj.common.enmus.TagCategoryEnum;
+import fun.timu.oj.judge.model.Enums.TagCategoryEnum;
 import fun.timu.oj.common.model.PageResult;
 import fun.timu.oj.judge.controller.request.ProblemTagCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemTagUpdateRequest;

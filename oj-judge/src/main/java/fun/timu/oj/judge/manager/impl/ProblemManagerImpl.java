@@ -1,7 +1,7 @@
 package fun.timu.oj.judge.manager.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
+import fun.timu.oj.judge.model.Enums.ProblemDifficultyEnum;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.judge.controller.request.BatchProblemRequest;
 import fun.timu.oj.judge.manager.ProblemManager;

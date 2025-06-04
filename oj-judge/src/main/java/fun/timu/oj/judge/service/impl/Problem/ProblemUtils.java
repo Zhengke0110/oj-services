@@ -2,13 +2,12 @@ package fun.timu.oj.judge.service.impl.Problem;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
-import fun.timu.oj.common.enmus.ProblemStatusEnum;
-import fun.timu.oj.common.enmus.ProblemVisibilityEnum;
+import fun.timu.oj.judge.model.Enums.ProblemDifficultyEnum;
+import fun.timu.oj.judge.model.Enums.ProblemStatusEnum;
+import fun.timu.oj.judge.model.Enums.ProblemVisibilityEnum;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.VO.ExampleVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 
 import java.util.Collections;

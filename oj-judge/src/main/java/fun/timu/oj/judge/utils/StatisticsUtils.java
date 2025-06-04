@@ -1,10 +1,9 @@
 package fun.timu.oj.judge.utils;
 
-import fun.timu.oj.common.enmus.ProblemDifficultyEnum;
+import fun.timu.oj.judge.model.Enums.ProblemDifficultyEnum;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 统计数据处理工具类
