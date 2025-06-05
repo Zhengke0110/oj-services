@@ -10,6 +10,7 @@ import fun.timu.oj.judge.model.VTO.TagUsageStatisticsVTO;
 import fun.timu.oj.judge.model.VTO.CategoryAggregateStatisticsVTO;
 
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -129,4 +130,21 @@ public interface ProblemTagService {
      * @return 受影响的记录数
      */
     boolean batchUpdateUsageCount(List<Long> tagIds, int value, String type);
+
+    /**
+     * 根据问题ID获取标签列表
+     *
+     * @param problemId 问题ID
+     * @return 标签列表
+     */
+    List<ProblemTagVO> getTagListByProblemId(Long problemId);
+
+    /**
+     * 根据问题ID列表获取标签列表
+     *
+     * @param problemIds 问题ID列表
+     * @return 问题ID到标签列表的映射
+     */
+    Map<Long, List<ProblemTagVO>> getTagListByProblemIds(List<Long> problemIds);
+
 }

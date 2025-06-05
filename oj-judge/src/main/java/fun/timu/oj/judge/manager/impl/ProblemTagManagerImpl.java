@@ -357,4 +357,32 @@ public class ProblemTagManagerImpl implements ProblemTagManager {
         }
         return 0;
     }
+
+    /**
+     * 根据ID列表批量查询标签
+     *
+     * @param tagIds 标签ID列表
+     * @return 标签列表
+     */
+    @Override
+    public List<ProblemTagDO> batchFindByIds(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 创建查询条件包装器
+        LambdaQueryWrapper<ProblemTagDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 添加ID列表条件
+        queryWrapper.in(ProblemTagDO::getId, tagIds);
+
+        // 默认只查询未删除的标签
+        queryWrapper.eq(ProblemTagDO::getIsDeleted, false);
+
+        // 设置排序规则：先按使用次数降序，再按标签名称升序
+        queryWrapper.orderByDesc(ProblemTagDO::getUsageCount).orderByAsc(ProblemTagDO::getTagName);
+
+        // 执行查询并返回结果
+        return problemTagMapper.selectList(queryWrapper);
+    }
 }

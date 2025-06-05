@@ -2,27 +2,30 @@ package fun.timu.oj.judge.service.impl.Problem;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.interceptor.LoginInterceptor;
 import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
 import fun.timu.oj.judge.manager.ProblemManager;
+import fun.timu.oj.judge.manager.ProblemTagRelationManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.Problem.ProblemCoreService;
 import fun.timu.oj.judge.service.ProblemTagRelationService;
+import fun.timu.oj.judge.service.ProblemTagService;
+import fun.timu.oj.judge.utils.ConvertToUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -37,19 +40,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProblemCoreServiceImpl implements ProblemCoreService {
     private final ProblemManager problemManager;
+    private final ProblemTagRelationManager problemTagRelationManager;
     private final ProblemTagRelationService problemTagRelationService;
+    private final ProblemTagService tagService;
+    private final ProblemTagService problemTagService;
 
     /**
      * 根据题目ID获取题目详细信息
-     * 此方法首先调用problemManager的getById方法获取题目数据对象（ProblemDO），
-     * 如果题目不存在或已被删除，则抛出运行时异常；
-     * 否则，将ProblemDO转换为ProblemVO并返回
+     * 此方法首先验证用户登录状态，然后根据题目ID检索题目信息，
+     * 并进行题目状态和权限验证，最后返回题目详细信息或错误信息
      *
-     * @param id 题目ID，用于获取特定题目信息
-     * @return ProblemVO 题目视图对象，包含题目详细信息如果题目不存在或已被删除，返回null
+     * @param id 题目ID，用于检索特定题目的详细信息
+     * @return 返回包含题目信息的JsonData对象，或包含错误信息的JsonData对象
      */
     @Override
-    public ProblemVO getById(Long id) {
+    public JsonData getById(Long id) {
         try {
             //  获取当前登录用户信息
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
@@ -73,21 +78,20 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
             }
 
             // 将题目数据对象转换为视图对象
-            ProblemVO problemVO = ProblemUtils.convertToVO(problemDO);
+            ProblemVO problemVO = ConvertToUtils.convertToVO(problemDO);
 
-            // TODO 多表联查优化：调用ProblemTagRelationManager.findByProblemId()方法，一次性获取题目和标签信息，避免N+1查询问题
-            // TODO 考虑在ProblemManager中新增getByIdWithTags()方法，通过JOIN查询获取题目信息和关联标签
-            // TODO 或者调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取标签名称
-            List<Long> tagIds = problemTagRelationService.getTagIdsByProblemId(id);
-//            problemVO.setTags(tagIds);
-
-            return problemVO;
+            // 查询与题目相关联的标签
+            List<ProblemTagVO> tagVOList = tagService.getTagListByProblemId(id);
+            problemVO.setTags(tagVOList);
+            log.info("ProblemService--->获取题目成功: {}", problemVO);
+            return JsonData.buildSuccess(problemVO);
         } catch (Exception e) {
             // 记录获取题目时发生的错误
             log.error("ProblemService--->获取题目失败: {}", e.getMessage(), e);
-            return null;
+            return JsonData.buildResult(BizCodeEnum.PROBLEM_NOT_EXIST);
         }
     }
+
 
     /**
      * 根据条件获取问题列表
@@ -96,35 +100,33 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
      * @return 包含问题列表的分页结果
      */
     @Override
-    public PageResult<ProblemVO> getProblemsWithConditions(ProblemQueryRequest request) {
+    public JsonData getProblemsWithConditions(ProblemQueryRequest request) {
         try {
             // 1. 从请求中提取查询参数
             int current = Optional.ofNullable(request.getCurrent()).orElse(1);
             int size = Optional.ofNullable(request.getSize()).orElse(20);
 
             // 2. 调用Manager层方法获取分页结果
-            // TODO 多表联查优化：在ProblemManager中新增findProblemsWithTagsAndCreator()方法
-            // TODO 通过LEFT JOIN problem_tag_relation 和 problem_tag 表获取标签信息
-            // TODO 通过LEFT JOIN user 表获取创建者信息，避免单独查询每个题目的详细信息
             IPage<ProblemDO> problemPage = problemManager.findTagListWithPage(current, size, request.getProblemType(), request.getDifficulty(), request.getStatus(), request.getVisibility(), request.getSupportedLanguages(), request.getHasInput(), request.getMinAcceptanceRate(), request.getMaxAcceptanceRate());
 
             // 3. 将DO转换为VO
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO)  // 使用类名调用静态方法
-                    .filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ConvertToUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
-            // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取所有题目的标签信息
-            // TODO 避免在循环中单独查询每个题目的标签，改为一次性批量查询提高性能
-            // TODO 考虑在ProblemTagRelationManager中新增findByProblemIdsWithTagNames()方法返回题目ID到标签名称列表的映射
-            
-            // 4. 构建并返回分页结果
+            // 4. 获取所有题目的标签信息
+            List<Long> problemIds = problemVOList.stream().map(ProblemVO::getId).collect(Collectors.toList());
+            Map<Long, List<ProblemTagVO>> tagLists = tagService.getTagListByProblemIds(problemIds);
+            // 5. 设置题目标签信息
+            problemVOList.forEach(problemVO -> problemVO.setTags(tagLists.get(problemVO.getId())));
+
+            // 6. 构建并返回分页结果
             PageResult<ProblemVO> pageResult = new PageResult<>(problemVOList, problemPage.getTotal(), (int) problemPage.getSize(), (int) problemPage.getCurrent(), (int) problemPage.getPages());
             log.info("ProblemService--->按条件查询题目列表成功: 当前页 {}, 每页大小 {}, 总记录数 {}", current, size, problemPage.getTotal());
-            return pageResult;
+            return JsonData.buildSuccess(pageResult);
         } catch (Exception e) {
             // 记录异常日志
             log.error("ProblemService--->按条件查询题目列表失败: {}", e.getMessage(), e);
             // 返回空结果
-            return new PageResult<>();
+            return JsonData.buildResult(BizCodeEnum.SYSTEM_ERROR);
         }
     }
 
@@ -145,12 +147,12 @@ public class ProblemCoreServiceImpl implements ProblemCoreService {
             // 从线程局部变量中获取当前登录用户信息
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) throw new RuntimeException("用户未登录");
-            
+
             // TODO 多表联查优化：在ProblemManager中新增findByCreatorIdWithTags()方法
             // TODO 通过LEFT JOIN problem_tag_relation 和 problem_tag 表一次性获取用户题目及其标签信息
             // TODO 或调用ProblemTagRelationManager.findByProblemIds()批量获取标签关联信息
             // 查询并转换问题数据为视图对象列表
-            List<ProblemVO> voList = problemManager.findByCreatorId(loginUser.getAccountNo()).stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> voList = problemManager.findByCreatorId(loginUser.getAccountNo()).stream().map(ConvertToUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
             // 记录获取问题列表成功的日志信息
             log.info("获取当前用户创建的题目列表成功，用户ID：{}，题目数量：{}", loginUser.getAccountNo(), voList.size());
             return voList;

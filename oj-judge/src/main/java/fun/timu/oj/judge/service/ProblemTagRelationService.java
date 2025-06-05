@@ -1,7 +1,9 @@
 package fun.timu.oj.judge.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
+import fun.timu.oj.judge.model.VO.ProblemTagVO;
 
 import java.util.List;
 import java.util.Map;
@@ -66,6 +68,7 @@ public interface ProblemTagRelationService extends IService<ProblemTagRelationDO
      * @param problemId 题目ID
      * @return 标签ID列表
      */
+    @Deprecated
     List<Long> getTagIdsByProblemId(Long problemId);
 
     /**

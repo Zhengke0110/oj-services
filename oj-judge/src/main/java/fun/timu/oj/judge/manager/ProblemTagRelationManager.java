@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.manager;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
 import fun.timu.oj.judge.model.criteria.ProblemTagRelationQueryCondition;
 import fun.timu.oj.judge.model.criteria.RelationStatisticsReport;
@@ -459,4 +460,12 @@ public interface ProblemTagRelationManager {
      * @return 题目ID到标签名称列表的映射
      */
     Map<Long, List<String>> getTagNamesByProblemIds(List<Long> problemIds);
+
+    /**
+     * 根据题目ID列表批量查询标签列表
+     *
+     * @param problemIds
+     * @return
+     */
+    Map<Long, List<ProblemTagDO>> getTagListByProblemIds(List<Long> problemIds);
 }

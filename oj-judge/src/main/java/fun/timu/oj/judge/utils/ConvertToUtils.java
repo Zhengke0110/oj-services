@@ -1,20 +1,25 @@
-package fun.timu.oj.judge.service.impl.Problem;
+package fun.timu.oj.judge.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
+import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.DO.ProblemTagDO;
+import fun.timu.oj.judge.model.DTO.CategoryAggregateStatisticsDTO;
 import fun.timu.oj.judge.model.Enums.ProblemDifficultyEnum;
 import fun.timu.oj.judge.model.Enums.ProblemStatusEnum;
 import fun.timu.oj.judge.model.Enums.ProblemVisibilityEnum;
-import fun.timu.oj.judge.model.DO.ProblemDO;
+import fun.timu.oj.judge.model.Enums.TagCategoryEnum;
 import fun.timu.oj.judge.model.VO.ExampleVO;
+import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
+import fun.timu.oj.judge.model.VTO.CategoryAggregateStatisticsVTO;
 import org.springframework.beans.BeanUtils;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class ProblemUtils {
+public class ConvertToUtils {
     public static ProblemVO convertToVO(ProblemDO problemDO) {
         if (problemDO == null) return null;
 
@@ -49,6 +54,47 @@ public class ProblemUtils {
         problemVO.setSolutionTemplates(parseTemplateMap(problemDO.getSolutionTemplates(), "solutionTemplates"));
 
         return problemVO;
+    }
+
+    /**
+     * 将问题标签数据对象转换为视图对象
+     *
+     * @param tagDO 问题标签数据对象，包含标签的相关数据
+     * @return 返回一个视图对象，包含与数据对象相同的信息
+     */
+    public static ProblemTagVO convertToVO(ProblemTagDO tagDO) {
+        // 创建一个视图对象实例
+        ProblemTagVO tagVO = new ProblemTagVO();
+        // 将数据对象的属性值复制到视图对象中
+        BeanUtils.copyProperties(tagDO, tagVO);
+        // 返回填充好的视图对象
+        return tagVO;
+    }
+
+    /**
+     * 将 CategoryAggregateStatisticsDTO 转换为 CategoryAggregateStatisticsVO
+     *
+     * @param dto CategoryAggregateStatisticsDTO 对象
+     * @return 转换后的 CategoryAggregateStatisticsVO 对象
+     */
+    public static CategoryAggregateStatisticsVTO convertToVO(CategoryAggregateStatisticsDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        // 使用 BeanUtils 进行属性拷贝
+        CategoryAggregateStatisticsVTO vo = new CategoryAggregateStatisticsVTO();
+        BeanUtils.copyProperties(dto, vo);
+
+        // 设置额外的字段
+        vo.setCategoryDisplayName(getCategoryDisplayName(dto.getCategory()));
+        if (dto.getTotalTags() != null && dto.getTotalTags() > 0) {
+            vo.setActiveRate(dto.getActiveTags() * 1.0 / dto.getTotalTags());
+            vo.setAverageUsage(dto.getStoredUsageCount() * 1.0 / dto.getTotalTags());
+        } else {
+            vo.setActiveRate(0.0);
+            vo.setAverageUsage(0.0);
+        }
+        return vo;
     }
 
     /**
@@ -159,6 +205,21 @@ public class ProblemUtils {
         }
 
         return problemVO;
+    }
+
+
+    /**
+     * 根据分类枚举值获取分类显示名称
+     *
+     * @param category 分类枚举值
+     * @return 分类显示名称
+     */
+    private static String getCategoryDisplayName(String category) {
+        try {
+            return TagCategoryEnum.valueOf(category).name();
+        } catch (IllegalArgumentException e) {
+            return TagCategoryEnum.ALGORITHM.toString();
+        }
     }
 
 

@@ -1,6 +1,9 @@
 package fun.timu.oj.judge.service.impl;
 
+import fun.timu.oj.common.interceptor.LoginInterceptor;
+import fun.timu.oj.common.model.LoginUser;
 import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
@@ -42,12 +45,12 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemTrendService trendService;
 
     @Override
-    public ProblemVO getById(Long id) {
+    public JsonData getById(Long id) {
         return coreService.getById(id);
     }
 
     @Override
-    public PageResult<ProblemVO> getProblemsWithConditions(ProblemQueryRequest request) {
+    public JsonData getProblemsWithConditions(ProblemQueryRequest request) {
         return coreService.getProblemsWithConditions(request);
     }
 

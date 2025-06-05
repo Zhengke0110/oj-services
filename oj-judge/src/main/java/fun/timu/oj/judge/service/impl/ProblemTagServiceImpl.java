@@ -3,6 +3,7 @@ package fun.timu.oj.judge.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import fun.timu.oj.common.enmus.BizCodeEnum;
 import fun.timu.oj.common.utils.JsonData;
+import fun.timu.oj.judge.manager.ProblemTagRelationManager;
 import fun.timu.oj.judge.model.Enums.TagCategoryEnum;
 import fun.timu.oj.common.interceptor.LoginInterceptor;
 import fun.timu.oj.common.model.LoginUser;
@@ -17,22 +18,24 @@ import fun.timu.oj.judge.model.VTO.CategoryAggregateStatisticsVTO;
 import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.model.VTO.TagUsageStatisticsVTO;
 import fun.timu.oj.judge.service.ProblemTagService;
+import fun.timu.oj.judge.utils.ConvertToUtils;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class ProblemTagServiceImpl implements ProblemTagService {
     private final ProblemTagManager problemTagManager;
+    private final ProblemTagRelationManager relationManager;
 
-    public ProblemTagServiceImpl(ProblemTagManager problemTagManager) {
-        this.problemTagManager = problemTagManager;
-    }
 
     // ================== 基础CRUD操作 ==================
 
@@ -221,10 +224,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             if (tagDO == null || tagDO.getIsDeleted() == 1) {
                 throw new RuntimeException("标签不存在或已被删除");
             }
-            ProblemTagVO problemTagVO = convertToVO(tagDO);
-
             // 将找到的标签实体转换为视图对象并返回
-            return JsonData.buildSuccess(convertToVO(tagDO));
+            return JsonData.buildSuccess(ConvertToUtils.convertToVO(tagDO));
         } catch (Exception e) {
             // 记录获取标签失败的错误信息
             log.error("ProblemTagService--->获取标签失败: {}", e.getMessage(), e);
@@ -255,7 +256,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             IPage<ProblemTagDO> tagPage = problemTagManager.findTagListWithPage(current, size, tagName, null, status, tagColor);
 
             // 转换DO对象为VO对象
-            List<ProblemTagVO> voList = tagPage.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
+            List<ProblemTagVO> voList = tagPage.getRecords().stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
 
             // 创建自定义分页结果
             PageResult<ProblemTagVO> result = new PageResult<>(voList, tagPage.getTotal(), tagPage.getSize(), tagPage.getCurrent(), tagPage.getPages());
@@ -288,7 +289,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 查询所有启用的ProblemTagDO对象
             List<ProblemTagDO> tags = problemTagManager.findAllActive();
             // 将查询到的ProblemTagDO对象转换为ProblemTagVO对象列表
-            List<ProblemTagVO> list = tags.stream().map(this::convertToVO).collect(Collectors.toList());
+            List<ProblemTagVO> list = tags.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
             // 记录查询成功的日志信息
             log.info("ProblemTagService--->查询启用的Tags成功，数量: {}", list.size());
             return JsonData.buildSuccess(list);
@@ -357,7 +358,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<CategoryAggregateStatisticsDTO> statisticsDTOs = problemTagManager.getCategoryAggregateStatistics();
             log.info("ProblemTagService--->获取分类聚合统计信息成功，统计数量: {}", statisticsDTOs.size());
             // 将 DTO 转换为 VO 对象
-            List<CategoryAggregateStatisticsVTO> collect = statisticsDTOs.stream().map(this::convertToVO).collect(Collectors.toList());
+            List<CategoryAggregateStatisticsVTO> collect = statisticsDTOs.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
             return JsonData.buildSuccess(collect);
         } catch (Exception e) {
             // 记录异常信息，便于问题追踪和定位
@@ -396,7 +397,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<ProblemTagDO> tagDOs = problemTagManager.findByUsageCountRange(minUsageCount, maxUsageCount, categoryStr);
 
             // 将DO对象转换为VO对象
-            List<ProblemTagVO> voList = tagDOs.stream().map(this::convertToVO).collect(Collectors.toList());
+            List<ProblemTagVO> voList = tagDOs.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
 
             // 记录日志
             log.info("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签成功，数量: {}", minUsageCount, maxUsageCount, category, voList.size());
@@ -434,7 +435,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<ProblemTagDO> tagDOs = problemTagManager.findPopularTags(limit, categoryStr);
 
             // 将DO对象转换为VO对象
-            List<ProblemTagVO> voList = tagDOs.stream().map(this::convertToVO).collect(Collectors.toList());
+            List<ProblemTagVO> voList = tagDOs.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
 
             // 记录日志
             log.info("ProblemTagService--->查询热门标签成功，分类: {}, 限制数量: {}, 实际数量: {}", category, limit, voList.size());
@@ -746,6 +747,62 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         }
     }
 
+    /**
+     * 根据问题ID获取标签列表
+     *
+     * @param problemId 问题ID
+     * @return 标签列表
+     */
+    @Override
+    public List<ProblemTagVO> getTagListByProblemId(Long problemId) {
+        if (problemId == null || problemId <= 0) throw new RuntimeException("问题ID无效");
+        List<Long> tagIds = relationManager.getTagIdsByProblemId(problemId);
+        if (tagIds == null || tagIds.isEmpty()) {
+            log.warn("ProblemTagService--->getTagListByProblemId: 问题ID {} 没有关联的标签", problemId);
+            return List.of(); // 返回空列表而不是null，避免空指针异常
+        }
+        List<ProblemTagDO> tagDOList = problemTagManager.batchFindByIds(tagIds);
+        List<ProblemTagVO> voList = tagDOList.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
+        if (voList.isEmpty()) {
+            log.warn("ProblemTagService--->getTagListByProblemId: 问题ID {} 没有关联的标签", problemId);
+            return List.of();
+        }
+        return voList;
+    }
+
+    /**
+     * 根据问题ID列表批量获取标签列表
+     *
+     * @param problemIds 问题ID列表
+     * @return
+     */
+    @Override
+    public Map<Long, List<ProblemTagVO>> getTagListByProblemIds(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            log.warn("ProblemTagService--->getTagListByProblemIds: 问题ID列表为空");
+            return Map.of();
+        }
+
+        Map<Long, List<ProblemTagDO>> tagListByProblemIds = relationManager.getTagListByProblemIds(problemIds);
+        log.debug("ProblemTagService--->getTagListByProblemIds: 获取{}个问题的标签信息成功", tagListByProblemIds.size());
+
+        // 创建结果Map，将DO对象转换为VO对象
+        Map<Long, List<ProblemTagVO>> result = new HashMap<>();
+
+        // 遍历每个问题ID的标签列表进行转换
+        for (Map.Entry<Long, List<ProblemTagDO>> entry : tagListByProblemIds.entrySet()) {
+            Long problemId = entry.getKey();
+            List<ProblemTagDO> tagDOList = entry.getValue();
+
+            // 将DO对象列表转换为VO对象列表
+            List<ProblemTagVO> tagVOList = tagDOList.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
+            result.put(problemId, tagVOList);
+        }
+
+        log.info("ProblemTagService--->getTagListByProblemIds: 成功获取{}个问题的标签信息", result.size());
+
+        return result;
+    }
 
     /**
      * 将标签使用统计DTO转换为VO
@@ -757,62 +814,6 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         TagUsageStatisticsVTO vo = new TagUsageStatisticsVTO();
         BeanUtils.copyProperties(dto, vo);
         return vo;
-    }
-
-    /**
-     * 将 CategoryAggregateStatisticsDTO 转换为 CategoryAggregateStatisticsVO
-     *
-     * @param dto CategoryAggregateStatisticsDTO 对象
-     * @return 转换后的 CategoryAggregateStatisticsVO 对象
-     */
-    private CategoryAggregateStatisticsVTO convertToVO(CategoryAggregateStatisticsDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-        // 使用 BeanUtils 进行属性拷贝
-        CategoryAggregateStatisticsVTO vo = new CategoryAggregateStatisticsVTO();
-        BeanUtils.copyProperties(dto, vo);
-
-        // 设置额外的字段
-        vo.setCategoryDisplayName(getCategoryDisplayName(dto.getCategory()));
-        if (dto.getTotalTags() != null && dto.getTotalTags() > 0) {
-            vo.setActiveRate(dto.getActiveTags() * 1.0 / dto.getTotalTags());
-            vo.setAverageUsage(dto.getStoredUsageCount() * 1.0 / dto.getTotalTags());
-        } else {
-            vo.setActiveRate(0.0);
-            vo.setAverageUsage(0.0);
-        }
-        return vo;
-    }
-
-    /**
-     * 根据分类枚举值获取分类显示名称
-     *
-     * @param category 分类枚举值
-     * @return 分类显示名称
-     */
-    private String getCategoryDisplayName(String category) {
-        try {
-            return TagCategoryEnum.valueOf(category).name();
-        } catch (IllegalArgumentException e) {
-            return TagCategoryEnum.ALGORITHM.toString();
-        }
-    }
-
-
-    /**
-     * 将问题标签数据对象转换为视图对象
-     *
-     * @param tagDO 问题标签数据对象，包含标签的相关数据
-     * @return 返回一个视图对象，包含与数据对象相同的信息
-     */
-    private ProblemTagVO convertToVO(ProblemTagDO tagDO) {
-        // 创建一个视图对象实例
-        ProblemTagVO tagVO = new ProblemTagVO();
-        // 将数据对象的属性值复制到视图对象中
-        BeanUtils.copyProperties(tagDO, tagVO);
-        // 返回填充好的视图对象
-        return tagVO;
     }
 
 

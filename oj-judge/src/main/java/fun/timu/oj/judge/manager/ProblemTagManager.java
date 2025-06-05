@@ -137,4 +137,12 @@ public interface ProblemTagManager {
      * @return 受影响的行数
      */
     int batchUpdateStatus(List<Long> tagIds, Integer status);
+
+    /**
+     * 根据ID列表批量查询标签
+     *
+     * @param tagIds 标签ID列表
+     * @return 标签列表
+     */
+    List<ProblemTagDO> batchFindByIds(List<Long> tagIds);
 }

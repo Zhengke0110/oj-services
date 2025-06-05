@@ -1,6 +1,7 @@
 package fun.timu.oj.judge.service.Problem;
 
 import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.controller.request.ProblemCreateRequest;
 import fun.timu.oj.judge.controller.request.ProblemQueryRequest;
 import fun.timu.oj.judge.controller.request.ProblemUpdateRequest;
@@ -9,9 +10,9 @@ import fun.timu.oj.judge.model.VO.ProblemVO;
 import java.util.List;
 
 public interface ProblemCoreService {
-    ProblemVO getById(Long id);
+    JsonData getById(Long id);
 
-    PageResult<ProblemVO> getProblemsWithConditions(ProblemQueryRequest request);
+    JsonData getProblemsWithConditions(ProblemQueryRequest request);
 
     List<ProblemVO> getProblemsWithCurrentUser();
 

@@ -8,6 +8,7 @@ import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.Problem.ProblemSubmissionService;
+import fun.timu.oj.judge.utils.ConvertToUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -101,7 +102,7 @@ public class ProblemSubmissionServiceImpl implements ProblemSubmissionService {
 
             // 将DO列表转换为VO列表
             List<ProblemVO> problemVOList = problemPage.getRecords().stream()
-                    .map(ProblemUtils::convertToVO)
+                    .map(ConvertToUtils::convertToVO)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 

@@ -45,9 +45,7 @@ public class ProblemController {
     public JsonData getProblem(@PathVariable @Positive(message = "题目ID必须为正数") Long id) {
         log.info("ProblemController--->获取题目详情请求, ID: {}", id);
         try {
-            ProblemVO problemVO = problemService.getById(id);
-            if (problemVO == null) throw new RuntimeException("题目不存在");
-            return JsonData.buildSuccess(problemVO);
+            return problemService.getById(id);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目详情异常, id: {}, error: {}", id, e.getMessage(), e);
             throw new BizException(BizCodeEnum.PROBLEM_NOT_EXIST);
@@ -64,9 +62,7 @@ public class ProblemController {
     public JsonData listProblems(@Valid @RequestBody ProblemQueryRequest request) {
         log.info("ProblemController--->分页查询题目列表请求: {}", request);
         try {
-            PageResult<ProblemVO> result = problemService.getProblemsWithConditions(request);
-            if (result == null) throw new RuntimeException("查询失败");
-            return JsonData.buildSuccess(result);
+            return problemService.getProblemsWithConditions(request);
         } catch (Exception e) {
             log.error("ProblemController--->分页查询题目列表异常: {}", e.getMessage(), e);
             throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);

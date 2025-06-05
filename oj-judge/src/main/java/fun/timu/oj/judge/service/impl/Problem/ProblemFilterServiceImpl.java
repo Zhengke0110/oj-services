@@ -6,6 +6,7 @@ import fun.timu.oj.judge.manager.ProblemManager;
 import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.service.Problem.ProblemFilterService;
+import fun.timu.oj.judge.utils.ConvertToUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,7 +49,7 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
             }
 
             // 转换DO对象为VO对象
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
 
             // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取所有题目的标签信息
             // TODO 调用UserManager.findByIds()批量获取创建者信息，避免N+1查询问题
@@ -88,7 +89,7 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
 
 
             // 转换DO对象为VO对象
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
 
             // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()获取题目标签
             // TODO 调用UserManager.findByIds()获取创建者信息和活跃度数据
@@ -129,7 +130,7 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
             List<ProblemDO> problemDOList = problemManager.selectBasicInfoByIds(problemIds);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemDOList.stream().map(ProblemUtils::convertToBasicVO).filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemDOList.stream().map(ConvertToUtils::convertToBasicVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             log.info("批量获取题目基本信息成功, 获取到的题目数量: {}", problemVOList.size());
             return problemVOList;
@@ -159,7 +160,7 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
             IPage<ProblemDO> problemPage = problemManager.selectByLanguage(pageNum, pageSize, language);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ConvertToUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取题目标签信息
             // TODO 帮助用户了解支持特定语言的题目在算法分类上的分布情况
@@ -194,7 +195,7 @@ public class ProblemFilterServiceImpl implements ProblemFilterService {
             IPage<ProblemDO> problemPage = problemManager.selectRecentProblems(pageNum, pageSize, limit);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemPage.getRecords().stream().map(ConvertToUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             // TODO 多表联查优化：调用ProblemTagRelationManager.getTagNamesByProblemIds()批量获取最近创建题目的标签
             // TODO 调用UserManager.findByIds()批量获取创建者昵称和头像信息，提升用户体验

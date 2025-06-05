@@ -1,11 +1,15 @@
 package fun.timu.oj.judge.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.manager.ProblemTagRelationManager;
 import fun.timu.oj.judge.mapper.ProblemTagRelationMapper;
+import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
+import fun.timu.oj.judge.model.VO.ProblemTagVO;
 import fun.timu.oj.judge.service.ProblemTagRelationService;
 
+import fun.timu.oj.judge.utils.ConvertToUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,10 +31,6 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
         implements ProblemTagRelationService {
 
     private final ProblemTagRelationManager problemTagRelationManager;
-
-    // ==================== 业务逻辑方法实现 ====================
-
-    // ==================== 基础关联操作 ====================
 
     /**
      * 为题目添加标签
@@ -261,12 +261,13 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     // ==================== 查询操作 ====================
 
     /**
-     * 获取题目的所有标签ID
+     * 获取题目的所有标签ID（弃用）
      *
      * @param problemId 题目ID
      * @return 标签ID列表
      */
     @Override
+    @Deprecated
     public List<Long> getTagIdsByProblemId(Long problemId) {
         try {
             // TODO: 调用Account服务验证用户权限，确保用户有权限查看题目标签
@@ -278,7 +279,6 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
             }
 
             List<Long> tagIds = problemTagRelationManager.getTagIdsByProblemId(problemId);
-
             log.debug("Retrieved tag IDs for problem: problemId={}, tagCount={}",
                     problemId, tagIds.size());
 

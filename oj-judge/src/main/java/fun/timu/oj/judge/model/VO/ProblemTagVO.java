@@ -52,14 +52,4 @@ public class ProblemTagVO {
      * 标签描述
      */
     private String description;
-
-    /**
-     * 创建时间
-     */
-    private Date createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Date updatedAt;
 }

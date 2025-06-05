@@ -7,7 +7,7 @@ import fun.timu.oj.judge.model.DTO.TestCaseConfigDTO;
 import fun.timu.oj.judge.model.DTO.TestCaseValidationDTO;
 import fun.timu.oj.judge.model.DO.TestCaseDO;
 import fun.timu.oj.judge.service.TestCaseService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -19,10 +19,10 @@ import java.util.List;
  * @author zhengke
  */
 @Service
+@AllArgsConstructor
 public class TestCaseServiceImpl implements TestCaseService {
 
-    @Autowired
-    private TestCaseManager testCaseManager;
+    private final TestCaseManager testCaseManager;
 
     // ================== 基础CRUD操作 ==================
 

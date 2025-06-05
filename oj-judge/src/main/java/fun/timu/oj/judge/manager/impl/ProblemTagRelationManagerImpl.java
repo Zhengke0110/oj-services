@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.judge.manager.ProblemTagManager;
 import fun.timu.oj.judge.manager.ProblemTagRelationManager;
+import fun.timu.oj.judge.mapper.ProblemTagMapper;
 import fun.timu.oj.judge.mapper.ProblemTagRelationMapper;
+import fun.timu.oj.judge.model.DO.ProblemTagDO;
 import fun.timu.oj.judge.model.DO.ProblemTagRelationDO;
 import fun.timu.oj.judge.model.criteria.ProblemTagRelationQueryCondition;
 import fun.timu.oj.judge.model.criteria.RelationStatisticsReport;
@@ -31,6 +34,57 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager {
     private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final ProblemTagMapper tagMapper;
+
+    /**
+     * 根据题目ID列表批量查询标签列表
+     *
+     * @param problemIds 题目ID列表
+     * @return 题目ID到标签列表的映射
+     */
+    @Override
+    public Map<Long, List<ProblemTagDO>> getTagListByProblemIds(List<Long> problemIds) {
+        if (CollectionUtils.isEmpty(problemIds)) {
+            return new HashMap<>();
+        }
+
+        // 初始化结果Map，为每个problemId创建一个空列表
+        Map<Long, List<ProblemTagDO>> resultMap = new HashMap<>();
+        for (Long problemId : problemIds) {
+            resultMap.put(problemId, new ArrayList<>());
+        }
+
+        // 查询题目-标签关系
+        List<ProblemTagRelationDO> relations = findByProblemIds(problemIds);
+        if (relations.isEmpty()) {
+            return resultMap; // 返回所有problemId映射到空列表的Map
+        }
+
+        // 提取所有需要查询的标签ID
+        List<Long> tagIds = relations.stream()
+                .map(ProblemTagRelationDO::getTagId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 批量查询所有标签对象
+        List<ProblemTagDO> allTags = tagMapper.selectBatchIds(tagIds);
+
+        // 构建标签ID到标签对象的映射，便于快速查找
+        Map<Long, ProblemTagDO> tagMap = allTags.stream()
+                .collect(Collectors.toMap(ProblemTagDO::getId, tag -> tag, (existing, replacement) -> existing));
+
+        // 按题目ID分组，填充结果映射
+        for (ProblemTagRelationDO relation : relations) {
+            Long problemId = relation.getProblemId();
+            Long tagId = relation.getTagId();
+            ProblemTagDO tag = tagMap.get(tagId);
+
+            if (tag != null) {
+                resultMap.get(problemId).add(tag);
+            }
+        }
+        return resultMap;
+    }
 
     /**
      * 根据id查询题目标签关联
@@ -981,4 +1035,6 @@ public class ProblemTagRelationManagerImpl implements ProblemTagRelationManager 
         log.info("合并重复关联记录数: {}", count);
         return count;
     }
+
+
 }

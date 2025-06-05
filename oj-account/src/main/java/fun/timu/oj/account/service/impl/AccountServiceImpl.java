@@ -224,7 +224,7 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, AccountDO> im
         log.info("更新用户信息，用户ID:{}，更新结果:{}", loginUser.getAccountNo(), rows > 0);
 
         // 根据更新结果返回相应的JSON数据
-        return rows > 0 ? JsonData.buildSuccess() : JsonData.buildResult(BizCodeEnum.ACCOUNT_UPDATE_ERROR);
+        return rows > 0 ? JsonData.buildSuccess() : JsonData.buildResult(BizCodeEnum.ACCOUNT_PARAM_INVALID);
     }
 
     /**

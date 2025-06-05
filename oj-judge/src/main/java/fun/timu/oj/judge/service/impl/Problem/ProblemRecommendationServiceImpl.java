@@ -5,6 +5,7 @@ import fun.timu.oj.judge.model.DO.ProblemDO;
 import fun.timu.oj.judge.model.VO.ProblemVO;
 import fun.timu.oj.judge.model.criteria.RecommendationCriteria;
 import fun.timu.oj.judge.service.Problem.ProblemRecommendationService;
+import fun.timu.oj.judge.utils.ConvertToUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,7 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
             List<ProblemDO> problemDOList = problemManager.selectHotProblems(problemType, difficulty, limit);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemDOList.stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemDOList.stream().map(ConvertToUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             log.info("ProblemRecommendationService--->获取热门题目列表成功，类型: {}, 难度: {}, 数量: {}", problemType, difficulty, problemVOList.size());
             return problemVOList;
@@ -65,7 +66,7 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
             // TODO 通过JOIN problem_tag_relation和problem_tag表，一次性获取推荐题目及其标签信息
             // TODO 调用ProblemTagRelationManager.findByProblemIds()批量获取标签关联，避免N+1查询问题
             List<ProblemDO> problemDOList = problemManager.getRecommendedProblems(criteria);
-            List<ProblemVO> result = problemDOList.stream().map(ProblemUtils::convertToVO).collect(Collectors.toList());
+            List<ProblemVO> result = problemDOList.stream().map(ConvertToUtils::convertToVO).collect(Collectors.toList());
 
             log.info("ProblemRecommendationService--->获取推荐题目成功, 推荐类型:{}, 返回数量:{}", criteria.getType(), result.size());
             return result;
@@ -128,7 +129,7 @@ public class ProblemRecommendationServiceImpl implements ProblemRecommendationSe
             List<ProblemDO> problemDOList = problemManager.findSimilarProblems(problemId, difficulty, problemType, limit);
 
             // 将DO列表转换为VO列表
-            List<ProblemVO> problemVOList = problemDOList.stream().map(ProblemUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
+            List<ProblemVO> problemVOList = problemDOList.stream().map(ConvertToUtils::convertToVO).filter(Objects::nonNull).collect(Collectors.toList());
 
             log.info("查询相似题目成功, 题目ID: {}, 获取到 {} 个相似题目", problemId, problemVOList.size());
             return problemVOList;
