@@ -2,18 +2,18 @@ package fun.timu.oj.judge.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.judge.controller.request.CodeExecutionRecordQueryRequest;
 import fun.timu.oj.judge.manager.CodeExecutionRecordManager;
 import fun.timu.oj.judge.model.DO.CodeExecutionRecordDO;
 import fun.timu.oj.judge.service.CodeExecutionRecordService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 代码执行记录服务实现类
@@ -22,10 +22,92 @@ import java.util.Map;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CodeExecutionRecordServiceImpl implements CodeExecutionRecordService {
 
-    @Autowired
-    private CodeExecutionRecordManager codeExecutionRecordManager;
+    private final CodeExecutionRecordManager codeExecutionRecordManager;
+
+    // ================== 基础查询操作 ==================
+
+    @Override
+    public CodeExecutionRecordDO findById(Long id) {
+        try {
+            if (id == null || id <= 0) {
+                log.warn("CodeExecutionRecordService--->查询执行记录失败: ID无效, id: {}", id);
+                return null;
+            }
+            return codeExecutionRecordManager.findById(id);
+        } catch (Exception e) {
+            log.error("CodeExecutionRecordService--->根据ID查询执行记录失败: id: {}, error: {}", id, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    @Override
+    public PageResult<CodeExecutionRecordDO> findPage(Page<CodeExecutionRecordDO> page, CodeExecutionRecordQueryRequest request) {
+        try {
+            if (page == null || request == null) {
+                log.warn("CodeExecutionRecordService--->分页查询执行记录失败: 参数为空");
+                return new PageResult<>();
+            }
+
+            IPage<CodeExecutionRecordDO> result;
+
+            // 根据查询条件选择合适的查询方法
+            if (request.getAccountNo() != null) {
+                result = codeExecutionRecordManager.findPageByAccountNo(page, request.getAccountNo());
+            } else if (request.getProblemId() != null) {
+                result = codeExecutionRecordManager.findPageByProblemId(page, request.getProblemId());
+            } else if (request.getLanguage() != null && !request.getLanguage().trim().isEmpty()) {
+                result = codeExecutionRecordManager.findPageByLanguage(page, request.getLanguage());
+            } else {
+                // 查询所有记录
+                result = codeExecutionRecordManager.findPage(page);
+            }
+            return new PageResult(result.getRecords(), (long) result.getTotal(), (long) result.getCurrent(), (long) result.getSize(), (long) result.getPages());
+        } catch (Exception e) {
+            log.error("CodeExecutionRecordService--->分页查询执行记录失败: request: {}, error: {}", request, e.getMessage(), e);
+            return new PageResult<>();
+        }
+    }
+
+    @Override
+    public List<CodeExecutionRecordDO> findByAccountNo(Long accountNo, Integer limit) {
+        try {
+            if (accountNo == null || accountNo <= 0) {
+                log.warn("CodeExecutionRecordService--->根据用户ID查询执行记录失败: 用户ID无效, accountNo: {}", accountNo);
+                return Collections.emptyList();
+            }
+
+            if (limit != null && limit > 0) {
+                return codeExecutionRecordManager.findRecentExecutionsByAccountNo(accountNo, limit);
+            } else {
+                return codeExecutionRecordManager.findByAccountNo(accountNo);
+            }
+        } catch (Exception e) {
+            log.error("CodeExecutionRecordService--->根据用户ID查询执行记录失败: accountNo: {}, limit: {}, error: {}", accountNo, limit, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public List<CodeExecutionRecordDO> findByProblemId(Long problemId, Integer limit) {
+        try {
+            if (problemId == null || problemId <= 0) {
+                log.warn("CodeExecutionRecordService--->根据题目ID查询执行记录失败: 题目ID无效, problemId: {}", problemId);
+                return Collections.emptyList();
+            }
+
+            if (limit != null && limit > 0) {
+                return codeExecutionRecordManager.findRecentExecutionsByProblemId(problemId, limit);
+            } else {
+                return codeExecutionRecordManager.findByProblemId(problemId);
+            }
+        } catch (Exception e) {
+            log.error("CodeExecutionRecordService--->根据题目ID查询执行记录失败: problemId: {}, limit: {}, error: {}", problemId, limit, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
 
     // ================== 基础统计查询 ==================
 
@@ -363,7 +445,7 @@ public class CodeExecutionRecordServiceImpl implements CodeExecutionRecordServic
             // TODO: 调用性能监控模块进行异常检测
             return codeExecutionRecordManager.getPerformanceAnomalies(executionTimeThreshold, memoryThreshold);
         } catch (Exception e) {
-            log.error("获取性能异常检测失败，executionTimeThreshold: {}, memoryThreshold: {}", 
+            log.error("获取性能异常检测失败，executionTimeThreshold: {}, memoryThreshold: {}",
                     executionTimeThreshold, memoryThreshold, e);
             return Collections.emptyList();
         }

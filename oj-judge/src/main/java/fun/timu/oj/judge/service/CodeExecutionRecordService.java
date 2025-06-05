@@ -2,6 +2,8 @@ package fun.timu.oj.judge.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import fun.timu.oj.common.model.PageResult;
+import fun.timu.oj.judge.controller.request.CodeExecutionRecordQueryRequest;
 import fun.timu.oj.judge.model.DO.CodeExecutionRecordDO;
 
 import java.util.HashMap;
@@ -14,6 +16,43 @@ import java.util.List;
  * @author zhengke
  */
 public interface CodeExecutionRecordService {
+
+    // ================== 基础查询操作 ==================
+
+    /**
+     * 根据ID获取代码执行记录
+     *
+     * @param id 记录ID
+     * @return 代码执行记录对象
+     */
+    CodeExecutionRecordDO findById(Long id);
+
+    /**
+     * 分页查询代码执行记录
+     *
+     * @param page    分页对象
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    PageResult<CodeExecutionRecordDO> findPage(Page<CodeExecutionRecordDO> page, CodeExecutionRecordQueryRequest request);
+
+    /**
+     * 根据用户ID查询代码执行记录列表
+     *
+     * @param accountNo 用户ID
+     * @param limit     限制数量
+     * @return 执行记录列表
+     */
+    List<CodeExecutionRecordDO> findByAccountNo(Long accountNo, Integer limit);
+
+    /**
+     * 根据题目ID查询代码执行记录列表
+     *
+     * @param problemId 题目ID
+     * @param limit     限制数量
+     * @return 执行记录列表
+     */
+    List<CodeExecutionRecordDO> findByProblemId(Long problemId, Integer limit);
 
     // ================== 基础统计查询 ==================
 
