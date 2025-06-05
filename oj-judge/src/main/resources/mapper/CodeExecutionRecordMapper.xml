@@ -101,9 +101,7 @@
         GROUP BY account_no
         ORDER BY execution_count DESC
             LIMIT #{limit}
-    </select>
-
-    <!-- 批量插入代码执行记录 -->
+    </select>    <!-- 批量插入代码执行记录 -->
     <insert id="batchInsert" parameterType="java.util.List">
         INSERT INTO code_execution_record (
         request_id, language, code_content, code_hash, docker_image,
@@ -130,5 +128,932 @@
             )
         </foreach>
     </insert>
+
+    <!-- ================== 时间范围统计查询 ================== -->
+
+    <!-- 按时间范围统计执行记录数量 -->
+    <select id="selectExecutionCountByTimeRange" resultType="java.util.HashMap">
+        SELECT COUNT(*)                                     as total_count,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count,
+               SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed_count,
+               ROUND(AVG(execution_time), 2)                as avg_execution_time,
+               ROUND(AVG(memory_used), 2)                   as avg_memory_used
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 按小时统计执行记录（过去24小时） -->
+    <select id="selectExecutionCountByHour" resultType="java.util.HashMap">
+        SELECT
+            HOUR (FROM_UNIXTIME(submission_time/1000)) as hour, COUNT (*) as execution_count, SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL 24 HOUR)) * 1000
+        GROUP BY HOUR (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY hour
+    </select>
+
+    <!-- 按天统计执行记录（过去30天） -->
+    <select id="selectExecutionCountByDay" resultType="java.util.HashMap">
+        SELECT
+            DATE (FROM_UNIXTIME(submission_time/1000)) as date, COUNT (*) as execution_count, SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count, COUNT (DISTINCT account_no) as unique_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL 30 DAY)) * 1000
+        GROUP BY DATE (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY date DESC
+    </select>
+
+    <!-- 按月统计执行记录（过去12个月） -->
+    <select id="selectExecutionCountByMonth" resultType="java.util.HashMap">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(submission_time / 1000), '%Y-%m') as month,
+            COUNT(*) as execution_count,
+            SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count,
+            COUNT(DISTINCT account_no) as unique_users,
+            COUNT(DISTINCT problem_id) as unique_problems
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL 12 MONTH)) * 1000
+        GROUP BY DATE_FORMAT(FROM_UNIXTIME(submission_time/1000), '%Y-%m')
+        ORDER BY month DESC
+    </select>
+
+    <!-- ================== 性能分析统计 ================== -->
+
+    <!-- 获取执行时间统计信息 -->
+    <select id="selectExecutionTimeStatistics" resultType="java.util.HashMap">
+        SELECT ROUND(AVG(execution_time), 2)                     as avg_execution_time,
+               MIN(execution_time)                               as min_execution_time,
+               MAX(execution_time)                               as max_execution_time,
+               ROUND(STDDEV(execution_time), 2)                  as stddev_execution_time,
+               COUNT(CASE WHEN execution_time > 5000 THEN 1 END) as slow_executions
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND execution_time IS NOT NULL
+    </select>
+
+    <!-- 获取内存使用统计信息 -->
+    <select id="selectMemoryUsageStatistics" resultType="java.util.HashMap">
+        SELECT ROUND(AVG(memory_used), 2)                                  as avg_memory_used,
+               MIN(memory_used)                                            as min_memory_used,
+               MAX(memory_used)                                            as max_memory_used,
+               ROUND(STDDEV(memory_used), 2)                               as stddev_memory_used,
+               COUNT(CASE WHEN memory_used > 100 * 1024 * 1024 THEN 1 END) as high_memory_executions
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND memory_used IS NOT NULL
+    </select>
+
+    <!-- 按语言统计平均执行时间和内存使用 -->
+    <select id="selectPerformanceByLanguage" resultType="java.util.HashMap">
+        SELECT
+            language, COUNT (*) as execution_count, ROUND(AVG (execution_time), 2) as avg_execution_time, ROUND(AVG (memory_used), 2) as avg_memory_used, MIN (execution_time) as min_execution_time, MAX (execution_time) as max_execution_time, MIN (memory_used) as min_memory_used, MAX (memory_used) as max_memory_used
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND execution_time IS NOT NULL
+          AND memory_used IS NOT NULL
+        GROUP BY language
+        ORDER BY avg_execution_time ASC
+    </select>
+
+    <!-- 按问题统计平均执行时间和内存使用 -->
+    <select id="selectPerformanceByProblem" resultType="java.util.HashMap">
+        SELECT problem_id,
+               COUNT(*)                      as execution_count,
+               ROUND(AVG(execution_time), 2) as avg_execution_time,
+               ROUND(AVG(memory_used), 2)    as avg_memory_used,
+               MIN(execution_time)           as min_execution_time,
+               MAX(execution_time)           as max_execution_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND problem_id IS NOT NULL
+          AND execution_time IS NOT NULL
+          AND memory_used IS NOT NULL
+        GROUP BY problem_id
+        ORDER BY execution_count DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- ================== 用户行为分析 ================== -->
+
+    <!-- 获取用户提交频率统计（按小时分布） -->
+    <select id="selectSubmissionTimeDistribution" resultType="java.util.HashMap">
+        SELECT
+            HOUR (FROM_UNIXTIME(submission_time/1000)) as hour, COUNT (*) as submission_count, COUNT (DISTINCT account_no) as unique_users, ROUND(AVG (CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100, 2) as success_rate
+        FROM code_execution_record
+        WHERE is_deleted = 0
+        GROUP BY HOUR (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY hour
+    </select>
+
+    <!-- 获取用户成功率分布统计 -->
+    <select id="selectSuccessRateDistribution" resultType="java.util.HashMap">
+        SELECT CASE
+                   WHEN success_rate = 100 THEN '100%'
+                   WHEN success_rate >= 90 THEN '90-99%'
+                   WHEN success_rate >= 80 THEN '80-89%'
+                   WHEN success_rate >= 70 THEN '70-79%'
+                   WHEN success_rate >= 60 THEN '60-69%'
+                   WHEN success_rate >= 50 THEN '50-59%'
+                   ELSE '0-49%'
+                   END  as success_rate_range,
+               COUNT(*) as user_count
+        FROM (SELECT account_no,
+                     ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate
+              FROM code_execution_record
+              WHERE is_deleted = 0
+                AND account_no IS NOT NULL
+              GROUP BY account_no
+              HAVING COUNT(*) >= 5) t
+        GROUP BY success_rate_range
+        ORDER BY success_rate_range DESC
+    </select>
+
+    <!-- 获取最活跃的时间段统计 -->
+    <select id="selectActiveTimePeriods" resultType="java.util.HashMap">
+        SELECT CASE
+                   WHEN HOUR (FROM_UNIXTIME(submission_time/1000)) BETWEEN 6 AND 11 THEN 'Morning (6-11)'
+                WHEN HOUR(FROM_UNIXTIME(submission_time/1000)) BETWEEN 12 AND 17 THEN 'Afternoon (12-17)'
+                WHEN HOUR(FROM_UNIXTIME(submission_time/1000)) BETWEEN 18 AND 23 THEN 'Evening (18-23)'
+                ELSE 'Night (0-5)'
+        END
+        as time_period,
+            COUNT(*) as execution_count,
+            COUNT(DISTINCT account_no) as unique_users,
+            ROUND(AVG(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100, 2) as success_rate
+        FROM code_execution_record 
+        WHERE is_deleted = 0
+        GROUP BY time_period
+        ORDER BY execution_count DESC
+    </select>
+
+    <!-- ================== 问题难度分析 ================== -->
+
+    <!-- 按问题统计成功率（用于判断问题难度） -->
+    <select id="selectProblemSuccessRates" resultType="java.util.HashMap">
+        SELECT problem_id,
+               COUNT(*)                                                                  as total_attempts,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_attempts,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT account_no)                                                as unique_users,
+               ROUND(AVG(execution_time), 2)                                             as avg_execution_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND problem_id IS NOT NULL
+        GROUP BY problem_id
+        HAVING COUNT(*) >= 10
+        ORDER BY success_rate ASC
+    </select>
+
+    <!-- 获取最难的问题排行（成功率最低） -->
+    <select id="selectHardestProblems" resultType="java.util.HashMap">
+        SELECT problem_id,
+               COUNT(*)                                                                  as total_attempts,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_attempts,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT account_no)                                                as unique_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND problem_id IS NOT NULL
+        GROUP BY problem_id
+        HAVING COUNT(*) >= 20
+        ORDER BY success_rate ASC, total_attempts DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 获取最简单的问题排行（成功率最高） -->
+    <select id="selectEasiestProblems" resultType="java.util.HashMap">
+        SELECT problem_id,
+               COUNT(*)                                                                  as total_attempts,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_attempts,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT account_no)                                                as unique_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND problem_id IS NOT NULL
+        GROUP BY problem_id
+        HAVING COUNT(*) >= 20
+        ORDER BY success_rate DESC, total_attempts DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- ================== 代码质量分析 ================== -->
+
+    <!-- 获取代码复用统计 -->
+    <select id="selectCodeReuseStatistics" resultType="java.util.HashMap">
+        SELECT code_hash,
+               COUNT(*)                                                     as usage_count,
+               COUNT(DISTINCT account_no)                                   as unique_users,
+               COUNT(DISTINCT problem_id)                                   as unique_problems,
+               ROUND(AVG(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100, 2) as success_rate
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND code_hash IS NOT NULL
+        GROUP BY code_hash
+        HAVING COUNT(*) > 1
+        ORDER BY usage_count DESC LIMIT 50
+    </select>
+
+    <!-- 获取最常用的代码模式 -->
+    <select id="selectCommonCodePatterns" resultType="java.util.HashMap">
+        SELECT code_hash, language, COUNT (*) as usage_count, COUNT (DISTINCT account_no) as unique_users, SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count, ROUND(SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT (*), 2) as success_rate
+        FROM code_execution_record
+        WHERE is_deleted = 0 AND code_hash IS NOT NULL
+        GROUP BY code_hash, language
+        HAVING COUNT (*) >= 5
+        ORDER BY usage_count DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- ================== 系统性能监控 ================== -->
+
+    <!-- 获取系统负载统计 -->
+    <select id="selectSystemLoadStatistics" resultType="java.util.HashMap">
+        SELECT execution_host,
+               COUNT(*)                                           as execution_count,
+               ROUND(AVG(execution_time), 2)                      as avg_execution_time,
+               ROUND(AVG(memory_used), 2)                         as avg_memory_used,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)       as success_count,
+               COUNT(CASE WHEN execution_time > 10000 THEN 1 END) as timeout_count
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND execution_host IS NOT NULL
+        GROUP BY execution_host
+        ORDER BY execution_count DESC
+    </select>
+
+    <!-- 获取容器使用统计 -->
+    <select id="selectContainerUsageStatistics" resultType="java.util.HashMap">
+        SELECT docker_image,
+               COUNT(*)                                     as usage_count,
+               COUNT(DISTINCT container_id)                 as unique_containers,
+               ROUND(AVG(execution_time), 2)                as avg_execution_time,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND docker_image IS NOT NULL
+        GROUP BY docker_image
+        ORDER BY usage_count DESC
+    </select>
+
+    <!-- 获取错误类型统计 -->
+    <select id="selectErrorTypeStatistics" resultType="java.util.HashMap">
+        SELECT execution_status,
+               COUNT(*)                   as error_count,
+               ROUND(COUNT(*) * 100.0 /
+                     (SELECT COUNT(*) FROM code_execution_record WHERE is_deleted = 0 AND success = 0),
+                     2)                   as percentage,
+               COUNT(DISTINCT account_no) as affected_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND success = 0
+        GROUP BY execution_status
+        ORDER BY error_count DESC
+    </select>
+
+    <!-- ================== 趋势分析 ================== -->
+
+    <!-- 获取用户增长趋势 -->
+    <select id="selectUserGrowthTrend" resultType="java.util.HashMap">
+        SELECT
+            DATE (FROM_UNIXTIME(submission_time/1000)) as date, COUNT (DISTINCT account_no) as new_users, COUNT (*) as total_executions
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL #{days} DAY)) * 1000
+        GROUP BY DATE (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY date ASC
+    </select>
+
+    <!-- 获取执行量趋势 -->
+    <select id="selectExecutionVolumeTrend" resultType="java.util.HashMap">
+        SELECT
+            DATE (FROM_UNIXTIME(submission_time/1000)) as date, COUNT (*) as execution_count, COUNT (DISTINCT account_no) as active_users, COUNT (DISTINCT problem_id) as problems_attempted
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL #{days} DAY)) * 1000
+        GROUP BY DATE (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY date ASC
+    </select>
+
+    <!-- 获取成功率趋势 -->
+    <select id="selectSuccessRateTrend" resultType="java.util.HashMap">
+        SELECT
+            DATE (FROM_UNIXTIME(submission_time/1000)) as date, COUNT (*) as total_executions, SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_executions, ROUND(SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT (*), 2) as success_rate
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL #{days} DAY)) * 1000
+        GROUP BY DATE (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY date ASC
+    </select>
+
+    <!-- ================== 高级分析查询 ================== -->
+
+    <!-- 获取用户能力分析 -->
+    <select id="selectUserAbilityAnalysis" resultType="java.util.HashMap">
+        SELECT account_no,
+               COUNT(*)                                                                  as total_attempts,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_attempts,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT problem_id)                                                as problems_solved,
+               ROUND(AVG(execution_time), 2)                                             as avg_execution_time,
+               ROUND(AVG(memory_used), 2)                                                as avg_memory_used
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no IS NOT NULL
+        GROUP BY account_no
+        HAVING COUNT(*) >= 10
+        ORDER BY success_rate DESC, problems_solved DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 获取语言流行度趋势 -->
+    <select id="selectLanguagePopularityTrend" resultType="java.util.HashMap">
+        SELECT DATE_FORMAT(FROM_UNIXTIME(submission_time / 1000), '%Y-%m') as month,
+            language,
+            COUNT(*) as usage_count,
+            COUNT(DISTINCT account_no) as unique_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW()
+            , INTERVAL #{months} MONTH)) * 1000
+        GROUP BY month, language
+        ORDER BY month DESC, usage_count DESC
+    </select>
+
+    <!-- 获取问题热度分析 -->
+    <select id="selectProblemHeatAnalysis" resultType="java.util.HashMap">
+        SELECT problem_id,
+               COUNT(*)                   as total_executions,
+               COUNT(DISTINCT account_no) as unique_users,
+               COUNT(CASE
+                         WHEN submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000
+                             THEN 1 END)  as recent_executions,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+                     2)                   as success_rate,
+               (COUNT(*) * 0.4 + COUNT(DISTINCT account_no) * 0.3 +
+                COUNT(CASE WHEN submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000 THEN 1 END) *
+                0.3)                      as heat_score
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND problem_id IS NOT NULL
+        GROUP BY problem_id
+        HAVING total_executions >= 5
+        ORDER BY heat_score DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 获取性能异常检测 -->
+    <select id="selectPerformanceAnomalies" resultType="java.util.HashMap">
+        SELECT id,
+               account_no,
+               problem_id, language, execution_time, memory_used, execution_status, submission_time, CASE
+            WHEN execution_time >
+               #{executionTimeThreshold} THEN 'HIGH_EXECUTION_TIME' WHEN memory_used > #{memoryThreshold} THEN 'HIGH_MEMORY_USAGE' ELSE 'NORMAL'
+        END
+        as anomaly_type
+        FROM code_execution_record 
+        WHERE is_deleted = 0 
+          AND (execution_time >
+        #{executionTimeThreshold}
+        OR
+        memory_used
+        >
+        #{memoryThreshold}
+        )
+        ORDER
+        BY
+        submission_time
+        DESC
+        LIMIT
+        100
+    </select>
+
+    <!-- ================== 竞赛和比赛分析 ================== -->
+
+    <!-- 获取竞赛统计分析 -->
+    <select id="selectContestAnalysis" resultType="java.util.HashMap">
+        SELECT
+            HOUR (FROM_UNIXTIME(submission_time/1000)) as hour, COUNT (*) as submission_count, COUNT (DISTINCT account_no) as participant_count, COUNT (DISTINCT problem_id) as problems_attempted, SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_submissions, ROUND(AVG (execution_time), 2) as avg_execution_time, COUNT (CASE WHEN submission_time BETWEEN #{startTime} AND #{startTime} + 3600000 THEN 1 END) as first_hour_submissions, COUNT (CASE WHEN submission_time BETWEEN
+                                                                                                                                                                                                                                                                                                                                                                            #{endTime} - 3600000 AND #{endTime} THEN 1 END) as last_hour_submissions
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time BETWEEN #{startTime}
+          AND #{endTime}
+        GROUP BY HOUR (FROM_UNIXTIME(submission_time/1000))
+        ORDER BY hour
+    </select>
+
+    <!-- 获取排行榜数据 -->
+    <select id="selectLeaderboard" resultType="java.util.HashMap">
+        SELECT account_no,
+               COUNT(DISTINCT problem_id)                                                as problems_solved,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_submissions,
+               COUNT(*)                                                                  as total_submissions,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               ROUND(AVG(execution_time), 2)                                             as avg_execution_time,
+               -- 综合得分计算：问题数量 * 50 + 成功率 * 10 + (10000 - 平均执行时间) * 0.01
+               (COUNT(DISTINCT problem_id) * 50 +
+                ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) * 10 +
+                (10000 - COALESCE(AVG(execution_time), 5000)) * 0.01)                    as total_score,
+               MIN(submission_time)                                                      as first_submission_time,
+               MAX(submission_time)                                                      as last_submission_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no IS NOT NULL
+        GROUP BY account_no
+        HAVING COUNT(*) >= 5
+        ORDER BY total_score DESC, problems_solved DESC, success_rate DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 获取用户进步分析 -->
+    <select id="selectUserProgressAnalysis" resultType="java.util.HashMap">
+        SELECT '#{accountNo}'            as account_no, -- 前半段时期数据 (使用变量避免除法运算)
+               COUNT(CASE
+                         WHEN submission_time <![CDATA[<]]> UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000
+                             THEN 1 END) as early_submissions,
+               SUM(CASE
+                       WHEN submission_time <![CDATA[<]]>
+                            UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000 AND success = 1 THEN 1
+                       ELSE 0 END)       as early_successes,
+               ROUND(AVG(CASE
+                             WHEN submission_time <![CDATA[<]]>
+                                  UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000
+                                 THEN execution_time END),
+                     2)                  as early_avg_time,
+               -- 后半段时期数据
+               COUNT(CASE
+                         WHEN submission_time <![CDATA[>=]]>
+                              UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000
+                             THEN 1 END) as recent_submissions,
+               SUM(CASE
+                       WHEN submission_time <![CDATA[>=]]>
+                            UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000 AND success = 1 THEN 1
+                       ELSE 0 END)       as recent_successes,
+               ROUND(AVG(CASE
+                             WHEN submission_time <![CDATA[>=]]>
+                                  UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000
+                                 THEN execution_time END),
+                     2)                  as recent_avg_time,
+               -- 进步指标
+               ROUND(
+                       (SUM(CASE
+                                WHEN submission_time <![CDATA[>=]]>
+                                     UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000 AND
+                                     success = 1 THEN 1
+                                ELSE 0 END) * 100.0 /
+                        NULLIF(COUNT(CASE
+                                         WHEN submission_time <![CDATA[>=]]>
+                                              UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000
+                                             THEN 1 END), 0)) -
+                       (SUM(CASE
+                                WHEN submission_time <![CDATA[<]]>
+                                     UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000 AND
+                                     success = 1 THEN 1
+                                ELSE 0 END) * 100.0 /
+                        NULLIF(COUNT(CASE
+                                         WHEN submission_time <![CDATA[<]]>
+                                              UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL FLOOR(#{days}/2) DAY)) * 1000
+                                             THEN 1 END), 0))
+                   ,
+                       2)                as success_rate_improvement
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no = #{accountNo}
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL #{days} DAY)) * 1000
+    </select>
+
+    <!-- ================== 实时监控和预警 ================== -->
+
+    <!-- 获取实时系统健康度指标 -->
+    <select id="selectSystemHealthMetrics" resultType="java.util.HashMap">
+        SELECT COUNT(*)                                                                  as total_executions,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_executions,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               ROUND(AVG(execution_time), 2)                                             as avg_execution_time,
+               ROUND(AVG(memory_used), 2)                                                as avg_memory_used,
+               COUNT(DISTINCT execution_host)                                            as active_hosts,
+               COUNT(DISTINCT account_no)                                                as active_users,
+               COUNT(CASE WHEN execution_time > 10000 THEN 1 END)                        as slow_executions,
+               COUNT(CASE WHEN memory_used > 500 * 1024 * 1024 THEN 1 END)               as high_memory_executions,
+               MAX(submission_time)                                                      as last_execution_time,
+               COUNT(CASE WHEN execution_status LIKE '%ERROR%' THEN 1 END)               as error_count
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE)) * 1000
+    </select>
+
+    <!-- 获取异常执行监控 -->
+    <select id="selectAbnormalExecutions" resultType="java.util.HashMap">
+        SELECT id,
+               account_no,
+               problem_id, language, execution_time, memory_used, execution_status, error_message, submission_time, CASE
+            WHEN execution_time > 30000 THEN 'EXTREMELY_SLOW'
+            WHEN memory_used > 1024*1024*1024 THEN 'MEMORY_EXCESSIVE'
+            WHEN error_message LIKE '%OutOfMemory%' THEN 'OUT_OF_MEMORY'
+            WHEN error_message LIKE '%Timeout%' THEN 'TIMEOUT'
+            ELSE 'OTHER_ANOMALY'
+        END
+        as anomaly_type
+        FROM code_execution_record 
+        WHERE is_deleted = 0 
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL
+        #{minutes}
+        MINUTE
+        )
+        )
+        *
+        1000
+        AND
+        (
+        execution_time
+        >
+        30000
+        OR
+        memory_used
+        >
+        1024
+        *
+        1024
+        *
+        1024
+        OR
+        error_message
+        IS
+        NOT
+        NULL
+        )
+        ORDER
+        BY
+        submission_time
+        DESC
+        LIMIT
+        50
+    </select>
+
+    <!-- 获取资源使用预警统计 -->
+    <select id="selectResourceUsageAlerts" resultType="java.util.HashMap">
+        SELECT execution_host,
+               COUNT(*)                                                    as execution_count,
+               ROUND(AVG(execution_time), 2)                               as avg_execution_time,
+               ROUND(AVG(memory_used), 2)                                  as avg_memory_used,
+               COUNT(CASE WHEN execution_time > 15000 THEN 1 END)          as slow_count,
+               COUNT(CASE WHEN memory_used > 512 * 1024 * 1024 THEN 1 END) as high_memory_count,
+               CASE
+                   WHEN AVG(execution_time) > 10000 OR AVG(memory_used) > 256 * 1024 * 1024 THEN 'HIGH_LOAD'
+                   WHEN COUNT(CASE WHEN execution_time > 15000 THEN 1 END) > COUNT(*) * 0.1 THEN 'PERFORMANCE_DEGRADED'
+                   ELSE 'NORMAL'
+                   END                                                     as alert_level
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 60 MINUTE)) * 1000
+          AND execution_host IS NOT NULL
+        GROUP BY execution_host
+        HAVING alert_level != 'NORMAL'
+        ORDER BY avg_execution_time DESC
+    </select>
+
+    <!-- ================== 预测分析和机器学习支持 ================== -->
+
+    <!-- 获取用户行为预测数据 -->
+    <select id="selectUserBehaviorFeatures" resultType="java.util.HashMap">
+        SELECT '#{accountNo}'                                               as account_no,
+               COUNT(*)                                                     as total_submissions,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                 as successful_submissions,
+               COUNT(DISTINCT problem_id)                                   as unique_problems,
+               COUNT(DISTINCT language)                                     as languages_used,
+               ROUND(AVG(execution_time), 2)                                as avg_execution_time,
+               ROUND(STDDEV(execution_time), 2)                             as execution_time_variance,
+               ROUND(AVG(memory_used), 2)                                   as avg_memory_used,
+               -- 提交时间模式特征
+               ROUND(AVG(HOUR (FROM_UNIXTIME(submission_time / 1000))), 2)  as avg_submission_hour,
+               ROUND(STDDEV(HOUR(FROM_UNIXTIME(submission_time/1000))), 2)  as submission_hour_variance,
+               -- 活跃度特征
+               DATEDIFF(FROM_UNIXTIME(MAX(submission_time / 1000)),
+                        FROM_UNIXTIME(MIN(submission_time / 1000)))         as activity_span_days,
+               COUNT(DISTINCT DATE (FROM_UNIXTIME(submission_time / 1000))) as active_days,
+               -- 最近活跃度
+               COUNT(CASE
+                         WHEN submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000
+                             THEN 1 END)                                    as recent_activity,
+               -- 学习进度特征
+               COUNT(CASE WHEN success = 1 THEN 1 END) /
+               NULLIF(COUNT(DISTINCT problem_id), 0)                        as avg_attempts_per_problem
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no = #{accountNo}
+    </select>
+
+    <!-- 获取问题难度预测特征 -->
+    <select id="selectProblemDifficultyFeatures" resultType="java.util.HashMap">
+        SELECT #{problemId}                                                              as problem_id,
+               COUNT(*)                                                                  as total_attempts,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_attempts,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT account_no)                                                as unique_users,
+               ROUND(AVG(execution_time), 2)                                             as avg_execution_time,
+               ROUND(STDDEV(execution_time), 2)                                          as execution_time_variance,
+               ROUND(AVG(memory_used), 2)                                                as avg_memory_used,
+               COUNT(DISTINCT language)                                                  as languages_attempted,
+               -- 首次成功平均尝试次数
+               ROUND(AVG(attempt_count), 2)                                              as avg_attempts_to_success
+        FROM (SELECT account_no,
+                     execution_time,
+                     memory_used, language, success, ROW_NUMBER() OVER (PARTITION BY account_no ORDER BY submission_time) as attempt_count
+              FROM code_execution_record
+              WHERE is_deleted = 0 AND problem_id = #{problemId}) t
+    </select>
+
+    <!-- 获取执行时间预测特征 -->
+    <select id="selectExecutionTimePredictionFeatures" resultType="java.util.HashMap">
+        SELECT '#{language}' as language, #{problemId} as problem_id
+             , COUNT (*) as sample_count
+             , ROUND(AVG (execution_time)
+             , 2) as avg_execution_time
+             , ROUND(STDDEV(execution_time)
+             , 2) as execution_time_stddev
+             , MIN (execution_time) as min_execution_time
+             , MAX (execution_time) as max_execution_time
+             , ROUND(AVG (memory_used)
+             , 2) as avg_memory_used
+             , ROUND(AVG (LENGTH (code_content))
+             , 2) as avg_code_length
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND language = #{language}
+          AND problem_id = #{problemId}
+          AND execution_time IS NOT NULL
+          AND success = 1
+    </select>
+
+    <!-- ================== 地理和时区分析 ================== -->
+
+    <!-- 获取地理位置统计 -->
+    <select id="selectGeographicStatistics" resultType="java.util.HashMap">
+        SELECT SUBSTRING_INDEX(client_ip, '.', 2)           as ip_prefix,
+               COUNT(*)                                     as execution_count,
+               COUNT(DISTINCT account_no)                   as unique_users,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_executions,
+               ROUND(AVG(execution_time), 2)                as avg_execution_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND client_ip IS NOT NULL
+          AND client_ip != '127.0.0.1'            AND client_ip NOT LIKE <![CDATA['192.168.%']]>
+            AND client_ip NOT LIKE <![CDATA['10.%']]>
+        GROUP BY ip_prefix
+        HAVING execution_count >= 10
+        ORDER BY execution_count DESC
+            LIMIT 50
+    </select>
+
+    <!-- 获取时区活跃度分析 -->
+    <select id="selectTimezoneActivityAnalysis" resultType="java.util.HashMap">
+        SELECT
+            HOUR (FROM_UNIXTIME(submission_time/1000)) as utc_hour, COUNT (*) as execution_count, COUNT (DISTINCT account_no) as unique_users, COUNT (DISTINCT DATE (FROM_UNIXTIME(submission_time/1000))) as active_days, ROUND(AVG (CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100, 2) as success_rate,
+            -- 推测的主要时区
+            CASE
+            WHEN HOUR (FROM_UNIXTIME(submission_time/1000)) BETWEEN 1 AND 9 THEN 'Asia/Pacific'
+            WHEN HOUR (FROM_UNIXTIME(submission_time/1000)) BETWEEN 10 AND 18 THEN 'Europe/Africa'
+            ELSE 'Americas'
+        END
+        as likely_timezone_region
+        FROM code_execution_record 
+        WHERE is_deleted = 0
+        GROUP BY utc_hour
+        ORDER BY utc_hour
+    </select>
+
+    <!-- ================== A/B测试和实验分析 ================== -->
+
+    <!-- 获取实验组对比分析 -->
+    <select id="selectExperimentAnalysis" resultType="java.util.HashMap">
+        SELECT CASE
+                   WHEN MOD(CAST(SUBSTR(account_no, -1) AS UNSIGNED), 2) = 0 THEN 'Group_A'
+                   ELSE 'Group_B'
+                   END                                                                   as experiment_group,
+               COUNT(*)                                                                  as execution_count,
+               COUNT(DISTINCT account_no)                                                as unique_users,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as successful_executions,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               ROUND(AVG(execution_time), 2)                                             as avg_execution_time,
+               ROUND(AVG(memory_used), 2)                                                as avg_memory_used
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no IS NOT NULL
+          AND additional_info LIKE CONCAT(<![CDATA['%']]>, #{experimentId}, <![CDATA['%']]>)
+        GROUP BY experiment_group
+        ORDER BY experiment_group
+    </select>
+
+    <!-- 获取功能使用情况分析 -->
+    <select id="selectFeatureUsageAnalysis" resultType="java.util.HashMap">
+        SELECT execution_mode                               as feature_name,
+               COUNT(*)                                     as usage_count,
+               COUNT(DISTINCT account_no)                   as unique_users,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM code_execution_record WHERE is_deleted = 0),
+                     2)                                     as usage_percentage,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_usage,
+               ROUND(AVG(execution_time), 2)                as avg_execution_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND execution_mode IS NOT NULL
+        GROUP BY execution_mode
+        ORDER BY usage_count DESC
+    </select>
+
+    <!-- ================== 安全和合规分析 ================== -->
+
+    <!-- 获取安全风险检测 -->
+    <select id="selectSecurityRiskDetection" resultType="java.util.HashMap">
+        SELECT account_no,
+               client_ip,
+               COUNT(*)                                                 as suspicious_count,
+               COUNT(DISTINCT problem_id)                               as problems_attempted,
+               SUM(CASE
+                       WHEN code_content LIKE <![CDATA['%system%']]> OR code_content LIKE <![CDATA['%exec%']]> OR
+                            code_content LIKE <![CDATA['%Runtime%']]> THEN 1
+                       ELSE 0 END)                                      as potentially_dangerous_code,
+               COUNT(CASE WHEN execution_time <![CDATA[<]]> 100 THEN 1 END)      as too_fast_executions,
+               COUNT(CASE WHEN LENGTH(code_content) <![CDATA[<]]> 50 THEN 1 END) as suspiciously_short_code,
+               MAX(submission_time)                                     as last_submission_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 24 HOUR)) * 1000
+        GROUP BY account_no, client_ip
+        HAVING suspicious_count > 50
+            OR potentially_dangerous_code > 0
+            OR too_fast_executions > suspicious_count * 0.8
+        ORDER BY suspicious_count DESC, potentially_dangerous_code DESC LIMIT 20
+    </select>
+
+    <!-- 获取代码抄袭检测统计 -->
+    <select id="selectPlagiarismDetection" resultType="java.util.HashMap">
+        SELECT code_hash,
+               COUNT(*)                                                            as duplicate_count,
+               COUNT(DISTINCT account_no)                                          as unique_users,
+               COUNT(DISTINCT problem_id)                                          as unique_problems,
+               MIN(submission_time)                                                as first_submission_time,
+               MAX(submission_time)                                                as last_submission_time,
+               GROUP_CONCAT(DISTINCT account_no ORDER BY submission_time LIMIT 10) as involved_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND code_hash IS NOT NULL
+        GROUP BY code_hash
+        HAVING duplicate_count >= 3
+           AND unique_users >= 2
+        ORDER BY duplicate_count DESC, unique_users DESC LIMIT 50
+    </select>
+
+    <!-- 获取合规性报告 -->
+    <select id="selectComplianceReport" resultType="java.util.HashMap">
+        SELECT COUNT(*)                                                     as total_executions,
+               COUNT(DISTINCT account_no)                                   as total_users,
+               COUNT(DISTINCT client_ip)                                    as unique_ips,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                 as successful_executions,
+               ROUND(AVG(execution_time), 2)                                as avg_execution_time,
+               COUNT(CASE WHEN execution_time > 30000 THEN 1 END)           as long_running_executions,
+               COUNT(CASE WHEN memory_used > 1024 * 1024 * 1024 THEN 1 END) as high_memory_executions,
+               COUNT(CASE WHEN error_message IS NOT NULL THEN 1 END)        as error_executions,
+               COUNT(DISTINCT DATE (FROM_UNIXTIME(submission_time / 1000))) as active_days,
+               -- 合规性指标
+               ROUND(COUNT(CASE WHEN execution_time <![CDATA[<=]]> 30000 THEN 1 END) * 100.0 / COUNT(*),
+                     2)                                                     as execution_time_compliance,
+               ROUND(COUNT(CASE WHEN memory_used <![CDATA[<=]]> 512 * 1024 * 1024 THEN 1 END) * 100.0 / COUNT(*),
+                     2)                                                     as memory_usage_compliance
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND submission_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- ================== 高级业务智能分析 ================== -->
+
+    <!-- 获取用户留存分析 -->
+    <select id="selectUserRetentionAnalysis" resultType="java.util.HashMap">
+        SELECT cohort_month,
+               users_count                                    as cohort_size,
+               month_number,
+               retained_users,
+               ROUND(retained_users * 100.0 / users_count, 2) as retention_rate
+        FROM (SELECT cohort.cohort_month,
+                     cohort.users_count,
+                     activity.month_number,
+                     COUNT(DISTINCT activity.account_no) as retained_users
+              FROM (SELECT DATE_FORMAT(FROM_UNIXTIME(MIN(submission_time) / 1000), '%Y-%m') as cohort_month,
+                           COUNT(DISTINCT account_no)                                       as users_count
+                    FROM code_execution_record
+                    WHERE is_deleted = 0
+                    GROUP BY DATE_FORMAT(FROM_UNIXTIME(submission_time / 1000), '%Y-%m')) cohort
+                       JOIN (SELECT account_no,
+                                    DATE_FORMAT(FROM_UNIXTIME(submission_time / 1000), '%Y-%m') as activity_month,
+                                    PERIOD_DIFF(
+                                            DATE_FORMAT(FROM_UNIXTIME(submission_time / 1000), '%Y%m'),
+                                            DATE_FORMAT(FROM_UNIXTIME((SELECT MIN(s.submission_time)
+                                                                       FROM code_execution_record s
+                                                                       WHERE s.account_no = code_execution_record.account_no
+                                                                         AND s.is_deleted = 0) / 1000), '%Y%m')
+                                    )                                                           as month_number
+                             FROM code_execution_record
+                             WHERE is_deleted = 0) activity ON activity.month_number BETWEEN 0 AND #{cohortDays} / 30
+              GROUP BY cohort.cohort_month, cohort.users_count, activity.month_number) retention_data
+        ORDER BY cohort_month, month_number
+    </select>
+
+    <!-- 获取学习路径分析 -->
+    <select id="selectLearningPathAnalysis" resultType="java.util.HashMap">
+        SELECT problem_id,
+               MIN(submission_time)                                as first_attempt_time,
+               MAX(submission_time)                                as last_attempt_time,
+               COUNT(*)                                            as total_attempts,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)        as successful_attempts,
+               MIN(CASE WHEN success = 1 THEN submission_time END) as first_success_time,
+               ROUND(AVG(execution_time), 2)                       as avg_execution_time,
+               COUNT(DISTINCT language)                            as languages_tried,
+               -- 学习路径序号
+               ROW_NUMBER()                                           OVER (ORDER BY MIN(submission_time)) as learning_sequence
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no = #{accountNo}
+          AND problem_id IS NOT NULL
+        GROUP BY problem_id
+        ORDER BY first_attempt_time
+    </select>
+
+    <!-- 获取知识点掌握度分析 -->
+    <select id="selectKnowledgePointMastery" resultType="java.util.HashMap">
+        SELECT CASE
+                   WHEN problem_id BETWEEN 1 AND 100 THEN 'Basic_Algorithms'
+                   WHEN problem_id BETWEEN 101 AND 200 THEN 'Data_Structures'
+                   WHEN problem_id BETWEEN 201 AND 300 THEN 'Dynamic_Programming'
+                   WHEN problem_id BETWEEN 301 AND 400 THEN 'Graph_Theory'
+                   WHEN problem_id BETWEEN 401 AND 500 THEN 'Mathematical_Problems'
+                   ELSE 'Advanced_Topics'
+                   END                                      as knowledge_point,
+               COUNT(DISTINCT problem_id)                   as problems_attempted,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_solutions,
+               COUNT(*)                                     as total_attempts,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(DISTINCT problem_id),
+                     2)                                     as mastery_rate,
+               ROUND(AVG(execution_time), 2)                as avg_execution_time,
+               MIN(submission_time)                         as first_attempt_time,
+               MAX(submission_time)                         as last_attempt_time
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no = #{accountNo}
+          AND problem_id IS NOT NULL
+        GROUP BY knowledge_point
+        ORDER BY mastery_rate DESC
+    </select>
+
+    <!-- 获取个性化推荐数据 -->
+    <select id="selectPersonalizedRecommendations" resultType="java.util.HashMap">
+        SELECT p.problem_id,
+               p.total_attempts,
+               p.success_rate,
+               p.avg_execution_time,
+               -- 推荐得分计算
+               (
+                   -- 基于成功率的得分 (成功率适中的问题更适合练习)
+                   CASE
+                       WHEN p.success_rate BETWEEN 40 AND 70 THEN 30
+                       WHEN p.success_rate BETWEEN 20 AND 80 THEN 20
+                       ELSE 10
+                       END +
+                       -- 基于用户未尝试过的问题的得分
+                   CASE WHEN user_attempted.problem_id IS NULL THEN 25 ELSE 0 END +
+                       -- 基于问题热度的得分
+                   CASE
+                       WHEN p.total_attempts > 100 THEN 15
+                       WHEN p.total_attempts > 50 THEN 10
+                       ELSE 5
+                       END +
+                       -- 基于最近活跃度的得分
+                   CASE WHEN p.recent_activity > 10 THEN 10 ELSE 5 END
+                   ) as recommendation_score
+        FROM (SELECT problem_id,
+                     COUNT(*)                                                                  as total_attempts,
+                     ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+                     ROUND(AVG(execution_time), 2)                                             as avg_execution_time,
+                     COUNT(CASE
+                               WHEN submission_time >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000
+                                   THEN 1 END)                                                 as recent_activity
+              FROM code_execution_record
+              WHERE is_deleted = 0
+                AND problem_id IS NOT NULL
+              GROUP BY problem_id
+              HAVING total_attempts >= 10) p
+                 LEFT JOIN (SELECT DISTINCT problem_id
+                            FROM code_execution_record
+                            WHERE is_deleted = 0
+                              AND account_no = #{accountNo}) user_attempted ON p.problem_id = user_attempted.problem_id
+        ORDER BY recommendation_score DESC
+            LIMIT #{limit}
+    </select>
 
 </mapper>

@@ -12,8 +12,6 @@ import fun.timu.oj.judge.mapper.TestCaseMapper;
 import fun.timu.oj.judge.model.DO.TestCaseDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -35,21 +33,21 @@ public class TestCaseManagerImpl implements TestCaseManager {
     private final TestCaseMapper testCaseMapper;
 
     // ================== 参数校验工具方法 ==================
-    
+
     /**
      * 校验ID参数
      */
     private boolean isValidId(Long id) {
         return id != null && id > 0;
     }
-    
+
     /**
      * 校验problemId参数
      */
     private boolean isValidProblemId(Long problemId) {
         return problemId != null && problemId > 0;
     }
-    
+
     /**
      * 校验字符串参数
      */
@@ -60,34 +58,22 @@ public class TestCaseManagerImpl implements TestCaseManager {
     // ================== 基础CRUD操作 ==================
 
     @Override
-    @Cacheable(value = "testCase", key = "#id", unless = "#result == null")
     public TestCaseDO findById(Long id) {
         if (!isValidId(id)) {
             return null;
         }
-        try {
-            return testCaseMapper.selectById(id);
-        } catch (Exception e) {
-            log.error("根据ID查询测试用例失败, id: {}", id, e);
-            return null;
-        }
+        return testCaseMapper.selectById(id);
     }
 
     @Override
-    @CacheEvict(value = {"testCase", "testCaseList"}, allEntries = true)
     public int save(TestCaseDO testCaseDO) {
         if (testCaseDO == null || !TestCaseUtils.isValidTestCase(testCaseDO)) {
             return 0;
         }
 
-        try {
-            // 设置默认值
-            TestCaseUtils.setDefaultValues(testCaseDO);
-            return testCaseMapper.insert(testCaseDO);
-        } catch (Exception e) {
-            log.error("保存测试用例失败, testCase: {}", testCaseDO, e);
-            return 0;
-        }
+        // 设置默认值
+        TestCaseUtils.setDefaultValues(testCaseDO);
+        return testCaseMapper.insert(testCaseDO);
     }
 
     @Override
@@ -95,12 +81,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         if (testCaseDO == null || !isValidId(testCaseDO.getId())) {
             return 0;
         }
-        try {
-            return testCaseMapper.updateById(testCaseDO);
-        } catch (Exception e) {
-            log.error("更新测试用例失败, testCase: {}", testCaseDO, e);
-            return 0;
-        }
+        return testCaseMapper.updateById(testCaseDO);
     }
 
     @Override
@@ -109,37 +90,24 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return 0;
         }
 
-        try {
-            TestCaseDO testCaseDO = new TestCaseDO();
-            testCaseDO.setId(id);
-            testCaseDO.setIsDeleted(1);
-            return testCaseMapper.updateById(testCaseDO);
-        } catch (Exception e) {
-            log.error("删除测试用例失败, id: {}", id, e);
-            return 0;
-        }
+        TestCaseDO testCaseDO = new TestCaseDO();
+        testCaseDO.setId(id);
+        testCaseDO.setIsDeleted(1);
+        return testCaseMapper.updateById(testCaseDO);
     }
 
     // ================== 按条件查询操作 ==================
 
     @Override
-    @Cacheable(value = "testCaseList", key = "'problem:' + #problemId", unless = "#result.isEmpty()")
     public List<TestCaseDO> findByProblemId(Long problemId) {
         if (!isValidProblemId(problemId)) {
             return Collections.emptyList();
         }
 
-        try {
-            LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                    .eq(TestCaseDO::getIsDeleted, 0)
-                    .orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
-            return testCaseMapper.selectList(queryWrapper);
-        } catch (Exception e) {
-            log.error("根据problemId查询测试用例失败, problemId: {}", problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectList(queryWrapper);
     }
 
     @Override
@@ -148,18 +116,10 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return Collections.emptyList();
         }
 
-        try {
-            LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                    .eq(TestCaseDO::getStatus, 1)
-                    .eq(TestCaseDO::getIsDeleted, 0)
-                    .orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getStatus, 1).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
-            return testCaseMapper.selectList(queryWrapper);
-        } catch (Exception e) {
-            log.error("根据problemId查询启用的测试用例失败, problemId: {}", problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectList(queryWrapper);
     }
 
     @Override
@@ -169,10 +129,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getIsExample, 1)
-                .eq(TestCaseDO::getIsDeleted, 0)
-                .orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsExample, 1).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
         return testCaseMapper.selectList(queryWrapper);
     }
@@ -184,10 +141,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getIsPublic, 1)
-                .eq(TestCaseDO::getIsDeleted, 0)
-                .orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsPublic, 1).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
         return testCaseMapper.selectList(queryWrapper);
     }
@@ -199,9 +153,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getCaseType, caseType)
-                .eq(TestCaseDO::getIsDeleted, 0)
-                .orderByAsc(TestCaseDO::getProblemId, TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        queryWrapper.eq(TestCaseDO::getCaseType, caseType).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getProblemId, TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
         return testCaseMapper.selectList(queryWrapper);
     }
@@ -213,10 +165,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getCaseType, caseType)
-                .eq(TestCaseDO::getIsDeleted, 0)
-                .orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getCaseType, caseType).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
         return testCaseMapper.selectList(queryWrapper);
     }
@@ -226,8 +175,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
     @Override
     public IPage<TestCaseDO> findPage(Page<TestCaseDO> page) {
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getIsDeleted, 0)
-                .orderByDesc(TestCaseDO::getCreatedAt);
+        queryWrapper.eq(TestCaseDO::getIsDeleted, 0).orderByDesc(TestCaseDO::getCreatedAt);
 
         return testCaseMapper.selectPage(page, queryWrapper);
     }
@@ -239,9 +187,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getIsDeleted, 0)
-                .orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsDeleted, 0).orderByAsc(TestCaseDO::getOrderIndex, TestCaseDO::getId);
 
         return testCaseMapper.selectPage(page, queryWrapper);
     }
@@ -255,24 +201,16 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return 0;
         }
 
-        try {
-            // 预处理：设置默认值和验证
-            List<TestCaseDO> validTestCases = testCases.stream()
-                    .filter(TestCaseUtils::isValidTestCase)
-                    .peek(TestCaseUtils::setDefaultValues)
-                    .collect(Collectors.toList());
+        // 预处理：设置默认值和验证
+        List<TestCaseDO> validTestCases = testCases.stream().filter(TestCaseUtils::isValidTestCase).peek(TestCaseUtils::setDefaultValues).collect(Collectors.toList());
 
-            if (validTestCases.isEmpty()) {
-                log.warn("批量保存测试用例：没有有效的测试用例");
-                return 0;
-            }
-
-            // 使用批量插入提高性能
-            return testCaseMapper.batchInsert(validTestCases);
-        } catch (Exception e) {
-            log.error("批量保存测试用例失败，测试用例数量: {}", testCases.size(), e);
-            throw e;
+        if (validTestCases.isEmpty()) {
+            log.warn("批量保存测试用例：没有有效的测试用例");
+            return 0;
         }
+
+        // 使用批量插入提高性能
+        return testCaseMapper.batchInsert(validTestCases);
     }
 
     @Override
@@ -282,25 +220,17 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return 0;
         }
 
-        try {
-            // 过滤有效的ID
-            List<Long> validIds = ids.stream()
-                    .filter(this::isValidId)
-                    .collect(Collectors.toList());
+        // 过滤有效的ID
+        List<Long> validIds = ids.stream().filter(this::isValidId).collect(Collectors.toList());
 
-            if (validIds.isEmpty()) {
-                return 0;
-            }
-
-            LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.in(TestCaseDO::getId, validIds)
-                    .set(TestCaseDO::getIsDeleted, 1);
-
-            return testCaseMapper.update(null, updateWrapper);
-        } catch (Exception e) {
-            log.error("批量删除测试用例失败，ID数量: {}", ids.size(), e);
-            throw e;
+        if (validIds.isEmpty()) {
+            return 0;
         }
+
+        LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(TestCaseDO::getId, validIds).set(TestCaseDO::getIsDeleted, 1);
+
+        return testCaseMapper.update(null, updateWrapper);
     }
 
     @Override
@@ -310,16 +240,10 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return 0;
         }
 
-        try {
-            LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(TestCaseDO::getProblemId, problemId)
-                    .set(TestCaseDO::getIsDeleted, 1);
+        LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(TestCaseDO::getProblemId, problemId).set(TestCaseDO::getIsDeleted, 1);
 
-            return testCaseMapper.update(null, updateWrapper);
-        } catch (Exception e) {
-            log.error("根据problemId删除测试用例失败, problemId: {}", problemId, e);
-            throw e;
-        }
+        return testCaseMapper.update(null, updateWrapper);
     }
 
     // ================== 状态操作 ==================
@@ -342,8 +266,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.in(TestCaseDO::getId, ids)
-                .set(TestCaseDO::getStatus, status);
+        updateWrapper.in(TestCaseDO::getId, ids).set(TestCaseDO::getStatus, status);
 
         return testCaseMapper.update(null, updateWrapper);
     }
@@ -357,8 +280,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(TestCaseDO::getId, id)
-                .set(TestCaseDO::getStatus, status);
+        updateWrapper.eq(TestCaseDO::getId, id).set(TestCaseDO::getStatus, status);
 
         return testCaseMapper.update(null, updateWrapper);
     }
@@ -372,8 +294,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getIsDeleted, 0);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsDeleted, 0);
 
         return Math.toIntExact(testCaseMapper.selectCount(queryWrapper));
     }
@@ -385,9 +306,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getStatus, 1)
-                .eq(TestCaseDO::getIsDeleted, 0);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getStatus, 1).eq(TestCaseDO::getIsDeleted, 0);
 
         return Math.toIntExact(testCaseMapper.selectCount(queryWrapper));
     }
@@ -399,9 +318,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getIsExample, 1)
-                .eq(TestCaseDO::getIsDeleted, 0);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsExample, 1).eq(TestCaseDO::getIsDeleted, 0);
 
         return Math.toIntExact(testCaseMapper.selectCount(queryWrapper));
     }
@@ -415,8 +332,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getId, id)
-                .eq(TestCaseDO::getIsDeleted, 0);
+        queryWrapper.eq(TestCaseDO::getId, id).eq(TestCaseDO::getIsDeleted, 0);
 
         return testCaseMapper.selectCount(queryWrapper) > 0;
     }
@@ -428,8 +344,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaQueryWrapper<TestCaseDO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TestCaseDO::getProblemId, problemId)
-                .eq(TestCaseDO::getIsDeleted, 0);
+        queryWrapper.eq(TestCaseDO::getProblemId, problemId).eq(TestCaseDO::getIsDeleted, 0);
 
         return testCaseMapper.selectCount(queryWrapper) > 0;
     }
@@ -457,9 +372,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
 
         LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(TestCaseDO::getId, id)
-                .set(TestCaseDO::getExecutionCount, executionCount)
-                .set(TestCaseDO::getSuccessCount, successCount);
+        updateWrapper.eq(TestCaseDO::getId, id).set(TestCaseDO::getExecutionCount, executionCount).set(TestCaseDO::getSuccessCount, successCount);
 
         return testCaseMapper.update(null, updateWrapper);
     }
@@ -482,8 +395,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         for (int i = 0; i < testCases.size(); i++) {
             TestCaseDO testCase = testCases.get(i);
             LambdaUpdateWrapper<TestCaseDO> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(TestCaseDO::getId, testCase.getId())
-                    .set(TestCaseDO::getOrderIndex, i);
+            updateWrapper.eq(TestCaseDO::getId, testCase.getId()).set(TestCaseDO::getOrderIndex, i);
 
             updateCount += testCaseMapper.update(null, updateWrapper);
         }
@@ -495,12 +407,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
 
     @Override
     public List<HashMap<String, Object>> getTestCaseStatistics(Long problemId) {
-        try {
-            return testCaseMapper.selectTestCaseStatistics(problemId);
-        } catch (Exception e) {
-            log.error("查询测试用例统计信息失败，problemId: {}", problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectTestCaseStatistics(problemId);
     }
 
     @Override
@@ -509,13 +416,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return Collections.emptyList();
         }
 
-        try {
-            return testCaseMapper.selectHighFailureRateTestCases(failureThreshold, problemId, limit);
-        } catch (Exception e) {
-            log.error("查询高失败率测试用例失败，failureThreshold: {}, problemId: {}, limit: {}",
-                    failureThreshold, problemId, limit, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectHighFailureRateTestCases(failureThreshold, problemId, limit);
     }
 
     @Override
@@ -525,12 +426,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return 0;
         }
 
-        try {
-            return testCaseMapper.batchUpdateOrderIndex(testCases);
-        } catch (Exception e) {
-            log.error("批量更新测试用例顺序失败，testCases: {}", testCases, e);
-            throw e;
-        }
+        return testCaseMapper.batchUpdateOrderIndex(testCases);
     }
 
     @Override
@@ -539,13 +435,8 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return 0;
         }
 
-        try {
-            Integer maxWeight = testCaseMapper.selectMaxWeightByProblemId(problemId);
-            return maxWeight != null ? maxWeight : 0;
-        } catch (Exception e) {
-            log.error("查询最大权重失败，problemId: {}", problemId, e);
-            return 0;
-        }
+        Integer maxWeight = testCaseMapper.selectMaxWeightByProblemId(problemId);
+        return maxWeight != null ? maxWeight : 0;
     }
 
     @Override
@@ -554,12 +445,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return Collections.emptyList();
         }
 
-        try {
-            return testCaseMapper.selectDuplicateInputData(problemId);
-        } catch (Exception e) {
-            log.error("查询重复输入数据测试用例失败，problemId: {}", problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectDuplicateInputData(problemId);
     }
 
     @Override
@@ -568,22 +454,12 @@ public class TestCaseManagerImpl implements TestCaseManager {
             return Collections.emptyList();
         }
 
-        try {
-            return testCaseMapper.selectByInputFormat(inputFormat, problemId);
-        } catch (Exception e) {
-            log.error("根据输入格式查询测试用例失败，inputFormat: {}, problemId: {}", inputFormat, problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectByInputFormat(inputFormat, problemId);
     }
 
     @Override
     public List<TestCaseDO> getTestCasesWithSpecialLimits(Long problemId) {
-        try {
-            return testCaseMapper.selectWithSpecialLimits(problemId);
-        } catch (Exception e) {
-            log.error("查询有特殊限制的测试用例失败，problemId: {}", problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectWithSpecialLimits(problemId);
     }
 
     @Override
@@ -621,22 +497,12 @@ public class TestCaseManagerImpl implements TestCaseManager {
             }
         }
 
-        try {
-            return testCaseMapper.batchInsert(testCases);
-        } catch (Exception e) {
-            log.error("批量插入测试用例失败，testCases: {}", testCases, e);
-            throw e;
-        }
+        return testCaseMapper.batchInsert(testCases);
     }
 
     @Override
     public List<HashMap<String, Object>> getExecutionSummary(Long problemId) {
-        try {
-            return testCaseMapper.selectExecutionSummary(problemId);
-        } catch (Exception e) {
-            log.error("查询执行统计摘要失败，problemId: {}", problemId, e);
-            return Collections.emptyList();
-        }
+        return testCaseMapper.selectExecutionSummary(problemId);
     }
 
     // ================== 数据验证和完整性检查 ==================
@@ -644,132 +510,89 @@ public class TestCaseManagerImpl implements TestCaseManager {
     @Override
     public TestCaseValidationDTO validateTestCaseIntegrity(Long problemId) {
         if (!isValidProblemId(problemId)) {
-            return TestCaseValidationDTO.builder()
-                    .valid(false)
-                    .message("题目ID不能为空或无效")
-                    .build();
+            return TestCaseValidationDTO.builder().valid(false).message("题目ID不能为空或无效").build();
         }
 
-        try {
-            // 获取基本统计信息
-            int totalCount = countByProblemId(problemId);
-            int enabledCount = countEnabledByProblemId(problemId);
-            int exampleCount = countExamplesByProblemId(problemId);
+        // 获取基本统计信息
+        int totalCount = countByProblemId(problemId);
+        int enabledCount = countEnabledByProblemId(problemId);
+        int exampleCount = countExamplesByProblemId(problemId);
 
-            List<String> issues = new ArrayList<>();
+        List<String> issues = new ArrayList<>();
 
-            // 基本数量检查
-            if (totalCount == 0) {
-                issues.add("题目没有测试用例");
-            }
-            if (enabledCount == 0 && totalCount > 0) {
-                issues.add("题目没有启用的测试用例");
-            }
-            if (exampleCount == 0 && totalCount > 0) {
-                issues.add("题目没有示例测试用例，建议至少设置一个");
-            }
-
-            // 检查重复数据
-            List<TestCaseDO> duplicates = getDuplicateInputDataTestCases(problemId);
-            List<Object> duplicateTestCases = null;
-            if (!duplicates.isEmpty()) {
-                issues.add("发现" + duplicates.size() + "个重复的输入数据测试用例");
-                duplicateTestCases = new ArrayList<>(duplicates);
-            }
-
-            // 检查权重分配
-            int totalWeight = 0;
-            List<TestCaseDO> testCases = findByProblemId(problemId);
-            if (!testCases.isEmpty()) {
-                totalWeight = testCases.stream()
-                        .filter(tc -> tc.getWeight() != null)
-                        .mapToInt(TestCaseDO::getWeight)
-                        .sum();
-
-                if (totalWeight == 0) {
-                    issues.add("所有测试用例的权重总和为0");
-                }
-            }
-
-            return TestCaseValidationDTO.builder()
-                    .valid(issues.isEmpty())
-                    .totalCount(totalCount)
-                    .enabledCount(enabledCount)
-                    .exampleCount(exampleCount)
-                    .totalWeight(totalWeight)
-                    .issues(issues)
-                    .duplicateTestCases(duplicateTestCases)
-                    .build();
-
-        } catch (Exception e) {
-            log.error("验证测试用例完整性失败，problemId: {}", problemId, e);
-            return TestCaseValidationDTO.builder()
-                    .valid(false)
-                    .message("验证过程中发生错误: " + e.getMessage())
-                    .build();
+        // 基本数量检查
+        if (totalCount == 0) {
+            issues.add("题目没有测试用例");
         }
+        if (enabledCount == 0 && totalCount > 0) {
+            issues.add("题目没有启用的测试用例");
+        }
+        if (exampleCount == 0 && totalCount > 0) {
+            issues.add("题目没有示例测试用例，建议至少设置一个");
+        }
+
+        // 检查重复数据
+        List<TestCaseDO> duplicates = getDuplicateInputDataTestCases(problemId);
+        List<Object> duplicateTestCases = null;
+        if (!duplicates.isEmpty()) {
+            issues.add("发现" + duplicates.size() + "个重复的输入数据测试用例");
+            duplicateTestCases = new ArrayList<>(duplicates);
+        }
+
+        // 检查权重分配
+        int totalWeight = 0;
+        List<TestCaseDO> testCases = findByProblemId(problemId);
+        if (!testCases.isEmpty()) {
+            totalWeight = testCases.stream().filter(tc -> tc.getWeight() != null).mapToInt(TestCaseDO::getWeight).sum();
+
+            if (totalWeight == 0) {
+                issues.add("所有测试用例的权重总和为0");
+            }
+        }
+
+        return TestCaseValidationDTO.builder().valid(issues.isEmpty()).totalCount(totalCount).enabledCount(enabledCount).exampleCount(exampleCount).totalWeight(totalWeight).issues(issues).duplicateTestCases(duplicateTestCases).build();
     }
 
     @Override
     public TestCaseConfigDTO checkTestCaseConfiguration(Long problemId) {
         if (!isValidProblemId(problemId)) {
-            return TestCaseConfigDTO.builder()
-                    .reasonable(false)
-                    .message("题目ID不能为空或无效")
-                    .build();
+            return TestCaseConfigDTO.builder().reasonable(false).message("题目ID不能为空或无效").build();
         }
 
-        try {
-            List<String> suggestions = new ArrayList<>();
-            List<String> warnings = new ArrayList<>();
+        List<String> suggestions = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
 
-            // 获取基本统计信息
-            int totalCount = countByProblemId(problemId);
-            int enabledCount = countEnabledByProblemId(problemId);
-            int exampleCount = countExamplesByProblemId(problemId);
+        // 获取基本统计信息
+        int totalCount = countByProblemId(problemId);
+        int enabledCount = countEnabledByProblemId(problemId);
+        int exampleCount = countExamplesByProblemId(problemId);
 
-            // 检查测试用例数量
-            checkTestCaseCount(totalCount, warnings);
-            
-            // 检查示例用例比例
-            checkExampleRatio(totalCount, exampleCount, suggestions);
-            
-            // 检查启用用例比例
-            checkEnabledRatio(totalCount, enabledCount, suggestions);
+        // 检查测试用例数量
+        checkTestCaseCount(totalCount, warnings);
 
-            // 检查权重分配和特殊限制
-            Map<Integer, Long> weightDistribution = null;
-            Integer specialLimitCasesCount = null;
-            
-            List<TestCaseDO> testCases = findEnabledByProblemId(problemId);
-            if (!testCases.isEmpty()) {
-                weightDistribution = checkWeightDistribution(testCases, suggestions, warnings);
-                specialLimitCasesCount = checkSpecialLimits(problemId, suggestions);
-            }
+        // 检查示例用例比例
+        checkExampleRatio(totalCount, exampleCount, suggestions);
 
-            // 生成评分和等级
-            int score = calculateConfigScore(warnings.size(), suggestions.size());
-            String grade = determineGrade(score);
-            
-            return TestCaseConfigDTO.builder()
-                    .reasonable(warnings.isEmpty() && suggestions.size() <= 2)
-                    .suggestions(suggestions)
-                    .warnings(warnings)
-                    .weightDistribution(weightDistribution)
-                    .specialLimitCasesCount(specialLimitCasesCount)
-                    .score(score)
-                    .grade(grade)
-                    .build();
+        // 检查启用用例比例
+        checkEnabledRatio(totalCount, enabledCount, suggestions);
 
-        } catch (Exception e) {
-            log.error("检查测试用例配置失败，problemId: {}", problemId, e);
-            return TestCaseConfigDTO.builder()
-                    .reasonable(false)
-                    .message("检查过程中发生错误: " + e.getMessage())
-                    .build();
+        // 检查权重分配和特殊限制
+        Map<Integer, Long> weightDistribution = null;
+        Integer specialLimitCasesCount = null;
+
+        List<TestCaseDO> testCases = findEnabledByProblemId(problemId);
+        if (!testCases.isEmpty()) {
+            weightDistribution = checkWeightDistribution(testCases, suggestions, warnings);
+            specialLimitCasesCount = checkSpecialLimits(problemId, suggestions);
         }
+
+        // 生成评分和等级
+        int score = calculateConfigScore(warnings.size(), suggestions.size());
+        String grade = determineGrade(score);
+
+        return TestCaseConfigDTO.builder().reasonable(warnings.isEmpty() && suggestions.size() <= 2).suggestions(suggestions).warnings(warnings).weightDistribution(weightDistribution).specialLimitCasesCount(specialLimitCasesCount).score(score).grade(grade).build();
     }
-    
+
     /**
      * 检查测试用例数量
      */
@@ -780,7 +603,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
             warnings.add("测试用例数量过多（超过100个），可能影响判题性能");
         }
     }
-    
+
     /**
      * 检查示例用例比例
      */
@@ -794,7 +617,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
             }
         }
     }
-    
+
     /**
      * 检查启用用例比例
      */
@@ -806,36 +629,27 @@ public class TestCaseManagerImpl implements TestCaseManager {
             }
         }
     }
-    
+
     /**
      * 检查权重分配
      */
-    private Map<Integer, Long> checkWeightDistribution(List<TestCaseDO> testCases, 
-                                                       List<String> suggestions, 
-                                                       List<String> warnings) {
-        Map<Integer, Long> weightDistribution = testCases.stream()
-                .collect(Collectors.groupingBy(
-                        tc -> tc.getWeight() != null ? tc.getWeight() : 1,
-                        Collectors.counting()
-                ));
+    private Map<Integer, Long> checkWeightDistribution(List<TestCaseDO> testCases, List<String> suggestions, List<String> warnings) {
+        Map<Integer, Long> weightDistribution = testCases.stream().collect(Collectors.groupingBy(tc -> tc.getWeight() != null ? tc.getWeight() : 1, Collectors.counting()));
 
         if (weightDistribution.size() == 1 && weightDistribution.containsKey(1)) {
             suggestions.add("所有测试用例权重相同，考虑根据难度设置不同权重");
         }
 
         // 检查是否有权重过大的测试用例
-        int maxWeight = testCases.stream()
-                .mapToInt(tc -> tc.getWeight() != null ? tc.getWeight() : 1)
-                .max()
-                .orElse(1);
+        int maxWeight = testCases.stream().mapToInt(tc -> tc.getWeight() != null ? tc.getWeight() : 1).max().orElse(1);
 
         if (maxWeight > 10) {
             warnings.add("存在权重过大的测试用例（权重: " + maxWeight + "），可能导致单个用例影响过大");
         }
-        
+
         return weightDistribution;
     }
-    
+
     /**
      * 检查特殊限制
      */
@@ -846,7 +660,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         }
         return specialLimitCases.size();
     }
-    
+
     /**
      * 计算配置评分
      */
@@ -856,7 +670,7 @@ public class TestCaseManagerImpl implements TestCaseManager {
         score -= suggestionCount * 5; // 每个建议扣5分
         return Math.max(score, 0);
     }
-    
+
     /**
      * 确定等级评价
      */

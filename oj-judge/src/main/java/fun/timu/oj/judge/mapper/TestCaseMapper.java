@@ -33,11 +33,7 @@ public interface TestCaseMapper extends BaseMapper<TestCaseDO> {
      * @param limit            限制数量，可为null
      * @return 失败率较高的测试用例列表
      */
-    List<TestCaseDO> selectHighFailureRateTestCases(
-            @Param("failureThreshold") Double failureThreshold,
-            @Param("problemId") Long problemId,
-            @Param("limit") Integer limit
-    );
+    List<TestCaseDO> selectHighFailureRateTestCases(@Param("failureThreshold") Double failureThreshold, @Param("problemId") Long problemId, @Param("limit") Integer limit);
 
     /**
      * 批量更新测试用例的执行顺序
@@ -70,10 +66,7 @@ public interface TestCaseMapper extends BaseMapper<TestCaseDO> {
      * @param problemId   题目ID，可为null
      * @return 测试用例列表
      */
-    List<TestCaseDO> selectByInputFormat(
-            @Param("inputFormat") String inputFormat,
-            @Param("problemId") Long problemId
-    );
+    List<TestCaseDO> selectByInputFormat(@Param("inputFormat") String inputFormat, @Param("problemId") Long problemId);
 
     /**
      * 查询需要特殊配置的测试用例（有时间或内存限制覆盖的）
