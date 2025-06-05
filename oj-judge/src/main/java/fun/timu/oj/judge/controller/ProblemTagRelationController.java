@@ -43,7 +43,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error adding tag to problem: problemId={}, tagId={}, error={}",
                     problemId, tagId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -64,7 +64,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error removing tag from problem: problemId={}, tagId={}, error={}",
                     problemId, tagId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -85,7 +85,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error batch adding tags to problem: problemId={}, tagIds={}, error={}",
                     problemId, tagIds, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -106,7 +106,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error batch removing tags from problem: problemId={}, tagIds={}, error={}",
                     problemId, tagIds, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -127,7 +127,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error replacing tags for problem: problemId={}, tagIds={}, error={}",
                     problemId, tagIds, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -147,7 +147,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error getting tag IDs for problem: problemId={}, error={}",
                     problemId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -165,7 +165,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error getting problem IDs for tag: tagId={}, error={}",
                     tagId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -186,7 +186,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error checking tag relation: problemId={}, tagId={}, error={}",
                     problemId, tagId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -204,7 +204,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error checking if problem has any tags: problemId={}, error={}",
                     problemId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -224,7 +224,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error counting tags for problem: problemId={}, error={}",
                     problemId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -242,7 +242,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error counting problems for tag: tagId={}, error={}",
                     tagId, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -260,7 +260,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error batch counting tags for problems: problemIds={}, error={}",
                     problemIds, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -278,7 +278,7 @@ public class ProblemTagRelationController {
         } catch (Exception e) {
             log.error("Error batch counting problems for tags: tagIds={}, error={}",
                     tagIds, e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -296,7 +296,7 @@ public class ProblemTagRelationController {
             return JsonData.buildSuccess(problemIds);
         } catch (Exception e) {
             log.error("Error finding problems without tags: error={}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -312,7 +312,7 @@ public class ProblemTagRelationController {
             return JsonData.buildSuccess(tagIds);
         } catch (Exception e) {
             log.error("Error finding tags without problems: error={}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -328,7 +328,7 @@ public class ProblemTagRelationController {
             return JsonData.buildSuccess(cleanedCount);
         } catch (Exception e) {
             log.error("Error cleaning orphaned relations: error={}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -344,7 +344,7 @@ public class ProblemTagRelationController {
             return JsonData.buildSuccess(fixedCount);
         } catch (Exception e) {
             log.error("Error fixing data consistency: error={}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 }

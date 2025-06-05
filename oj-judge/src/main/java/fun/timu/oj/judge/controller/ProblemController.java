@@ -69,7 +69,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->分页查询题目列表异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -110,7 +110,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->创建问题失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_CREATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -137,7 +137,7 @@ public class ProblemController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemController--->更新题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -157,7 +157,7 @@ public class ProblemController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemController--->删除题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_DELETE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -180,7 +180,7 @@ public class ProblemController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemController--->更新题目提交统计失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -201,7 +201,7 @@ public class ProblemController {
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
             log.error("ProblemController--->获取热门题目列表异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -233,7 +233,7 @@ public class ProblemController {
             }
         } catch (Exception e) {
             log.error("ProblemController--->获取统一推荐题目异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR, "获取推荐题目失败");
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED, "获取推荐题目失败");
         }
     }
 
@@ -255,7 +255,7 @@ public class ProblemController {
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
             log.error("ProblemController--->获取推荐题目列表异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -272,7 +272,7 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目统计信息异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -296,7 +296,7 @@ public class ProblemController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemController--->批量更新题目状态失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -318,7 +318,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->根据创建者ID统计题目数量失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -340,7 +340,7 @@ public class ProblemController {
             return JsonData.buildSuccess(problemList);
         } catch (Exception e) {
             log.error("ProblemController--->查询最近创建的题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -362,7 +362,7 @@ public class ProblemController {
             return JsonData.buildSuccess(pageResult);
         } catch (Exception e) {
             log.error("ProblemController--->根据支持的编程语言查询题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -379,7 +379,7 @@ public class ProblemController {
             return JsonData.buildSuccess("批量软删除题目成功: " + deletedCount + " 道题目已被软删除");
         } catch (Exception e) {
             log.error("ProblemController--->批量软删除题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -396,7 +396,7 @@ public class ProblemController {
             return JsonData.buildSuccess("批量恢复删除题目成功: " + restoredCount + " 道题目已被恢复");
         } catch (Exception e) {
             log.error("ProblemController--->批量恢复已删除题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -418,7 +418,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目通过率失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -435,7 +435,7 @@ public class ProblemController {
             return JsonData.buildSuccess(problemVOList);
         } catch (Exception e) {
             log.error("ProblemController--->批量获取题目基本信息失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -452,7 +452,7 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目详细统计信息异常: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -472,7 +472,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->获取最受欢迎的题目类型和难度组合失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -494,7 +494,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->根据创建时间范围查询题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -536,7 +536,7 @@ public class ProblemController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemController--->批量更新题目可见性失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -564,7 +564,7 @@ public class ProblemController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemController--->批量更新题目时间和内存限制失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -593,7 +593,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->批量重置题目统计数据失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -614,7 +614,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->查询长时间未更新的题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -634,7 +634,7 @@ public class ProblemController {
             return JsonData.buildSuccess(result);
         } catch (Exception e) {
             log.error("ProblemController--->查询零提交的题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -660,7 +660,7 @@ public class ProblemController {
             }
         } catch (Exception e) {
             log.error("ProblemController--->发布题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -686,7 +686,7 @@ public class ProblemController {
             }
         } catch (Exception e) {
             log.error("ProblemController--->下线题目失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.PROBLEM_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -725,7 +725,7 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->按难度获取统计信息失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -743,7 +743,7 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->按题目类型获取统计信息失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -761,7 +761,7 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->按编程语言获取统计信息失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -779,7 +779,7 @@ public class ProblemController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemController--->按状态获取统计信息失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -802,7 +802,7 @@ public class ProblemController {
             return JsonData.buildSuccess(trendData);
         } catch (Exception e) {
             log.error("ProblemController--->获取题目创建趋势失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -825,7 +825,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取热门题目排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -863,7 +863,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取最难题目排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -882,7 +882,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取最容易题目排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -903,7 +903,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取最常提交题目排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -922,7 +922,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取零提交题目排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -943,7 +943,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取最近热门题目排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -962,7 +962,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取统一排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -980,7 +980,7 @@ public class ProblemController {
             return JsonData.buildSuccess(ranking);
         } catch (Exception e) {
             log.error("ProblemController--->获取通用排行榜失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -1010,7 +1010,7 @@ public class ProblemController {
             return JsonData.buildSuccess(report);
         } catch (Exception e) {
             log.error("ProblemController--->获取月度报告失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -1034,7 +1034,7 @@ public class ProblemController {
             return JsonData.buildSuccess(report);
         } catch (Exception e) {
             log.error("ProblemController--->获取年度报告失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -1053,7 +1053,7 @@ public class ProblemController {
             return JsonData.buildSuccess(report);
         } catch (Exception e) {
             log.error("ProblemController--->获取自定义报告失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 
@@ -1085,7 +1085,7 @@ public class ProblemController {
             return JsonData.buildSuccess(strs);
         } catch (Exception e) {
             log.error("ProblemController--->获取自定义报告列表失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.SYSTEM_ERROR);
+            throw new BizException(BizCodeEnum.PROBLEM_OPERATION_FAILED);
         }
     }
 

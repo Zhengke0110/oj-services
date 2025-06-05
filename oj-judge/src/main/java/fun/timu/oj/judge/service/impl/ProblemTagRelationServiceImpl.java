@@ -30,6 +30,8 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
 
     // ==================== 业务逻辑方法实现 ====================
 
+    // ==================== 基础关联操作 ====================
+
     /**
      * 为题目添加标签
      *
@@ -40,6 +42,13 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public boolean addTagToProblem(Long problemId, Long tagId) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限给题目添加标签
+            // TODO: 调用Problem服务验证problemId的有效性
+            // TODO: 调用ProblemTag服务验证tagId的有效性和启用状态
+            // TODO: 调用ProblemTag服务增加标签使用次数
+            // TODO: 调用Cache服务更新题目标签关联缓存
+            // TODO: 调用Notification服务发送标签添加通知
+            // TODO: 调用Statistics服务更新标签关联统计
             if (problemId == null || tagId == null) {
                 log.warn("Invalid parameters: problemId={}, tagId={}", problemId, tagId);
                 return false;
@@ -77,6 +86,13 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public boolean removeTagFromProblem(Long problemId, Long tagId) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限从题目移除标签
+            // TODO: 调用Problem服务验证problemId的有效性
+            // TODO: 调用ProblemTag服务验证tagId的有效性
+            // TODO: 调用ProblemTag服务减少标签使用次数
+            // TODO: 调用Cache服务更新题目标签关联缓存
+            // TODO: 调用Notification服务发送标签移除通知
+            // TODO: 调用Statistics服务更新标签关联统计
             if (problemId == null || tagId == null) {
                 log.warn("Invalid parameters: problemId={}, tagId={}", problemId, tagId);
                 return false;
@@ -99,6 +115,8 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
         }
     }
 
+    // ==================== 批量关联操作 ====================
+
     /**
      * 批量为题目添加标签
      *
@@ -110,6 +128,14 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Transactional(rollbackFor = Exception.class)
     public int batchAddTagsToProblem(Long problemId, List<Long> tagIds) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限批量添加标签
+            // TODO: 调用Problem服务验证problemId的有效性
+            // TODO: 调用ProblemTag服务批量验证tagIds的有效性和启用状态
+            // TODO: 调用ProblemTag服务批量增加标签使用次数
+            // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
+            // TODO: 调用Cache服务批量更新题目标签关联缓存
+            // TODO: 调用Notification服务发送批量标签添加通知
+            // TODO: 调用Statistics服务批量更新标签关联统计
             if (problemId == null || tagIds == null || tagIds.isEmpty()) {
                 log.warn("Invalid parameters: problemId={}, tagIds={}", problemId, tagIds);
                 return 0;
@@ -149,6 +175,14 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Transactional(rollbackFor = Exception.class)
     public int batchRemoveTagsFromProblem(Long problemId, List<Long> tagIds) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限批量移除标签
+            // TODO: 调用Problem服务验证problemId的有效性
+            // TODO: 调用ProblemTag服务批量验证tagIds的有效性
+            // TODO: 调用ProblemTag服务批量减少标签使用次数
+            // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
+            // TODO: 调用Cache服务批量更新题目标签关联缓存
+            // TODO: 调用Notification服务发送批量标签移除通知
+            // TODO: 调用Statistics服务批量更新标签关联统计
             if (problemId == null || tagIds == null || tagIds.isEmpty()) {
                 log.warn("Invalid parameters: problemId={}, tagIds={}", problemId, tagIds);
                 return 0;
@@ -188,6 +222,14 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Transactional(rollbackFor = Exception.class)
     public boolean replaceAllTagsForProblem(Long problemId, List<Long> tagIds) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限替换题目标签
+            // TODO: 调用Problem服务验证problemId的有效性
+            // TODO: 调用ProblemTag服务批量验证新tagIds的有效性和启用状态
+            // TODO: 调用ProblemTag服务处理旧标签使用次数减少和新标签使用次数增加
+            // TODO: 调用MessageQueue服务将标签替换任务加入异步处理队列
+            // TODO: 调用Cache服务更新题目标签关联缓存
+            // TODO: 调用Notification服务发送标签替换通知
+            // TODO: 调用Statistics服务更新标签关联统计
             if (problemId == null) {
                 log.warn("Invalid problemId: {}", problemId);
                 return false;
@@ -216,6 +258,8 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
         }
     }
 
+    // ==================== 查询操作 ====================
+
     /**
      * 获取题目的所有标签ID
      *
@@ -225,6 +269,9 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public List<Long> getTagIdsByProblemId(Long problemId) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看题目标签
+            // TODO: 调用Problem服务验证problemId的有效性
+            // TODO: 调用Cache服务从缓存中获取题目标签关联，提升查询性能
             if (problemId == null) {
                 log.warn("Invalid problemId: {}", problemId);
                 return List.of();
@@ -252,6 +299,10 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public List<Long> getProblemIdsByTagId(Long tagId) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看标签关联的题目
+            // TODO: 调用ProblemTag服务验证tagId的有效性
+            // TODO: 调用Cache服务从缓存中获取标签关联的题目，提升查询性能
+            // TODO: 调用Problem服务过滤掉已删除或不可见的题目
             if (tagId == null) {
                 log.warn("Invalid tagId: {}", tagId);
                 return List.of();
@@ -280,6 +331,7 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public boolean hasTagRelation(Long problemId, Long tagId) {
         try {
+            // TODO: 调用Cache服务从缓存中检查关联关系，提升查询性能
             if (problemId == null || tagId == null) {
                 log.warn("Invalid parameters: problemId={}, tagId={}", problemId, tagId);
                 return false;
@@ -307,6 +359,7 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public boolean hasAnyTags(Long problemId) {
         try {
+            // TODO: 调用Cache服务从缓存中检查题目是否有标签，提升查询性能
             if (problemId == null) {
                 log.warn("Invalid problemId: {}", problemId);
                 return false;
@@ -334,6 +387,8 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public long countTagsByProblemId(Long problemId) {
         try {
+            // TODO: 调用Cache服务从缓存中获取题目标签数量统计，提升查询性能
+            // TODO: 调用Statistics服务记录标签数量统计查询
             if (problemId == null) {
                 log.warn("Invalid problemId: {}", problemId);
                 return 0;
@@ -361,6 +416,9 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public long countProblemsByTagId(Long tagId) {
         try {
+            // TODO: 调用Cache服务从缓存中获取标签关联题目数量统计，提升查询性能
+            // TODO: 调用Statistics服务记录题目数量统计查询
+            // TODO: 调用ProblemTag服务更新标签使用统计信息
             if (tagId == null) {
                 log.warn("Invalid tagId: {}", tagId);
                 return 0;
@@ -379,6 +437,8 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
         }
     }
 
+    // ==================== 批量统计操作 ====================
+
     /**
      * 批量统计题目的标签数量
      *
@@ -388,6 +448,9 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public Map<Long, Long> batchCountTagsByProblemIds(List<Long> problemIds) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看批量统计信息
+            // TODO: 调用Cache服务从缓存中获取批量统计结果，避免重复计算
+            // TODO: 调用Statistics服务记录批量统计查询
             if (problemIds == null || problemIds.isEmpty()) {
                 log.warn("Invalid problemIds: {}", problemIds);
                 return Map.of();
@@ -425,6 +488,10 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public Map<Long, Long> batchCountProblemsByTagIds(List<Long> tagIds) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看批量统计信息
+            // TODO: 调用Cache服务从缓存中获取批量统计结果，避免重复计算
+            // TODO: 调用Statistics服务记录批量统计查询
+            // TODO: 调用ProblemTag服务批量更新标签使用统计信息
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("Invalid tagIds: {}", tagIds);
                 return Map.of();
@@ -453,6 +520,8 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
         }
     }
 
+    // ==================== 数据清理和维护操作 ====================
+
     /**
      * 查找没有任何标签的题目
      *
@@ -461,6 +530,9 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public List<Long> findProblemsWithoutTags() {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看孤立数据
+            // TODO: 调用Cache服务缓存查询结果，避免频繁计算
+            // TODO: 调用Statistics服务记录孤立数据查询统计
             List<Long> problemIds = problemTagRelationManager.findProblemsWithoutTags();
 
             log.info("Found problems without tags: count={}", problemIds.size());
@@ -480,6 +552,10 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Override
     public List<Long> findTagsWithoutProblems() {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看孤立数据
+            // TODO: 调用Cache服务缓存查询结果，避免频繁计算
+            // TODO: 调用Statistics服务记录孤立数据查询统计
+            // TODO: 调用ProblemTag服务检查这些标签是否应该被清理
             List<Long> tagIds = problemTagRelationManager.findTagsWithoutProblems();
 
             log.info("Found tags without problems: count={}", tagIds.size());
@@ -500,6 +576,12 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Transactional(rollbackFor = Exception.class)
     public int cleanOrphanedRelations() {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有管理员权限执行清理操作
+            // TODO: 调用MessageQueue服务将清理任务加入异步处理队列
+            // TODO: 调用Notification服务发送清理操作通知给管理员
+            // TODO: 调用Cache服务清除相关缓存数据
+            // TODO: 调用Statistics服务更新清理操作统计
+            // TODO: 调用ProblemTag服务同步更新标签使用次数
             int cleanedCount = problemTagRelationManager.cleanOrphanedRelations();
 
             log.info("Cleaned orphaned relations: count={}", cleanedCount);
@@ -520,6 +602,12 @@ public class ProblemTagRelationServiceImpl extends ServiceImpl<ProblemTagRelatio
     @Transactional(rollbackFor = Exception.class)
     public int fixDataConsistency() {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有管理员权限执行修复操作
+            // TODO: 调用MessageQueue服务将数据修复任务加入异步处理队列
+            // TODO: 调用Notification服务发送数据修复操作通知给管理员
+            // TODO: 调用Cache服务清除相关缓存数据，确保数据一致性
+            // TODO: 调用Statistics服务更新数据修复操作统计
+            // TODO: 调用ProblemTag服务重新计算和同步标签使用次数
             int fixedCount = 0;
 
             // 修复软删除状态不一致的记录

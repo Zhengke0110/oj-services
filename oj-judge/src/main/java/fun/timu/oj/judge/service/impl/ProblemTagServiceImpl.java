@@ -33,6 +33,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         this.problemTagManager = problemTagManager;
     }
 
+    // ================== 基础CRUD操作 ==================
+
     /**
      * 创建问题标签
      * <p>
@@ -48,6 +50,10 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public Long createTag(ProblemTagCreateRequest request) {
         try {
+            // TODO: 调用Account服务验证用户身份和权限，确保用户有创建标签的权限
+            // TODO: 调用Notification服务发送标签创建通知给管理员
+            // TODO: 调用Cache服务清除相关标签缓存
+            // TODO: 调用Statistics服务更新标签统计信息
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
@@ -96,6 +102,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public boolean updateTag(ProblemTagUpdateRequest request) {
         try {
+            // TODO: 调用Account服务验证用户身份和权限，确保用户有更新标签的权限
+            // TODO: 调用Notification服务发送标签更新通知给相关用户
+            // TODO: 调用Cache服务更新标签相关缓存
+            // TODO: 调用Statistics服务更新标签统计信息
+            // TODO: 调用ProblemTagRelation服务检查标签是否被题目使用，影响更新策略
 
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
@@ -154,6 +165,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public boolean deleteTag(Long id) {
         try {
+            // TODO: 调用Account服务验证用户身份和权限，确保用户有删除标签的权限
+            // TODO: 调用ProblemTagRelation服务检查标签是否被题目使用，禁止删除被使用的标签
+            // TODO: 调用Notification服务发送标签删除通知给相关用户
+            // TODO: 调用Cache服务清除标签相关缓存
+            // TODO: 调用Statistics服务更新标签统计信息
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
@@ -174,6 +190,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     }
 
 
+    // ================== 查询操作 ==================
+
     /**
      * 根据标签ID获取标签详细信息
      * <p>
@@ -187,6 +205,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public ProblemTagVO getTagById(Long id) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看标签详情
+            // TODO: 调用Cache服务从缓存中获取标签信息，提升查询性能
             // 尝试通过ID查找问题标签实体
             ProblemTagDO tagDO = problemTagManager.findById(id);
             // 检查标签实体是否存在且未被删除
@@ -216,6 +236,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled, String tagColor) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看标签列表
+            // TODO: 调用Cache服务缓存分页查询结果，提升查询性能
             // 转换状态参数：true->1, false->0, null->null
             Integer status = null;
             if (isEnabled != null) status = isEnabled ? 1 : 0;
@@ -253,6 +275,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public List<ProblemTagVO> getAllEnabledTags() {
         try {
+            // TODO: 调用Cache服务从缓存中获取启用的标签列表，避免频繁数据库查询
             // 查询所有启用的ProblemTagDO对象
             List<ProblemTagDO> tags = problemTagManager.findAllActive();
             // 将查询到的ProblemTagDO对象转换为ProblemTagVO对象列表
@@ -267,6 +290,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         }
     }
 
+    // ================== 统计操作 ==================
+
     /**
      * 获取指定标签类别的使用统计信息
      *
@@ -280,6 +305,9 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public List<TagUsageStatisticsVTO> getTagUsageStatistics(TagCategoryEnum category) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看统计信息
+            // TODO: 调用Cache服务从缓存中获取统计数据，避免重复计算
+            // TODO: 调用Statistics服务生成详细的使用统计报告
             // 调用 manager 层获取统计数据，注意这里返回的是 TagUsageStatisticsDTO 类型
             List<TagUsageStatisticsDTO> statisticsDTOs = problemTagManager.getTagUsageStatistics(category.toString());
 
@@ -304,6 +332,9 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public List<CategoryAggregateStatisticsVTO> getCategoryAggregateStatistics() {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看分类统计信息
+            // TODO: 调用Cache服务从缓存中获取聚合统计数据，避免重复计算
+            // TODO: 调用Statistics服务生成详细的分类统计报告
             // 调用 manager 层获取原始聚合统计数据
             List<CategoryAggregateStatisticsDTO> statisticsDTOs = problemTagManager.getCategoryAggregateStatistics();
 
@@ -318,6 +349,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     }
 
 
+    // ================== 高级查询操作 ==================
+
     /**
      * 根据使用次数范围查询标签
      * <p>
@@ -331,6 +364,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public List<ProblemTagVO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount, TagCategoryEnum category) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看使用次数统计
+            // TODO: 调用Cache服务从缓存中获取使用次数范围查询结果
             // 转换分类参数
             String categoryStr = category != null ? category.toString() : null;
 
@@ -362,6 +397,9 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public List<ProblemTagVO> findPopularTags(int limit, TagCategoryEnum category) {
         try {
+            // TODO: 调用Account服务验证用户权限，确保用户有权限查看热门标签
+            // TODO: 调用Cache服务从缓存中获取热门标签列表，避免频繁计算
+            // TODO: 调用Statistics服务记录热门标签查询统计
             // 转换分类参数
             String categoryStr = category != null ? category.toString() : null;
 
@@ -392,6 +430,10 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public boolean incrementUsageCount(Long tagId) {
         try {
+            // TODO: 调用Account服务验证用户身份和权限
+            // TODO: 调用Cache服务更新标签使用次数缓存
+            // TODO: 调用Statistics服务更新标签使用统计
+            // TODO: 调用Notification服务发送使用次数变更通知（可选）
             // 参数校验
             if (tagId == null || tagId <= 0) {
                 throw new RuntimeException("无效的标签ID");
@@ -431,6 +473,10 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public boolean decrementUsageCount(Long tagId) {
         try {
+            // TODO: 调用Account服务验证用户身份和权限
+            // TODO: 调用Cache服务更新标签使用次数缓存
+            // TODO: 调用Statistics服务更新标签使用统计
+            // TODO: 调用Notification服务发送使用次数变更通知（可选）
             // 参数校验
             if (tagId == null || tagId <= 0) {
                 throw new RuntimeException("无效的标签ID");
@@ -473,6 +519,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional(rollbackFor = Exception.class)
     public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
         try {
+            // TODO: 调用Account服务验证用户身份和管理员权限
+            // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
+            // TODO: 调用Notification服务发送批量操作通知给管理员
+            // TODO: 调用Cache服务批量更新标签使用次数缓存
+            // TODO: 调用Statistics服务批量更新标签统计信息
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量增加标签使用次数失败：标签ID列表为空");
@@ -516,6 +567,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
         try {
+            // TODO: 调用Account服务验证用户身份和管理员权限
+            // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
+            // TODO: 调用Notification服务发送批量操作通知给管理员
+            // TODO: 调用Cache服务批量更新标签使用次数缓存
+            // TODO: 调用Statistics服务批量更新标签统计信息
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量减少标签使用次数失败：标签ID列表为空");
@@ -561,6 +617,12 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public int batchUpdateStatus(List<Long> tagIds, Integer status) {
         try {
+            // TODO: 调用Account服务验证用户身份和管理员权限
+            // TODO: 调用MessageQueue服务将批量状态更新任务加入异步处理队列
+            // TODO: 调用Notification服务发送批量状态更新通知给相关用户
+            // TODO: 调用Cache服务批量更新标签状态缓存
+            // TODO: 调用Statistics服务更新标签状态统计信息
+            // TODO: 调用ProblemTagRelation服务检查标签关联，影响状态更新策略
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量更新标签状态失败：标签ID列表为空");
@@ -607,6 +669,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Transactional
     public int batchUpdateUsageCount(List<Long> tagIds, int value, String type) {
         try {
+            // TODO: 调用Account服务验证用户身份和管理员权限
+            // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
+            // TODO: 调用Notification服务发送批量操作通知给管理员
+            // TODO: 调用Cache服务批量更新标签使用次数缓存
+            // TODO: 调用Statistics服务批量更新标签统计信息
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量更新标签使用次数失败：标签ID列表为空");

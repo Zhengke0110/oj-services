@@ -53,7 +53,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(tagID);
         } catch (Exception e) {
             log.error("ProblemTagController--->创建标签失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_CREATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -74,7 +74,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess();
         } catch (RuntimeException e) {
             log.error("ProblemTagController--->更新标签失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -95,7 +95,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess();
         } catch (Exception e) {
             log.error("ProblemTagController--->删除标签失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_DELETE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -172,7 +172,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(colorList);
         } catch (Exception e) {
             log.error("ProblemTagController--->获取颜色列表失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_COLORS_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -196,7 +196,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemTagController--->获取标签使用统计失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -213,7 +213,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(statistics);
         } catch (Exception e) {
             log.error("ProblemTagController--->获取分类聚合统计失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -243,7 +243,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(tags);
         } catch (Exception e) {
             log.error("ProblemTagController--->根据使用次数范围查询标签失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -271,7 +271,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(tags);
         } catch (Exception e) {
             log.error("ProblemTagController--->查询热门标签失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_GAT_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -293,7 +293,7 @@ public class ProblemTagController {
             }
         } catch (Exception e) {
             log.error("ProblemTagController--->增加标签使用次数失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -315,7 +315,7 @@ public class ProblemTagController {
             }
         } catch (Exception e) {
             log.error("ProblemTagController--->减少标签使用次数失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -346,7 +346,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess("批量增加标签使用次数成功:" + affectedRows);
         } catch (Exception e) {
             log.error("ProblemTagController--->批量增加标签使用次数失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -378,7 +378,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess("批量减少标签使用次数成功" + affectedRows);
         } catch (Exception e) {
             log.error("ProblemTagController--->批量减少标签使用次数失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -409,7 +409,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(affectedRows);
         } catch (Exception e) {
             log.error("ProblemTagController--->批量更新标签状态失败: {}", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -444,7 +444,7 @@ public class ProblemTagController {
             return JsonData.buildSuccess(affectedRows);
         } catch (Exception e) {
             log.error("ProblemTagController--->批量{}标签使用次数失败: {}", request.getType().equals("increment") ? "增加" : "减少", e.getMessage(), e);
-            throw new BizException(BizCodeEnum.TAG_UPDATE_FAILED);
+            throw new BizException(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 }

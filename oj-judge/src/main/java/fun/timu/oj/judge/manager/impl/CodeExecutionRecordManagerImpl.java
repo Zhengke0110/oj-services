@@ -602,4 +602,338 @@ public class CodeExecutionRecordManagerImpl implements CodeExecutionRecordManage
 
         return codeExecutionRecordMapper.selectActiveUsers(limit);
     }
+
+    @Override
+    public int batchInsert(List<CodeExecutionRecordDO> records) {
+        if (CollectionUtils.isEmpty(records)) {
+            return 0;
+        }
+        return codeExecutionRecordMapper.batchInsert(records);
+    }
+
+    // ================== 时间范围统计查询 ==================
+
+    @Override
+    public HashMap<String, Object> getExecutionCountByTimeRange(long startTime, long endTime) {
+        return codeExecutionRecordMapper.selectExecutionCountByTimeRange(startTime, endTime);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getExecutionCountByHour() {
+        return codeExecutionRecordMapper.selectExecutionCountByHour();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getExecutionCountByDay() {
+        return codeExecutionRecordMapper.selectExecutionCountByDay();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getExecutionCountByMonth() {
+        return codeExecutionRecordMapper.selectExecutionCountByMonth();
+    }
+
+    // ================== 性能分析统计 ==================
+
+    @Override
+    public HashMap<String, Object> getExecutionTimeStatistics() {
+        return codeExecutionRecordMapper.selectExecutionTimeStatistics();
+    }
+
+    @Override
+    public HashMap<String, Object> getMemoryUsageStatistics() {
+        return codeExecutionRecordMapper.selectMemoryUsageStatistics();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getPerformanceByLanguage() {
+        return codeExecutionRecordMapper.selectPerformanceByLanguage();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getPerformanceByProblem(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectPerformanceByProblem(limit);
+    }
+
+    // ================== 用户行为分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getSubmissionTimeDistribution() {
+        return codeExecutionRecordMapper.selectSubmissionTimeDistribution();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getSuccessRateDistribution() {
+        return codeExecutionRecordMapper.selectSuccessRateDistribution();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getActiveTimePeriods() {
+        return codeExecutionRecordMapper.selectActiveTimePeriods();
+    }
+
+    // ================== 问题难度分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getProblemSuccessRates() {
+        return codeExecutionRecordMapper.selectProblemSuccessRates();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getHardestProblems(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectHardestProblems(limit);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getEasiestProblems(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectEasiestProblems(limit);
+    }
+
+    // ================== 代码质量分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getCodeReuseStatistics() {
+        return codeExecutionRecordMapper.selectCodeReuseStatistics();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getCommonCodePatterns(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectCommonCodePatterns(limit);
+    }
+
+    // ================== 系统性能监控 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getSystemLoadStatistics() {
+        return codeExecutionRecordMapper.selectSystemLoadStatistics();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getContainerUsageStatistics() {
+        return codeExecutionRecordMapper.selectContainerUsageStatistics();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getErrorTypeStatistics() {
+        return codeExecutionRecordMapper.selectErrorTypeStatistics();
+    }
+
+    // ================== 趋势分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getUserGrowthTrend(int days) {
+        if (days <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectUserGrowthTrend(days);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getExecutionVolumeTrend(int days) {
+        if (days <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectExecutionVolumeTrend(days);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getSuccessRateTrend(int days) {
+        if (days <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectSuccessRateTrend(days);
+    }
+
+    // ================== 高级分析查询 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getUserAbilityAnalysis(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectUserAbilityAnalysis(limit);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getLanguagePopularityTrend(int months) {
+        if (months <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectLanguagePopularityTrend(months);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getProblemHeatAnalysis(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectProblemHeatAnalysis(limit);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getPerformanceAnomalies(long executionTimeThreshold, long memoryThreshold) {
+        return codeExecutionRecordMapper.selectPerformanceAnomalies(executionTimeThreshold, memoryThreshold);
+    }
+
+    // ================== 竞赛和比赛分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getContestAnalysis(long startTime, long endTime) {
+        return codeExecutionRecordMapper.selectContestAnalysis(startTime, endTime);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getLeaderboard(int limit) {
+        if (limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectLeaderboard(limit);
+    }
+
+    @Override
+    public HashMap<String, Object> getUserProgressAnalysis(String accountNo, int days) {
+        if (!isValidString(accountNo) || days <= 0) {
+            return new HashMap<>();
+        }
+        return codeExecutionRecordMapper.selectUserProgressAnalysis(accountNo, days);
+    }
+
+    // ================== 实时监控和预警 ==================
+
+    @Override
+    public HashMap<String, Object> getSystemHealthMetrics(int minutes) {
+        if (minutes <= 0) {
+            return new HashMap<>();
+        }
+        return codeExecutionRecordMapper.selectSystemHealthMetrics(minutes);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getAbnormalExecutions(int minutes) {
+        if (minutes <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectAbnormalExecutions(minutes);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getResourceUsageAlerts() {
+        return codeExecutionRecordMapper.selectResourceUsageAlerts();
+    }
+
+    // ================== 预测分析和机器学习支持 ==================
+
+    @Override
+    public HashMap<String, Object> getUserBehaviorFeatures(String accountNo) {
+        if (!isValidString(accountNo)) {
+            return new HashMap<>();
+        }
+        return codeExecutionRecordMapper.selectUserBehaviorFeatures(accountNo);
+    }
+
+    @Override
+    public HashMap<String, Object> getProblemDifficultyFeatures(long problemId) {
+        if (problemId <= 0) {
+            return new HashMap<>();
+        }
+        return codeExecutionRecordMapper.selectProblemDifficultyFeatures(problemId);
+    }
+
+    @Override
+    public HashMap<String, Object> getExecutionTimePredictionFeatures(String language, long problemId) {
+        if (!isValidString(language) || problemId <= 0) {
+            return new HashMap<>();
+        }
+        return codeExecutionRecordMapper.selectExecutionTimePredictionFeatures(language, problemId);
+    }
+
+    // ================== 地理和时区分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getGeographicStatistics() {
+        return codeExecutionRecordMapper.selectGeographicStatistics();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getTimezoneActivityAnalysis() {
+        return codeExecutionRecordMapper.selectTimezoneActivityAnalysis();
+    }
+
+    // ================== A/B测试和实验分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getExperimentAnalysis(String experimentId) {
+        if (!isValidString(experimentId)) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectExperimentAnalysis(experimentId);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getFeatureUsageAnalysis() {
+        return codeExecutionRecordMapper.selectFeatureUsageAnalysis();
+    }
+
+    // ================== 安全和合规分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getSecurityRiskDetection() {
+        return codeExecutionRecordMapper.selectSecurityRiskDetection();
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getPlagiarismDetection() {
+        return codeExecutionRecordMapper.selectPlagiarismDetection();
+    }
+
+    @Override
+    public HashMap<String, Object> getComplianceReport(long startTime, long endTime) {
+        return codeExecutionRecordMapper.selectComplianceReport(startTime, endTime);
+    }
+
+    // ================== 高级业务智能分析 ==================
+
+    @Override
+    public List<HashMap<String, Object>> getUserRetentionAnalysis(int cohortDays) {
+        if (cohortDays <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectUserRetentionAnalysis(cohortDays);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getLearningPathAnalysis(String accountNo) {
+        if (!isValidString(accountNo)) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectLearningPathAnalysis(accountNo);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getKnowledgePointMastery(String accountNo) {
+        if (!isValidString(accountNo)) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectKnowledgePointMastery(accountNo);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getPersonalizationRecommendations(String accountNo, int limit) {
+        if (!isValidString(accountNo) || limit <= 0) {
+            return Collections.emptyList();
+        }
+        return codeExecutionRecordMapper.selectPersonalizedRecommendations(accountNo, limit);
+    }
 }
