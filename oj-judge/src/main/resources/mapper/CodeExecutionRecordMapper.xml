@@ -51,4 +51,84 @@
         user_agent,submission_time,execution_start_time,execution_end_time,created_at,
         updated_at,additional_info,is_deleted
     </sql>
+
+    <!-- 获取语言使用统计 -->
+    <select id="selectLanguageStatistics" resultType="java.util.HashMap">
+        SELECT
+            language, COUNT (*) as execution_count, SUM (CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count, ROUND(AVG (execution_time), 2) as avg_execution_time, ROUND(AVG (memory_used), 2) as avg_memory_used
+        FROM code_execution_record
+        WHERE is_deleted = 0
+        GROUP BY language
+        ORDER BY execution_count DESC
+    </select>
+
+    <!-- 获取执行状态统计 -->
+    <select id="selectExecutionStatusStatistics" resultType="java.util.HashMap">
+        SELECT execution_status,
+               COUNT(*) as count,
+            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM code_execution_record WHERE is_deleted = 0), 2) as percentage
+        FROM code_execution_record
+        WHERE is_deleted = 0
+        GROUP BY execution_status
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取热门问题统计（按执行次数排序） -->
+    <select id="selectPopularProblems" resultType="java.util.HashMap">
+        SELECT problem_id,
+               COUNT(*)                                                                  as execution_count,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as success_count,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT account_no)                                                as unique_users
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND problem_id IS NOT NULL
+        GROUP BY problem_id
+        ORDER BY execution_count DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 获取活跃用户统计（按执行次数排序） -->
+    <select id="selectActiveUsers" resultType="java.util.HashMap">
+        SELECT account_no,
+               COUNT(*)                                                                  as execution_count,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END)                              as success_count,
+               ROUND(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate,
+               COUNT(DISTINCT problem_id)                                                as unique_problems
+        FROM code_execution_record
+        WHERE is_deleted = 0
+          AND account_no IS NOT NULL
+        GROUP BY account_no
+        ORDER BY execution_count DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 批量插入代码执行记录 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO code_execution_record (
+        request_id, language, code_content, code_hash, docker_image,
+        container_id, execution_host, execution_mode, command_args, execution_count,
+        actual_execution_count, success, execution_status, actual_output, error_message,
+        execution_time, memory_used, max_execution_time, max_memory_used, account_no,
+        problem_id, solution_id, expected_output, output_matched, client_ip,
+        user_agent, submission_time, execution_start_time, execution_end_time,
+        additional_info, is_deleted, created_at, updated_at
+        ) VALUES
+        <foreach collection="records" item="record" separator=",">
+            (
+            #{record.requestId}, #{record.language}, #{record.codeContent}, #{record.codeHash}, #{record.dockerImage},
+            #{record.containerId}, #{record.executionHost}, #{record.executionMode}, #{record.commandArgs},
+            #{record.executionCount},
+            #{record.actualExecutionCount}, #{record.success}, #{record.executionStatus}, #{record.actualOutput},
+            #{record.errorMessage},
+            #{record.executionTime}, #{record.memoryUsed}, #{record.maxExecutionTime}, #{record.maxMemoryUsed},
+            #{record.accountNo},
+            #{record.problemId}, #{record.solutionId}, #{record.expectedOutput}, #{record.outputMatched},
+            #{record.clientIp},
+            #{record.userAgent}, #{record.submissionTime}, #{record.executionStartTime}, #{record.executionEndTime},
+            #{record.additionalInfo}, #{record.isDeleted}, NOW(), NOW()
+            )
+        </foreach>
+    </insert>
+
 </mapper>

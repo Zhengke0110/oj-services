@@ -38,4 +38,156 @@
         success_count,description,expected_behavior,notes,is_deleted,
         created_at,updated_at
     </sql>
+
+    <!-- 查询测试用例统计信息 -->
+    <select id="selectTestCaseStatistics" resultType="java.util.HashMap">
+        SELECT
+        problem_id,
+        COUNT(*) as total_count,
+        COUNT(CASE WHEN status = 1 THEN 1 END) as enabled_count,
+        COUNT(CASE WHEN is_example = 1 THEN 1 END) as example_count,
+        COUNT(CASE WHEN is_public = 1 THEN 1 END) as public_count,
+        COUNT(CASE WHEN case_type = 'FUNCTIONAL' THEN 1 END) as functional_count,
+        COUNT(CASE WHEN case_type = 'BOUNDARY' THEN 1 END) as boundary_count,
+        COUNT(CASE WHEN case_type = 'PERFORMANCE' THEN 1 END) as performance_count,
+        SUM(execution_count) as total_executions,
+        SUM(success_count) as total_successes,
+        CASE
+        WHEN SUM(execution_count) > 0
+        THEN ROUND(SUM(success_count) * 100.0 / SUM(execution_count), 2)
+        ELSE 0
+        END as success_rate
+        FROM test_case
+        WHERE is_deleted = 0
+        <if test="problemId != null">
+            AND problem_id = #{problemId}
+        </if>
+        GROUP BY problem_id
+    </select>
+
+    <!-- 查询执行失败率较高的测试用例 -->
+    <select id="selectHighFailureRateTestCases" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM test_case
+        WHERE is_deleted = 0
+        AND execution_count > 0
+        AND (success_count * 100.0 / execution_count) &lt; #{failureThreshold}
+        <if test="problemId != null">
+            AND problem_id = #{problemId}
+        </if>
+        ORDER BY (success_count * 100.0 / execution_count) ASC, execution_count DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>    <!-- 批量更新测试用例的执行顺序 - 优化版本，使用CASE WHEN -->
+    <update id="batchUpdateOrderIndex">
+        UPDATE test_case
+        SET order_index =
+        CASE id
+        <foreach collection="testCases" item="testCase">
+            WHEN #{testCase.id} THEN #{testCase.orderIndex}
+        </foreach>
+        END,
+        updated_at = NOW()
+        WHERE id IN
+        <foreach collection="testCases" item="testCase" open="(" separator="," close=")">
+            #{testCase.id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
+
+    <!-- 查询题目下权重最大的测试用例 -->
+    <select id="selectMaxWeightByProblemId" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(weight), 0)
+        FROM test_case
+        WHERE problem_id = #{problemId}
+          AND is_deleted = 0
+    </select>
+
+    <!-- 查询相同输入数据的测试用例（用于去重检查） -->
+    <select id="selectDuplicateInputData" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM test_case t1
+        WHERE t1.problem_id = #{problemId}
+        AND t1.is_deleted = 0
+        AND EXISTS (
+        SELECT 1 FROM test_case t2
+        WHERE t2.problem_id = t1.problem_id
+        AND t2.input_data = t1.input_data
+        AND t2.id != t1.id
+        AND t2.is_deleted = 0
+        )
+        ORDER BY t1.input_data, t1.id
+    </select>
+
+    <!-- 根据输入格式查询测试用例 -->
+    <select id="selectByInputFormat" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM test_case
+        WHERE input_format = #{inputFormat}
+        AND is_deleted = 0
+        <if test="problemId != null">
+            AND problem_id = #{problemId}
+        </if>
+        ORDER BY problem_id, order_index, id
+    </select>
+
+    <!-- 查询需要特殊配置的测试用例（有时间或内存限制覆盖的） -->
+    <select id="selectWithSpecialLimits" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM test_case
+        WHERE is_deleted = 0
+        AND (time_limit_override IS NOT NULL OR memory_limit_override IS NOT NULL)
+        <if test="problemId != null">
+            AND problem_id = #{problemId}
+        </if>
+        ORDER BY problem_id, order_index, id
+    </select>    <!-- 批量插入测试用例 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO test_case (
+        problem_id, case_name, case_type, input_data, expected_output,
+        input_format, input_args, is_example, is_public, weight,
+        order_index, time_limit_override, memory_limit_override, status,
+        execution_count, success_count, description, expected_behavior,
+        notes, is_deleted, created_at, updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.problemId}, #{item.caseName}, #{item.caseType},
+            #{item.inputData}, #{item.expectedOutput}, #{item.inputFormat},
+            #{item.inputArgs}, #{item.isExample}, #{item.isPublic},
+            #{item.weight}, #{item.orderIndex}, #{item.timeLimitOverride},
+            #{item.memoryLimitOverride}, #{item.status}, #{item.executionCount},
+            #{item.successCount}, #{item.description}, #{item.expectedBehavior},
+            #{item.notes}, #{item.isDeleted}, NOW(), NOW()
+            )
+        </foreach>
+    </insert>
+
+    <!-- 查询测试用例执行统计摘要 -->
+    <select id="selectExecutionSummary" resultType="java.util.HashMap">
+        SELECT
+        case_type,
+        COUNT(*) as case_count,
+        SUM(execution_count) as total_executions,
+        SUM(success_count) as total_successes,
+        AVG(weight) as avg_weight,
+        CASE
+        WHEN SUM(execution_count) > 0
+        THEN ROUND(SUM(success_count) * 100.0 / SUM(execution_count), 2)
+        ELSE 0
+        END as success_rate
+        FROM test_case
+        WHERE is_deleted = 0
+        <if test="problemId != null">
+            AND problem_id = #{problemId}
+        </if>
+        GROUP BY case_type
+        ORDER BY case_type
+    </select>
+
 </mapper>
