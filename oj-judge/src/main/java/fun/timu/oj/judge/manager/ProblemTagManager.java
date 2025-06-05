@@ -14,14 +14,14 @@ public interface ProblemTagManager {
      * @param id 标签id
      * @return 标签
      */
-    public ProblemTagDO findById(Long id);
+    ProblemTagDO findById(Long id);
 
     /**
      * 查询所有启用的标签
      *
      * @return
      */
-    public List<ProblemTagDO> findAllActive();
+    List<ProblemTagDO> findAllActive();
 
     /**
      * 保存标签
@@ -29,7 +29,7 @@ public interface ProblemTagManager {
      * @param problemTagDO 标签对象
      * @return 保存结果
      */
-    public int save(ProblemTagDO problemTagDO);
+    int save(ProblemTagDO problemTagDO);
 
     /**
      * 更新标签
@@ -37,7 +37,7 @@ public interface ProblemTagManager {
      * @param problemTagDO 标签对象
      * @return 更新结果
      */
-    public int updateById(ProblemTagDO problemTagDO);
+    int updateById(ProblemTagDO problemTagDO);
 
     /**
      * 删除标签
@@ -45,7 +45,7 @@ public interface ProblemTagManager {
      * @param id 标签id
      * @return 删除结果
      */
-    public int deleteById(Long id);
+    int deleteById(Long id);
 
     /**
      * 分页查询问题标签列表
@@ -58,7 +58,7 @@ public interface ProblemTagManager {
      * @param tagColor 标签颜色，可为空
      * @return 返回分页结果
      */
-    public IPage<ProblemTagDO> findTagListWithPage(int page, int size, String keyword, String category, Integer status, String tagColor);
+    IPage<ProblemTagDO> findTagListWithPage(int page, int size, String keyword, String category, Integer status, String tagColor);
 
     /**
      * 获取标签使用统计信息
@@ -83,7 +83,7 @@ public interface ProblemTagManager {
      * @param category      标签分类（可选）
      * @return 标签列表
      */
-    public List<ProblemTagDO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount, String category);
+    List<ProblemTagDO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount, String category);
 
     /**
      * 查询热门标签
@@ -92,7 +92,7 @@ public interface ProblemTagManager {
      * @param category 标签分类（可选）
      * @return 热门标签列表
      */
-    public List<ProblemTagDO> findPopularTags(int limit, String category);
+    List<ProblemTagDO> findPopularTags(int limit, String category);
 
     /**
      * 增加标签使用次数
@@ -100,7 +100,7 @@ public interface ProblemTagManager {
      * @param tagId 标签id
      * @return 增加结果
      */
-    public int incrementUsageCount(Long tagId);
+    int incrementUsageCount(Long tagId);
 
     /**
      * 减少标签使用次数
@@ -108,7 +108,7 @@ public interface ProblemTagManager {
      * @param tagId 标签id
      * @return 减少结果
      */
-    public int decrementUsageCount(Long tagId);
+    int decrementUsageCount(Long tagId);
 
     /**
      * 批量增加标签使用次数
@@ -117,7 +117,7 @@ public interface ProblemTagManager {
      * @param increment 增加的数量
      * @return 受影响的行数
      */
-    public int batchIncrementUsageCount(List<Long> tagIds, int increment);
+    int batchIncrementUsageCount(List<Long> tagIds, int increment);
 
     /**
      * 批量减少标签使用次数
@@ -126,7 +126,7 @@ public interface ProblemTagManager {
      * @param decrement 减少的数量
      * @return 受影响的行数
      */
-    public int batchDecrementUsageCount(List<Long> tagIds, int decrement);
+    int batchDecrementUsageCount(List<Long> tagIds, int decrement);
 
 
     /**
@@ -136,5 +136,5 @@ public interface ProblemTagManager {
      * @param status 新状态
      * @return 受影响的行数
      */
-    public int batchUpdateStatus(List<Long> tagIds, Integer status);
+    int batchUpdateStatus(List<Long> tagIds, Integer status);
 }

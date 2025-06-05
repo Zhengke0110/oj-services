@@ -1,6 +1,8 @@
 package fun.timu.oj.judge.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import fun.timu.oj.common.enmus.BizCodeEnum;
+import fun.timu.oj.common.utils.JsonData;
 import fun.timu.oj.judge.model.Enums.TagCategoryEnum;
 import fun.timu.oj.common.interceptor.LoginInterceptor;
 import fun.timu.oj.common.model.LoginUser;
@@ -20,7 +22,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,20 +49,21 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional
-    public Long createTag(ProblemTagCreateRequest request) {
+    public JsonData createTag(ProblemTagCreateRequest request) {
         try {
-            // TODO: 调用Account服务验证用户身份和权限，确保用户有创建标签的权限
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                log.error("ProblemTagService--->createTag: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
+            }
+            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                log.error("ProblemTagService--->createTag: 用户没有创建标签的权限");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_PERMISSION_DENIED);
+            }
+
             // TODO: 调用Notification服务发送标签创建通知给管理员
             // TODO: 调用Cache服务清除相关标签缓存
             // TODO: 调用Statistics服务更新标签统计信息
-            //  获取当前登录用户
-            LoginUser loginUser = LoginInterceptor.threadLocal.get();
-            if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
-            }
-            if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
-                throw new RuntimeException("用户没有创建标签的权限");
-            }
             // 创建一个新的问题标签数据对象，并从请求对象中复制属性
             ProblemTagDO tagDO = new ProblemTagDO();
             BeanUtils.copyProperties(request, tagDO);
@@ -72,18 +74,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
 
             // 尝试保存标签到数据库
             int row = problemTagManager.save(tagDO);
-
             // 如果保存失败，抛出运行时异常
             if (row <= 0) {
+                log.error("ProblemTagService--->createTag: 创建标签失败");
                 throw new RuntimeException("创建标签失败");
             }
-
-            // 记录成功创建标签的日志，并返回标签ID
-            log.info("成功创建标签，ID: {}", tagDO.getId());
-            return tagDO.getId();
+            return JsonData.buildSuccess(tagDO.getId());
         } catch (RuntimeException e) {
             log.error("ProblemTagService--->创建标签失败: {}", e.getMessage(), e);
-            return -1L;
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -100,9 +99,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional
-    public boolean updateTag(ProblemTagUpdateRequest request) {
+    public JsonData updateTag(ProblemTagUpdateRequest request) {
         try {
-            // TODO: 调用Account服务验证用户身份和权限，确保用户有更新标签的权限
             // TODO: 调用Notification服务发送标签更新通知给相关用户
             // TODO: 调用Cache服务更新标签相关缓存
             // TODO: 调用Statistics服务更新标签统计信息
@@ -111,16 +109,18 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                log.error("ProblemTagService--->updateTag: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
             }
             if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
-                throw new RuntimeException("用户没有更新标签的权限");
+                log.error("ProblemTagService--->updateTag: 用户没有更新标签的权限");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_PERMISSION_DENIED);
             }
 
             // 根据ID查找现有的标签
             ProblemTagDO existingTag = problemTagManager.findById(request.getId());
             if (existingTag == null || existingTag.getIsDeleted() == 1) {
-                // 如果标签不存在或已被删除，则抛出异常
+                log.error("ProblemTagService--->updateTag: 标签不存在");
                 throw new RuntimeException("标签不存在");
             }
 
@@ -141,16 +141,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 执行更新操作
             int row = problemTagManager.updateById(updateTag);
             if (row <= 0) {
-                // 如果更新失败，则抛出异常
+                log.error("ProblemTagService--->updateTag: 更新标签失败");
                 throw new RuntimeException("更新标签失败");
             }
             // 记录日志
             log.info("成功更新标签，ID: {}", request.getId());
-            return true;
+            return JsonData.buildSuccess();
         } catch (RuntimeException e) {
-            // 记录错误日志
-            log.error("ProblemTagService--->更新标签失败: {}", e.getMessage(), e);
-            return false;
+            log.error("ProblemTagService--->updateTag: 更新标签失败: {}", e.getMessage(), e);
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -163,9 +162,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional
-    public boolean deleteTag(Long id) {
+    public JsonData deleteTag(Long id) {
         try {
-            // TODO: 调用Account服务验证用户身份和权限，确保用户有删除标签的权限
             // TODO: 调用ProblemTagRelation服务检查标签是否被题目使用，禁止删除被使用的标签
             // TODO: 调用Notification服务发送标签删除通知给相关用户
             // TODO: 调用Cache服务清除标签相关缓存
@@ -173,19 +171,24 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                log.error("ProblemTagService--->deleteTag: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
             }
             if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
+                log.error("ProblemTagService--->deleteTag: 用户没有删除标签的权限");
                 throw new RuntimeException("用户没有删除标签的权限");
             }
             // 尝试删除标签，如果删除失败则抛出运行时异常
             int row = problemTagManager.deleteById(id);
-            if (row <= 0) throw new RuntimeException("删除标签失败");
-            return true;
+            if (row <= 0) {
+                log.error("ProblemTagService--->deleteTag: 删除标签失败");
+                throw new RuntimeException("删除标签失败");
+            }
+            return JsonData.buildSuccess();
         } catch (RuntimeException e) {
             // 捕获删除标签时的异常，并记录错误日志
             log.error("ProblemTagService--->删除标签失败: {}", e.getMessage(), e);
-            return false;
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -203,9 +206,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 如果找到且未删除的标签存在，则返回标签的视图对象，否则返回null
      */
     @Override
-    public ProblemTagVO getTagById(Long id) {
+    public JsonData getTagById(Long id) {
         try {
-            // TODO: 调用Account服务验证用户权限，确保用户有权限查看标签详情
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                log.error("ProblemTagService--->getTagById: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
+            }
+
             // TODO: 调用Cache服务从缓存中获取标签信息，提升查询性能
             // 尝试通过ID查找问题标签实体
             ProblemTagDO tagDO = problemTagManager.findById(id);
@@ -213,12 +221,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             if (tagDO == null || tagDO.getIsDeleted() == 1) {
                 throw new RuntimeException("标签不存在或已被删除");
             }
+            ProblemTagVO problemTagVO = convertToVO(tagDO);
+
             // 将找到的标签实体转换为视图对象并返回
-            return convertToVO(tagDO);
+            return JsonData.buildSuccess(convertToVO(tagDO));
         } catch (Exception e) {
             // 记录获取标签失败的错误信息
             log.error("ProblemTagService--->获取标签失败: {}", e.getMessage(), e);
-            return null;
+            return JsonData.buildResult(BizCodeEnum.TAG_NOT_EXIST);
         }
     }
 
@@ -234,9 +244,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 返回包含标签信息的分页结果
      */
     @Override
-    public PageResult<ProblemTagVO> listTags(int current, int size, String tagName, Boolean isEnabled, String tagColor) {
+    public JsonData listTags(int current, int size, String tagName, Boolean isEnabled, String tagColor) {
         try {
-            // TODO: 调用Account服务验证用户权限，确保用户有权限查看标签列表
             // TODO: 调用Cache服务缓存分页查询结果，提升查询性能
             // 转换状态参数：true->1, false->0, null->null
             Integer status = null;
@@ -253,12 +262,12 @@ public class ProblemTagServiceImpl implements ProblemTagService {
 
             // 记录日志信息
             log.info("ProblemTagService--->成功查询标签列表，当前页: {}, 每页大小: {}, 总数: {}", current, size, tagPage.getTotal());
-            return result;
+            return JsonData.buildSuccess(result);
         } catch (Exception e) {
             // 记录异常信息
             log.error("ProblemTagService--->查询标签列表失败: {}", e.getMessage(), e);
             // 返回空的分页结果
-            return new PageResult<>(List.of(), 0, size, current, 0);
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -273,7 +282,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 包含所有启用问题标签的ProblemTagVO对象列表，如果查询失败则返回null
      */
     @Override
-    public List<ProblemTagVO> getAllEnabledTags() {
+    public JsonData getAllEnabledTags() {
         try {
             // TODO: 调用Cache服务从缓存中获取启用的标签列表，避免频繁数据库查询
             // 查询所有启用的ProblemTagDO对象
@@ -282,11 +291,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             List<ProblemTagVO> list = tags.stream().map(this::convertToVO).collect(Collectors.toList());
             // 记录查询成功的日志信息
             log.info("ProblemTagService--->查询启用的Tags成功，数量: {}", list.size());
-            return list;
+            return JsonData.buildSuccess(list);
         } catch (Exception e) {
             // 记录查询失败的错误日志
             log.error("ProblemTagService--->查询启用的Tags失败: {}", e.getMessage(), e);
-            return Collections.emptyList();
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -303,21 +312,26 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 如果在处理过程中遇到任何异常，都会记录错误日志并返回 null
      */
     @Override
-    public List<TagUsageStatisticsVTO> getTagUsageStatistics(TagCategoryEnum category) {
+    public JsonData getTagUsageStatistics(TagCategoryEnum category) {
         try {
-            // TODO: 调用Account服务验证用户权限，确保用户有权限查看统计信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                log.error("ProblemTagService--->getTagUsageStatistics: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
+            }
             // TODO: 调用Cache服务从缓存中获取统计数据，避免重复计算
             // TODO: 调用Statistics服务生成详细的使用统计报告
             // 调用 manager 层获取统计数据，注意这里返回的是 TagUsageStatisticsDTO 类型
             List<TagUsageStatisticsDTO> statisticsDTOs = problemTagManager.getTagUsageStatistics(category.toString());
-
+            log.info("ProblemTagService--->获取标签使用统计信息，类别: {}", category);
             // 将 DTO 转换为 VO 对象
-            return statisticsDTOs.stream().map(this::convertStatisticsToVO).collect(Collectors.toList());
+            List<TagUsageStatisticsVTO> collect = statisticsDTOs.stream().map(this::convertStatisticsToVO).collect(Collectors.toList());
+            return JsonData.buildSuccess(collect);
         } catch (Exception e) {
             // 记录异常信息，便于问题追踪和定位
             log.error("ProblemTagService--->获取标签使用统计信息: {}", e.getMessage(), e);
             // 异常情况下返回 null，上层调用者需要处理可能的 null 值
-            return Collections.emptyList();
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -330,21 +344,26 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 分类聚合统计信息的 VO 对象列表
      */
     @Override
-    public List<CategoryAggregateStatisticsVTO> getCategoryAggregateStatistics() {
+    public JsonData getCategoryAggregateStatistics() {
         try {
-            // TODO: 调用Account服务验证用户权限，确保用户有权限查看分类统计信息
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                log.error("ProblemTagService--->getCategoryAggregateStatistics: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
+            }
             // TODO: 调用Cache服务从缓存中获取聚合统计数据，避免重复计算
             // TODO: 调用Statistics服务生成详细的分类统计报告
             // 调用 manager 层获取原始聚合统计数据
             List<CategoryAggregateStatisticsDTO> statisticsDTOs = problemTagManager.getCategoryAggregateStatistics();
-
+            log.info("ProblemTagService--->获取分类聚合统计信息成功，统计数量: {}", statisticsDTOs.size());
             // 将 DTO 转换为 VO 对象
-            return statisticsDTOs.stream().map(this::convertToVO).collect(Collectors.toList());
+            List<CategoryAggregateStatisticsVTO> collect = statisticsDTOs.stream().map(this::convertToVO).collect(Collectors.toList());
+            return JsonData.buildSuccess(collect);
         } catch (Exception e) {
             // 记录异常信息，便于问题追踪和定位
             log.error("ProblemTagService--->获取分类聚合统计信息失败: {}", e.getMessage(), e);
             // 异常情况下返回空列表，避免空指针异常
-            return Collections.emptyList();
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -362,10 +381,14 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 符合条件的标签列表
      */
     @Override
-    public List<ProblemTagVO> findByUsageCountRange(Long minUsageCount, Long maxUsageCount, TagCategoryEnum category) {
+    public JsonData findByUsageCountRange(Long minUsageCount, Long maxUsageCount, TagCategoryEnum category) {
         try {
-            // TODO: 调用Account服务验证用户权限，确保用户有权限查看使用次数统计
             // TODO: 调用Cache服务从缓存中获取使用次数范围查询结果
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                log.error("ProblemTagService--->findByUsageCountRange: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
+            }
             // 转换分类参数
             String categoryStr = category != null ? category.toString() : null;
 
@@ -377,11 +400,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
 
             // 记录日志
             log.info("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签成功，数量: {}", minUsageCount, maxUsageCount, category, voList.size());
-            return voList;
+            return JsonData.buildSuccess(voList);
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->查询使用次数范围[{}-{}]、分类[{}]的标签失败: {}", minUsageCount, maxUsageCount, category, e.getMessage(), e);
-            return Collections.emptyList();
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -395,11 +418,15 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * @return 热门标签列表
      */
     @Override
-    public List<ProblemTagVO> findPopularTags(int limit, TagCategoryEnum category) {
+    public JsonData findPopularTags(int limit, TagCategoryEnum category) {
         try {
-            // TODO: 调用Account服务验证用户权限，确保用户有权限查看热门标签
             // TODO: 调用Cache服务从缓存中获取热门标签列表，避免频繁计算
             // TODO: 调用Statistics服务记录热门标签查询统计
+            LoginUser loginUser = LoginInterceptor.threadLocal.get();
+            if (loginUser == null) {
+                log.error("ProblemTagService--->findPopularTags: 用户未登录");
+                return JsonData.buildResult(BizCodeEnum.ACCOUNT_UNLOGIN);
+            }
             // 转换分类参数
             String categoryStr = category != null ? category.toString() : null;
 
@@ -411,11 +438,11 @@ public class ProblemTagServiceImpl implements ProblemTagService {
 
             // 记录日志
             log.info("ProblemTagService--->查询热门标签成功，分类: {}, 限制数量: {}, 实际数量: {}", category, limit, voList.size());
-            return voList;
+            return JsonData.buildSuccess(voList);
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->查询热门标签失败，分类: {}, 限制数量: {}, 错误: {}", category, limit, e.getMessage(), e);
-            return Collections.emptyList();
+            return JsonData.buildResult(BizCodeEnum.TAG_OPERATION_FAILED);
         }
     }
 
@@ -423,6 +450,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 增加标签使用次数
      * <p>
      * 此方法通过调用manager层来增加指定标签的使用计数
+     * TODO: 此接口不对外暴露使用，仅供内部调用
      *
      * @param tagId 标签ID
      * @return 操作是否成功
@@ -430,7 +458,6 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public boolean incrementUsageCount(Long tagId) {
         try {
-            // TODO: 调用Account服务验证用户身份和权限
             // TODO: 调用Cache服务更新标签使用次数缓存
             // TODO: 调用Statistics服务更新标签使用统计
             // TODO: 调用Notification服务发送使用次数变更通知（可选）
@@ -441,7 +468,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_UNLOGIN.getMessage());
             }
 
             // 调用manager层方法增加使用次数
@@ -458,7 +485,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->增加标签[{}]使用次数异常: {}", tagId, e.getMessage(), e);
-            return false;
+            throw new RuntimeException("增加标签使用次数失败", e);
         }
     }
 
@@ -466,6 +493,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 减少标签使用次数
      * <p>
      * 此方法通过调用manager层来减少指定标签的使用计数
+     * TODO: 此接口不对外暴露使用，仅供内部调用
      *
      * @param tagId 标签ID
      * @return 操作是否成功
@@ -473,7 +501,6 @@ public class ProblemTagServiceImpl implements ProblemTagService {
     @Override
     public boolean decrementUsageCount(Long tagId) {
         try {
-            // TODO: 调用Account服务验证用户身份和权限
             // TODO: 调用Cache服务更新标签使用次数缓存
             // TODO: 调用Statistics服务更新标签使用统计
             // TODO: 调用Notification服务发送使用次数变更通知（可选）
@@ -484,7 +511,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_UNLOGIN.getMessage());
             }
 
 
@@ -502,7 +529,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->减少标签[{}]使用次数异常: {}", tagId, e.getMessage(), e);
-            return false;
+            throw new RuntimeException("减少标签使用次数失败", e);
         }
     }
 
@@ -510,6 +537,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 批量增加标签使用次数
      * <p>
      * 此方法通过调用manager层来批量增加多个标签的使用计数
+     * TODO: 此接口不对外暴露使用，仅供内部调用
      *
      * @param tagIds    标签ID列表
      * @param increment 增加的次数
@@ -517,9 +545,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int batchIncrementUsageCount(List<Long> tagIds, int increment) {
+    public boolean batchIncrementUsageCount(List<Long> tagIds, int increment) {
         try {
-            // TODO: 调用Account服务验证用户身份和管理员权限
             // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
             // TODO: 调用Notification服务发送批量操作通知给管理员
             // TODO: 调用Cache服务批量更新标签使用次数缓存
@@ -527,26 +554,26 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量增加标签使用次数失败：标签ID列表为空");
-                return 0;
+                return false;
             }
             if (increment <= 0) {
                 log.warn("ProblemTagService--->批量增加标签使用次数失败：增加次数必须大于0");
-                return 0;
+                return false;
             }
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_UNLOGIN.getMessage());
             }
             if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
-                throw new RuntimeException("用户没有批量修改标签的权限");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_PERMISSION_DENIED.getMessage());
             }
             // 调用manager层方法批量增加使用次数（内部使用悲观锁）
             int affectedRows = problemTagManager.batchIncrementUsageCount(tagIds, increment);
 
             // 记录日志
             log.info("ProblemTagService--->批量增加标签使用次数成功，标签数量: {}, 增加次数: {}, 受影响行数: {}", tagIds.size(), increment, affectedRows);
-            return affectedRows;
+            return affectedRows > 0;
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量增加标签使用次数异常: {}", e.getMessage(), e);
@@ -558,6 +585,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 批量减少标签使用次数
      * <p>
      * 此方法通过调用manager层来批量减少多个标签的使用计数
+     * TODO: 此接口不对外暴露使用，仅供内部调用
      *
      * @param tagIds    标签ID列表
      * @param decrement 减少的次数
@@ -565,9 +593,8 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional
-    public int batchDecrementUsageCount(List<Long> tagIds, int decrement) {
+    public boolean batchDecrementUsageCount(List<Long> tagIds, int decrement) {
         try {
-            // TODO: 调用Account服务验证用户身份和管理员权限
             // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
             // TODO: 调用Notification服务发送批量操作通知给管理员
             // TODO: 调用Cache服务批量更新标签使用次数缓存
@@ -575,28 +602,27 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量减少标签使用次数失败：标签ID列表为空");
-                return 0;
+                return false;
             }
             if (decrement <= 0) {
                 log.warn("ProblemTagService--->批量减少标签使用次数失败：减少次数必须大于0");
-                return 0;
+                return false;
             }
 
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_UNLOGIN.getMessage());
             }
             if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
-                throw new RuntimeException("用户没有批量修改标签的权限");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_PERMISSION_DENIED.getMessage());
             }
 
             // 调用manager层方法批量减少使用次数
             int affectedRows = problemTagManager.batchDecrementUsageCount(tagIds, decrement);
-
             // 记录日志
             log.info("ProblemTagService--->批量减少标签使用次数成功，标签数量: {}, 减少次数: {}, 受影响行数: {}", tagIds.size(), decrement, affectedRows);
-            return affectedRows;
+            return affectedRows > 0;
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量减少标签使用次数异常: {}", e.getMessage(), e);
@@ -608,6 +634,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 批量更新标签状态
      * <p>
      * 此方法通过调用manager层来批量更新多个标签的状态
+     * TODO: 此接口不对外暴露使用，仅供内部调用
      *
      * @param tagIds 标签ID列表
      * @param status 新的状态值（1-启用，0-禁用）
@@ -615,7 +642,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional
-    public int batchUpdateStatus(List<Long> tagIds, Integer status) {
+    public boolean batchUpdateStatus(List<Long> tagIds, Integer status) {
         try {
             // TODO: 调用Account服务验证用户身份和管理员权限
             // TODO: 调用MessageQueue服务将批量状态更新任务加入异步处理队列
@@ -626,28 +653,28 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量更新标签状态失败：标签ID列表为空");
-                return 0;
+                return false;
             }
             // 严格校验状态值，必须是1或0
             if (status == null || (status != 0 && status != 1)) {
                 log.warn("ProblemTagService--->批量更新标签状态失败：状态值无效，必须为0或1，当前值: {}", status);
-                return 0;
+                return false;
             }
 
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_UNLOGIN.getMessage());
             }
             if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
-                throw new RuntimeException("用户没有批量修改标签的权限");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_PERMISSION_DENIED.getMessage());
             }
             // 调用manager层方法批量更新标签状态
             int affectedRows = problemTagManager.batchUpdateStatus(tagIds, status);
 
             // 记录日志
             log.info("ProblemTagService--->批量更新标签状态成功，标签数量: {}, 新状态: {}, 受影响行数: {}", tagIds.size(), status, affectedRows);
-            return affectedRows;
+            return affectedRows > 0;
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量更新标签状态异常: {}", e.getMessage(), e);
@@ -659,6 +686,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      * 批量更新标签使用次数
      * <p>
      * 此方法根据操作类型，统一处理标签使用次数的增加或减少
+     * TODO: 此接口不对外暴露使用，仅供内部调用
      *
      * @param tagIds 标签ID列表
      * @param value  更新值（必须为正数）
@@ -667,7 +695,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
      */
     @Override
     @Transactional
-    public int batchUpdateUsageCount(List<Long> tagIds, int value, String type) {
+    public boolean batchUpdateUsageCount(List<Long> tagIds, int value, String type) {
         try {
             // TODO: 调用Account服务验证用户身份和管理员权限
             // TODO: 调用MessageQueue服务将批量操作任务加入异步处理队列
@@ -677,27 +705,27 @@ public class ProblemTagServiceImpl implements ProblemTagService {
             // 参数校验
             if (tagIds == null || tagIds.isEmpty()) {
                 log.warn("ProblemTagService--->批量更新标签使用次数失败：标签ID列表为空");
-                return 0;
+                return false;
             }
 
             if (value <= 0) {
                 log.warn("ProblemTagService--->批量更新标签使用次数失败：更新值必须大于0，当前值: {}", value);
-                return 0;
+                return false;
             }
 
             // 验证操作类型
             if (!"increment".equals(type) && !"decrement".equals(type)) {
                 log.warn("ProblemTagService--->批量更新标签使用次数失败：无效的操作类型，当前类型: {}", type);
-                return 0;
+                return false;
             }
 
             //  获取当前登录用户
             LoginUser loginUser = LoginInterceptor.threadLocal.get();
             if (loginUser == null) {
-                throw new RuntimeException("用户未登录");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_UNLOGIN.getMessage());
             }
             if (loginUser.getAuth() == null || !loginUser.getAuth().equals("ADMIN")) {
-                throw new RuntimeException("用户没有批量修改标签的权限");
+                throw new RuntimeException(BizCodeEnum.ACCOUNT_PERMISSION_DENIED.getMessage());
             }
 
             int affectedRows;
@@ -710,7 +738,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
                 log.info("ProblemTagService--->批量减少标签使用次数成功，标签数量: {}, 减少次数: {}, 受影响行数: {}", tagIds.size(), value, affectedRows);
             }
 
-            return affectedRows;
+            return affectedRows > 0;
         } catch (Exception e) {
             // 记录错误日志
             log.error("ProblemTagService--->批量更新标签使用次数异常: {}", e.getMessage(), e);
@@ -767,7 +795,7 @@ public class ProblemTagServiceImpl implements ProblemTagService {
         try {
             return TagCategoryEnum.valueOf(category).name();
         } catch (IllegalArgumentException e) {
-            return "ALGORITHM";
+            return TagCategoryEnum.ALGORITHM.toString();
         }
     }
 
